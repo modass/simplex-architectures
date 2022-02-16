@@ -104,19 +104,26 @@ void plotOctree(const hypro::Hyperoctree<double> &octree, hypro::Plotter<double>
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
-int main() {
+int main(int argc, char *argv[]) {
+  // read command line arguments
+  if (argc != 2) {
+    throw std::logic_error("You need to provide a filename as input.");
+  }
+  std::string filename = argv[1];
+  std::cout << "Read input file: " << filename << std::endl;
+
   // settings
-  // TODO make command line
-  std::size_t iterations{ 50 };
-  std::size_t iteration_count{ 0 };
+  std::size_t iterations{50};
+  std::size_t iteration_count{0};
   std::size_t maxJumps = 150;
   Number widening = 0.01;
   bool training = true;
-  std::string filename{ "21_simplex_watertanks_deterministic_monitor_dbg_init_ticks.model" };
-  // constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
-  hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
-  hypro::vector_t<Number> constants = hypro::vector_t<Number>::Zero( 2 );
-  constraints( 0, 4 ) = 1;
+  // std::string filename{
+  // "21_simplex_watertanks_deterministic_monitor_dbg_init_ticks.model" };
+  //  constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
+  hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero(2, 5);
+  hypro::vector_t<Number> constants = hypro::vector_t<Number>::Zero(2);
+  constraints(0, 4) = 1;
   constraints( 1, 4 ) = -1;
   // parse model
   auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( hypro::getCSModelsPath() + filename );
