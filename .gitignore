@@ -1,3 +1,10 @@
+#IDE configs
+.idea
+
+# Build artifacts
+cmake-build-debug
+cmake-build-release
+
 # Prerequisites
 *.d
 
