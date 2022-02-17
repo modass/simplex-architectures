@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
   constraints(0, 4) = 1;
   constraints( 1, 4 ) = -1;
   // parse model
-  auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( hypro::getCSModelsPath() + filename );
+  auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( filename );
   // reachability analysis settings
   auto settings = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints = true;
