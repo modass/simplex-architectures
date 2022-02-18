@@ -102,6 +102,79 @@ void plotOctree(const hypro::Hyperoctree<double> &octree, hypro::Plotter<double>
   }
 }
 
+bool hasFixedPoint(const std::vector<hypro::ReachTreeNode<Representation>> &roots) {
+    for ( const auto& r : roots ) {
+        for (const auto &node: hypro::preorder(r)) {
+            if (node.hasFixedPoint() != hypro::TRIBOOL::TRUE) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
+void plotFlowpipes(const std::vector<hypro::ReachTreeNode<Representation>> &roots, const string &postfix) {
+    auto& plt = hypro::Plotter<Number>::getInstance();
+    plt.clear();
+    plt.rSettings().overwriteFiles = true;
+    plt.rSettings().cummulative = false;
+    plt.rSettings().xPlotInterval = carl::Interval<double>( 0.0, 0.8 );
+    plt.rSettings().yPlotInterval = carl::Interval<double>( 0.0, 0.8 );
+
+    for ( const auto& node : hypro::preorder( roots ) ) {
+        auto color = (node.hasFixedPoint() == hypro::TRIBOOL::FALSE) ?
+                     hypro::plotting::colors[hypro::plotting::orange] :
+                     hypro::plotting::colors[hypro::plotting::blue];
+
+        for ( const auto& segment : node.getFlowpipe() ) {
+            plt.addObject(segment.projectOn({0, 1}).vertices(), color);
+        }
+    }
+    plt.setFilename( "simplex_watertanks_loop_" + postfix );
+    plt.plot2d( hypro::PLOTTYPE::png );
+    plt.clear();
+}
+
+void reportIncompleteNodes(const std::vector<hypro::ReachTreeNode<Representation>> &roots) {
+    bool allNodesFixedPoint = true;
+    for ( const auto& node : hypro::preorder( roots ) ) {
+        auto color = (node.hasFixedPoint() == hypro::TRIBOOL::FALSE) ?
+                     hypro::plotting::colors[hypro::plotting::orange] :
+                     hypro::plotting::colors[hypro::plotting::blue];
+        if ( node.hasFixedPoint() == hypro::TRIBOOL::FALSE ) {
+            std::cout << "Node " << node << " with path " << node.getPath() << " has no fixed point." << std::endl;
+            allNodesFixedPoint = false;
+        } else if ( node.hasFixedPoint() == hypro::TRIBOOL::NSET ) {
+            std::cout << "Node " << node << " with path " << node.getPath() << " is indetermined" << std::endl;
+            allNodesFixedPoint = false;
+        }
+    }
+    if (allNodesFixedPoint) {
+        std::cout << "All nodes have a fixed point." << std::endl;
+    }
+}
+
+void updateOctree(std::map<const hypro::Location<Number>*, hypro::Hyperoctree<Number>> &octrees,
+                  const std::vector<hypro::ReachTreeNode<Representation>> &roots) {
+    //  constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
+    hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero(2, 5);
+    hypro::vector_t<Number> constants = hypro::vector_t<Number>::Zero(2);
+    constraints(0, 4) = 1;
+    constraints( 1, 4 ) = -1;
+
+    for ( const auto& r : roots ) {
+        for ( const auto& node : hypro::preorder( r ) ) {
+            for ( const auto& s : node.getFlowpipe() ) {
+                // only store segments which contain states where the cycle time is zero
+                if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
+                    octrees.at( node.getLocation() ).add( s.projectOn( interesting_dimensions ) );
+                }
+            }
+        }
+    }
+}
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
 int main(int argc, char *argv[]) {
@@ -120,11 +193,7 @@ int main(int argc, char *argv[]) {
   bool training = true;
   // std::string filename{
   // "21_simplex_watertanks_deterministic_monitor_dbg_init_ticks.model" };
-  //  constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
-  hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero(2, 5);
-  hypro::vector_t<Number> constants = hypro::vector_t<Number>::Zero(2);
-  constraints(0, 4) = 1;
-  constraints( 1, 4 ) = -1;
+
   // parse model
   auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( filename );
   // reachability analysis settings
@@ -147,13 +216,6 @@ int main(int argc, char *argv[]) {
     // octree to store reachable sets, here fixed to [0,1] in each dimension
     octrees.emplace( locPtr, hypro::Hyperoctree<Number>( 2, 6, hypro::Box<Number>{ std::vector<carl::Interval<Number>>{ carl::Interval<Number>{ 0, 1 }, carl::Interval<Number>{ 0, 1 }, carl::Interval<Number>{ 0, 15 } } } ) );
   }
-  // maintain an instance of the plotter
-  auto& plt = hypro::Plotter<Number>::getInstance();
-  plt.clear();
-  plt.rSettings().overwriteFiles = true;
-  plt.rSettings().cummulative = false;
-  plt.rSettings().xPlotInterval = carl::Interval<double>( 0, 1 );
-  plt.rSettings().yPlotInterval = carl::Interval<double>( 0, 1 );
   // initialize system
   auto initialLocation = automaton.getInitialStates().begin()->first;
   auto initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint().value();
@@ -167,9 +229,9 @@ int main(int argc, char *argv[]) {
   auto initialBox = hypro::Condition<Number>{ intervals };
   hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
   initialStates[initialLocation] = initialBox;
-  automaton.setInitialStates( initialStates );
+//  automaton.setInitialStates( initialStates );
   // store initial set in octree - we know its cycle-time is zero
-  octrees.at( initialLocation ).add( hypro::Box<Number>( intervals ) );
+//  octrees.at( initialLocation ).add( hypro::Box<Number>( intervals ) );
   // initialize reachtree
   roots = hypro::makeRoots<Representation>( automaton );
   // analysis
@@ -182,39 +244,17 @@ int main(int argc, char *argv[]) {
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
     std::cout << "System is initially not safe, need to deal with this." << std::endl;
     exit( 1 );
-  } else {
-    // update octree
-    for ( const auto& r : roots ) {
-      for ( const auto& node : hypro::preorder( r ) ) {
-        for ( const auto& s : node.getFlowpipe() ) {
-          // only store segments which contain states where the cycle time is zero
-          if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
-            octrees.at( node.getLocation() ).add( s.projectOn( interesting_dimensions ) );
-          }
-        }
-      }
-    }
+  } else if (!hasFixedPoint(roots)) {
+      std::cout << "System has no fixed point initially, need to deal with this." << std::endl;
+      exit( 1 );
+  }
+  else {
+      updateOctree(octrees, roots);
   }
 
   /* PLOTTING AFTER FIRST INIT */
-  for ( const auto& node : hypro::preorder( roots ) ) {
-    for ( const auto& segment : node.getFlowpipe() ) {
-      if ( node.hasFixedPoint() == hypro::TRIBOOL::TRUE ) {
-        plt.addObject( segment.projectOn( { 0, 1 } ).vertices(),
-                      hypro::plotting::colors[hypro::plotting::blue] );
-      } else if ( node.hasFixedPoint() == hypro::TRIBOOL::FALSE ) {
-        plt.addObject(segment.projectOn({0, 1}).vertices(),
-                      hypro::plotting::colors[hypro::plotting::orange]);
-        std::cout << "Node " << node << " with path " << node.getPath() << " has no fixed point." << std::endl;
-      } else {
-        plt.addObject(segment.projectOn({0, 1}).vertices());
-        std::cout << "Node " << node << " with path " << node.getPath() << " is indetermined" << std::endl;
-      }
-    }
-  }
-  plt.setFilename( "simplex_watertanks_loop_" + std::to_string( iteration_count ) );
-  plt.plot2d( hypro::PLOTTYPE::png );
-  plt.clear();
+    reportIncompleteNodes(roots);
+    plotFlowpipes(roots, std::to_string( iteration_count ));
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded number of iterations
   while ( iteration_count < iterations ) {
@@ -263,7 +303,7 @@ int main(int argc, char *argv[]) {
             // initialStates[loc] = hypro::Condition<Number>( widenSample( sim.mPotentialNewState, widening ) );
             // set sample u-value to the correct value (corresponding to the value the base controller would have chosen, this can be obtained from the location name)
             auto newintervals = box.intervals();
-            if ( loc->getName().find( "_open_" ) != std::string::npos ) {
+            if ( loc->getName().find( "_on_" ) != std::string::npos ) {
               newintervals[2] = carl::Interval<Number>( 0.0002 );
             } else {
               newintervals[2] = carl::Interval<Number>( 0.0 );
@@ -283,28 +323,26 @@ int main(int argc, char *argv[]) {
         auto result = reacher.computeForwardReachability();
         std::cout << " done, result: " << result << std::endl;
         // post processing
-        if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
-          //// else switch to base controller, continue: simulate base controller, update sample (use monitor for this)
-          // write new state - effectively simulates and uses base controller
-          // TODO this is ovely conservative, we could at least store results for samples (roots) that were safe.
-          std::cout << "Advanced controller is not safe on the long run, simulate base-controller, continue with next iteration." << std::endl;
-          sim.simulate( true );
-          sim.pointify();
+        if ( result != hypro::REACHABILITY_RESULT::SAFE) {
+            //// else switch to base controller, continue: simulate base controller, update sample (use monitor for this)
+            // write new state - effectively simulates and uses base controller
+            // TODO this is overly conservative, we could at least store results for samples (roots) that were safe.
+            std::cout
+                    << "Advanced controller is not safe on the long run, simulate base-controller, continue with next iteration."
+                    << std::endl;
+            sim.simulate(true);
+            sim.pointify();
+        } else if (!hasFixedPoint(roots)) {
+            std::cout
+                    << "No fixed point was found on the long run, simulate base-controller, continue with next iteration."
+                    << std::endl;
+            sim.simulate(true);
+            sim.pointify();
         } else {
           //// if resulting analysis is safe, continue with advanced controller (pointify sample, update initial states), add to octree
           std::cout << "Advanced controller is safe on the long run, update octree with new sets, continue with next iteration." << std::endl;
           sim.pointify();
-          // update octree
-          for ( const auto& r : roots ) {
-            for ( const auto& node : hypro::preorder( r ) ) {
-              for ( const auto& s : node.getFlowpipe() ) {
-                // only store segments which contain states where the cycle time is zero
-                if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
-                  octrees.at( node.getLocation() ).add( s.projectOn( interesting_dimensions ) );
-                }
-              }
-            }
-          }
+          updateOctree(octrees, roots);
         }
       } else {
         // we are not training and the sample is not yet known to be safe, switch to base controller
@@ -314,22 +352,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    for ( const auto& node : hypro::preorder( roots ) ) {
-      for ( const auto& segment : node.getFlowpipe() ) {
-        if ( node.hasFixedPoint() == hypro::TRIBOOL::TRUE ) {
-          plt.addObject( segment.projectOn( { 0, 1 } ).vertices(),
-                        hypro::plotting::colors[hypro::plotting::blue] );
-        } else if ( node.hasFixedPoint() == hypro::TRIBOOL::FALSE ) {
-          plt.addObject( segment.projectOn( { 0, 1 } ).vertices(),
-                        hypro::plotting::colors[hypro::plotting::orange] );
-        } else {
-          plt.addObject( segment.projectOn( { 0, 1 } ).vertices() );
-        }
-      }
-    }
-    plt.setFilename( "simplex_watertanks_loop_" + std::to_string( iteration_count ) );
-    plt.plot2d( hypro::PLOTTYPE::png );
-    plt.clear();
+    plotFlowpipes(roots, std::to_string( iteration_count ));
   }
 
   return 0;
