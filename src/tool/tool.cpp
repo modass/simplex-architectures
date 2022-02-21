@@ -93,7 +93,7 @@ void plotOctree(const hypro::Hyperoctree<double> &octree, hypro::Plotter<double>
   } else {
     if (!octree.getChildren().empty()) {
       for (const auto &child: octree.getChildren()) {
-        plotOctree(*child, plt);
+        plotOctree(child, plt);
       }
     } else {
       plt.addObject( octree.getContainer().projectOn( { 0, 1 } ).vertices(),
@@ -113,19 +113,20 @@ bool hasFixedPoint(const std::vector<hypro::ReachTreeNode<Representation>> &root
     return true;
 }
 
+void plotFlowpipes(
+    const std::vector<hypro::ReachTreeNode<Representation>> &roots,
+    const std::string &postfix) {
+  auto &plt = hypro::Plotter<Number>::getInstance();
+  plt.clear();
+  plt.rSettings().overwriteFiles = true;
+  plt.rSettings().cummulative = false;
+  plt.rSettings().xPlotInterval = carl::Interval<double>(0.0, 0.8);
+  plt.rSettings().yPlotInterval = carl::Interval<double>(0.0, 0.8);
 
-void plotFlowpipes(const std::vector<hypro::ReachTreeNode<Representation>> &roots, const string &postfix) {
-    auto& plt = hypro::Plotter<Number>::getInstance();
-    plt.clear();
-    plt.rSettings().overwriteFiles = true;
-    plt.rSettings().cummulative = false;
-    plt.rSettings().xPlotInterval = carl::Interval<double>( 0.0, 0.8 );
-    plt.rSettings().yPlotInterval = carl::Interval<double>( 0.0, 0.8 );
-
-    for ( const auto& node : hypro::preorder( roots ) ) {
-        auto color = (node.hasFixedPoint() == hypro::TRIBOOL::FALSE) ?
-                     hypro::plotting::colors[hypro::plotting::orange] :
-                     hypro::plotting::colors[hypro::plotting::blue];
+  for (const auto &node : hypro::preorder(roots)) {
+    auto color = (node.hasFixedPoint() == hypro::TRIBOOL::FALSE)
+                     ? hypro::plotting::colors[hypro::plotting::orange]
+                     : hypro::plotting::colors[hypro::plotting::blue];
 
         for ( const auto& segment : node.getFlowpipe() ) {
             plt.addObject(segment.projectOn({0, 1}).vertices(), color);
@@ -188,7 +189,7 @@ int main(int argc, char *argv[]) {
   // settings
   std::size_t iterations{50};
   std::size_t iteration_count{0};
-  std::size_t maxJumps = 150;
+  std::size_t maxJumps = 50;
   Number widening = 0.01;
   bool training = true;
   // std::string filename{
