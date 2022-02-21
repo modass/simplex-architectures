@@ -19,7 +19,9 @@
 
 #include "../types.h"
 #include "../simulation/Simulator.h"
+#include "../simulation/SamplingUtility.h"
 #include "../controller/Controller.h"
+#include "../utility/reachTreeUtility.h"
 #include <hypro/algorithms/reachability/Reach.h>
 #include <hypro/algorithms/reachability/handlers/badStateHandlers/ltiBadStateHandler.h>
 #include <hypro/datastructures/Hyperoctree.h>
@@ -48,20 +50,6 @@ static Point generateObservation( const Simulator& sim ) {
   LocPtr locptr = std::next( sim.mLastStates.begin(), chosenloc )->first;
   std::uniform_int_distribution<std::size_t> point_dist{ 0, sim.mLastStates.at( locptr ).size() - 1 };
   return std::next( sim.mLastStates.at( locptr ).begin(), point_dist( generator ) )->projectOn( { 0, 1 } );
-}
-
-template <typename Number>
-std::vector<carl::Interval<Number>> widenSample( const hypro::Point<Number>& sample, Number targetWidth ) {
-  std::vector<carl::Interval<Number>> intervals = std::vector<carl::Interval<Number>>( 5, carl::Interval<Number>( 0 ) );
-  Number range = targetWidth / 2;
-  for (std::size_t i = 0; i < sample.dimension(); ++i) {
-    if (std::find(interesting_dimensions.begin(), interesting_dimensions.end(), i) != interesting_dimensions.end()) {
-      intervals[i] = carl::Interval<Number>(sample.at(i) - range, sample.at(i) + range);
-    } else {
-      intervals[i] = carl::Interval<Number>(sample.at(i));
-    }
-  }
-  return intervals;
 }
 
 std::vector<hypro::Location<double> *> filterLocations(const std::vector<hypro::Location<double> *> &in, std::string filterExpression) {
@@ -100,17 +88,6 @@ void plotOctree(const hypro::Hyperoctree<double> &octree, hypro::Plotter<double>
                     hypro::plotting::colors[hypro::plotting::red] );
     }
   }
-}
-
-bool hasFixedPoint(const std::vector<hypro::ReachTreeNode<Representation>> &roots) {
-    for ( const auto& r : roots ) {
-        for (const auto &node: hypro::preorder(r)) {
-            if (node.hasFixedPoint() != hypro::TRIBOOL::TRUE) {
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 void plotFlowpipes(
