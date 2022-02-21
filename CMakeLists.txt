@@ -18,5 +18,6 @@ include(CMakePackageConfigHelpers)
 include(resources)
 
 # invoke cmake for the subdirectories
+add_subdirectory(src)
 add_subdirectory(src/tool)
 add_subdirectory(test)
