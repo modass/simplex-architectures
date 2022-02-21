@@ -1,0 +1,15 @@
+/*
+ * Created by Stefan Schupp <stefan.schupp@tuwien.ac.at> on 21.02.22.
+ */
+
+#pragma once
+#include <string>
+
+namespace simplexArchitectures {
+/// get input files path for case studies
+std::string getModelsPath()
+{
+  return "@CMAKE_SOURCE_DIR@/models/";
+}
+
+} // namespace simplexArchitectures
