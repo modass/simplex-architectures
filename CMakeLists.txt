@@ -19,3 +19,4 @@ include(resources)
 
 # invoke cmake for the subdirectories
 add_subdirectory(src/tool)
+add_subdirectory(test)
