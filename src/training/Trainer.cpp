@@ -45,6 +45,14 @@ locationConditionMap Trainer::generateInitialStates( const hypro::HybridAutomato
       auto initialStatesFunctor{ Random() };
       return initialStatesFunctor( automaton, mTrainingSettings );
     }
+    case INITIAL_STATE_HEURISTICS::GRID: {
+      auto initialStatesFunctor{ Grid( mTrainingSettings.subdivision, mTrainingSettings ) };
+      return initialStatesFunctor( automaton, mTrainingSettings );
+    }
+    case INITIAL_STATE_HEURISTICS::GRID_COVER: {
+      auto initialStatesFunctor{ GridCover( mTrainingSettings.subdivision, mTrainingSettings ) };
+      return initialStatesFunctor( automaton, mTrainingSettings );
+    }
   }
 }
 

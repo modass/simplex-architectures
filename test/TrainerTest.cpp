@@ -146,12 +146,14 @@ TEST_CASE( "Random Training with a single iteration" ) {
   simplexArchitectures::Trainer t{
       "testfile",
       simplexArchitectures::getModelsPath() + "21_simplex_watertanks_deterministic_monitor_dbg_init_ticks.model",
-      { 1,
-        simplexArchitectures::INITIAL_STATE_HEURISTICS::RANDOM,
-        { 0, 1 },
-        { Box{ IVector{ Interval{ 0, 1 }, Interval{ 0, 1 }, Interval{ 0 }, Interval{ 0 }, Interval{ 0 } } } },
-        10.0,
-        3 },
+      simplexArchitectures::TrainingSettings{
+          1,
+          simplexArchitectures::INITIAL_STATE_HEURISTICS::RANDOM,
+          { 0, 1 },
+          { Box{ IVector{ Interval{ 0, 1 }, Interval{ 0, 1 }, Interval{ 0 }, Interval{ 0 }, Interval{ 0 } } } },
+          {},
+          10.0,
+          3 },
       { { 0, 1 }, { Box{ IVector{ Interval{ 0, 1 }, Interval{ 0, 1 } } } } } };
   t.run();
 }

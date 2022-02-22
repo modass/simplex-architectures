@@ -11,13 +11,14 @@
 
 namespace simplexArchitectures {
 
-enum INITIAL_STATE_HEURISTICS { RANDOM = 1, SINGLE = 2, GRID = 3, GRID_COVER = 4 };
+enum INITIAL_STATE_HEURISTICS { RANDOM = 1, GRID = 2, GRID_COVER = 3 };
 
 struct TrainingSettings {
   std::size_t              iterations;
   INITIAL_STATE_HEURISTICS heuristics;
   std::vector<std::size_t> wideningDimensions;
   hypro::Box<Number>       samplingArea;
+  std::vector<std::size_t> subdivision     = {};
   Number                   timeHorizon     = 100.0;
   std::size_t              jumpDepth       = 200;
   Number                   initialSetWidth = 0.1;
