@@ -27,7 +27,7 @@ TEST_CASE( "Construct Trainer" ) {
   }
 }
 
-TEST_CASE( "Grid-sample generation" ) {
+TEST_CASE( "Grid-sample generation", "[training]" ) {
   using Interval = carl::Interval<Number>;
   using IVector  = std::vector<Interval>;
   using Box      = hypro::Box<Number>;
@@ -41,9 +41,34 @@ TEST_CASE( "Grid-sample generation" ) {
       Box{ IVector{ Interval{ 0, 1 }, Interval{ 0, 1 }, Interval{ 0 }, Interval{ 0 }, Interval{ 0 } } } };
   simplexArchitectures::Grid g{ resolution, trainingSettings };
   auto                       s1 = g( automaton, trainingSettings );
-  auto                       s2 = g( automaton, trainingSettings );
-  auto                       s3 = g( automaton, trainingSettings );
-  auto                       s4 = g( automaton, trainingSettings );
+  CAPTURE( std::begin( s1 )->second );
+  std::cout << std::begin( s1 )->second << std::endl;
+  REQUIRE( s1.size() == 1 );
+  REQUIRE( std::begin( s1 )->second.contains( hypro::Point<Number>{ 0.33, 0.33, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s1 )->second.contains( hypro::Point<Number>{ 0.66, 0.66, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s1 )->second.contains( hypro::Point<Number>{ 0.25, 0.25, 1, 0, 0 } ) );
+  auto b1 = Box( std::begin( s1 )->second.getMatrix(), std::begin( s1 )->second.getVector() );
+  REQUIRE( b1.intervals()[0].contains( Interval{ 0.29, 0.38 } ) );
+  REQUIRE( b1.intervals()[1].contains( Interval{ 0.29, 0.38 } ) );
+  REQUIRE( b1.intervals()[2] == Interval{ 0.0 } );
+  REQUIRE( b1.intervals()[3] == Interval{ 0.0 } );
+  REQUIRE( b1.intervals()[4] == Interval{ 0.0 } );
+
+  auto s2 = g( automaton, trainingSettings );
+  REQUIRE( s2.size() == 1 );
+  REQUIRE( std::begin( s2 )->second.contains( hypro::Point<Number>{ 0.66, 0.33, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s2 )->second.contains( hypro::Point<Number>{ 0.66, 0.66, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s2 )->second.contains( hypro::Point<Number>{ 0.25, 0.25, 1, 0, 0 } ) );
+  auto s3 = g( automaton, trainingSettings );
+  REQUIRE( s3.size() == 1 );
+  REQUIRE( std::begin( s3 )->second.contains( hypro::Point<Number>{ 0.33, 0.66, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s3 )->second.contains( hypro::Point<Number>{ 0.66, 0.66, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s3 )->second.contains( hypro::Point<Number>{ 0.25, 0.25, 1, 0, 0 } ) );
+  auto s4 = g( automaton, trainingSettings );
+  REQUIRE( s4.size() == 1 );
+  REQUIRE( std::begin( s4 )->second.contains( hypro::Point<Number>{ 0.66, 0.66, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s4 )->second.contains( hypro::Point<Number>{ 0.33, 0.66, 0, 0, 0 } ) );
+  REQUIRE( !std::begin( s4 )->second.contains( hypro::Point<Number>{ 0.25, 0.25, 1, 0, 0 } ) );
 }
 
 TEST_CASE( "Random Training with a single iteration" ) {
