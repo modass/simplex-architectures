@@ -11,7 +11,7 @@
 
 namespace simplexArchitectures {
 
-enum INITIAL_STATE_HEURISTICS { RANDOM = 1 };
+enum INITIAL_STATE_HEURISTICS { RANDOM = 1, SINGLE = 2, GRID = 3, GRID_COVER = 4 };
 
 struct TrainingSettings {
   std::size_t              iterations;
