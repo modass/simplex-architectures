@@ -1,2 +1,2 @@
-add_library(SimplexArchitectures controller/Controller.cpp simulation/Simulator.cpp training/Trainer.cpp)
+add_library(SimplexArchitectures controller/Controller.cpp simulation/Simulator.cpp training/Trainer.cpp controller/AbstractController.h controller/ConstantController.h controller/RandomController.cpp controller/RandomController.h controller/RLController.cpp controller/RLController.h)
 target_link_libraries(SimplexArchitectures hypro-shared cereal::cereal)
