@@ -88,7 +88,6 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
             if(locPtr->getName() == node.getLocation()->getName()) {
               mTrees.at( locPtr->getName() ).add(s.projectOn( mStorageSettings.projectionDimensions ));
             }
-            ++i;
           }
         }
       }
@@ -104,6 +103,11 @@ void Trainer::runIteration( const hypro::Settings& settings ) {
   // analysis
   auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, settings.fixedParameters(),
                                                              settings.strategy().front(), roots );
+
+  // set up callbacks which are used by hypro to access the octree
+  std::function<bool(const Representation&,const hypro::Location<double>*)> callback = [this](const auto& set, const auto locptr){ return mTrees.at(locptr->getName()).contains(set);};
+  hypro::ReachabilityCallbacks<Representation,hypro::Location<double>> callbackStructure{callback};
+  reacher.setCallbacks(callbackStructure);
 
   auto result = reacher.computeForwardReachability();
 
