@@ -27,13 +27,13 @@ int main( int argc, char** argv ) {
                                      Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0 }, I{ 0 }, I{ 0 } } },
                                      { 5, 5, 1, 1, 1 } };
   StorageSettings storageSettings{ { 0, 1, 4 }, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 15 } } }, 2, 6 };
-  app.add_option( "-f,--file", modelfilename, "Path to the model file" );
-  app.add_option( "-i,--iterations", trainingSettings.iterations, "Number of trainings" );
+  app.add_option( "-f,--file", modelfilename, "Path to the model file" )->required()->check(CLI::ExistingFile);
+  app.add_option( "-i,--iterations", trainingSettings.iterations, "Number of trainings" )->check(CLI::PositiveNumber);
   app.add_option( "-s,--strategy", trainingSettings.heuristics,
                   "Strategy/Heuristics used for training. Possible values: random, grid, gridCover" )
       ->transform( CLI::CheckedTransformer( map, CLI::ignore_case ) );
   app.add_option( "-o,--outfile", storagefilename, "Path to output file" );
-  app.add_option( "-w,--width", trainingSettings.initialSetWidth, "Target width of the initial sets" );
+  app.add_option( "-w,--width", trainingSettings.initialSetWidth, "Target width of the initial sets" )->check(CLI::PositiveNumber);
 
   CLI11_PARSE( app, argc, argv );
 
