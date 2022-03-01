@@ -67,7 +67,7 @@ struct Grid {
       locIndex++;
     }
     currentCell = gen();
-    LocPtr loc  = *std::next( automaton.getLocations().begin(), locIndex );
+    LocPtr loc  = automaton.getLocationByIndex(locIndex);
 
     // create sample
     Point sample{ hypro::vector_t<Number>::Zero( settings.samplingArea.dimension() ) };
