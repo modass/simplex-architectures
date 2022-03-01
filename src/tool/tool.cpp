@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
     octrees.emplace( locPtr, hypro::Hyperoctree<Number>( 2, 6, hypro::Box<Number>{ std::vector<carl::Interval<Number>>{ carl::Interval<Number>{ 0, 1 }, carl::Interval<Number>{ 0, 1 }, carl::Interval<Number>{ 0, 15 } } } ) );
   }
   // initialize system
-  auto initialLocation = automaton.getInitialStates().begin()->first;
+  auto initialLocation  = automaton.getInitialStates().begin()->first;
   auto initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint().value();
   sim.mLastStates[initialLocation] = { initialValuation };
   // initial first reachability analysis for the initial point
@@ -203,18 +203,18 @@ int main(int argc, char *argv[]) {
   // reachability tree
   std::vector<hypro::ReachTreeNode<Representation>> roots;
   // update initial states - set to small box around sample
-  auto intervals = widenSample( initialValuation, widening );
-  auto initialBox = hypro::Condition<Number>{ intervals };
+  auto                                                 intervals = widenSample( initialValuation, widening, { 0, 1 } );
+  auto                                                 initialBox = hypro::Condition<Number>{ intervals };
   hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
   initialStates[initialLocation] = initialBox;
-//  automaton.setInitialStates( initialStates );
+  //  automaton.setInitialStates( initialStates );
   // store initial set in octree - we know its cycle-time is zero
-//  octrees.at( initialLocation ).add( hypro::Box<Number>( intervals ) );
+  //  octrees.at( initialLocation ).add( hypro::Box<Number>( intervals ) );
   // initialize reachtree
   roots = hypro::makeRoots<Representation>( automaton );
   // analysis
   auto reacher = hypro::reachability::Reach<Representation>( automaton, settings.fixedParameters(),
-                                                            settings.strategy().front(), roots );
+                                                             settings.strategy().front(), roots );
   std::cout << "Run initial analysis ... " << std::flush;
   auto result = reacher.computeForwardReachability();
   std::cout << "done, result: " << result << std::endl;

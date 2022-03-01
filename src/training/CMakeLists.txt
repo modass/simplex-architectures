@@ -1,0 +1,2 @@
+add_executable(Trainer TrainerApp.cpp)
+target_link_libraries(Trainer SimplexArchitectures CLI11 spdlog)

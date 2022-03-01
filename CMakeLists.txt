@@ -20,7 +20,11 @@ include(resources)
 # invoke cmake for the subdirectories
 add_subdirectory(src)
 add_subdirectory(src/tool)
-add_subdirectory(test)
+add_subdirectory(src/training)
 
 # configure paths.h.in (helper file which allows to get the absolute path for model files)
 configure_file(src/paths.h.in src/paths.h)
+
+# setup for ctest
+include(CTest)
+add_subdirectory(test)

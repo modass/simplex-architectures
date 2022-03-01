@@ -7,6 +7,8 @@
 #include <hypro/algorithms/reachability/Reach.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
 #include <hypro/representations/GeometricObjectBase.h>
+#include <hypro/util/plotting/Plotter.h>
+#include "../utility/octreePlotting.h"
 
 #include "../utility/reachTreeUtility.h"
 #include "TrainingHeuristics.h"
@@ -14,7 +16,7 @@
 namespace simplexArchitectures {
 
 void Trainer::run() {
-  auto [automaton, reachSettings] = hypro::parseFlowstarFile<double>( mModelFileName );
+  auto [mAutomaton, reachSettings] = hypro::parseFlowstarFile<double>( mModelFileName );
   // reachability analysis settings
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
@@ -26,7 +28,7 @@ void Trainer::run() {
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
   // initialize storage
   if ( mTrees.empty() ) {
-    for ( auto i = 0; i < automaton.getLocations().size(); ++i ) {
+    for ( auto i = 0; i < mAutomaton.getLocations().size(); ++i ) {
       // octree to store reachable sets, here fixed to [0,1] in each dimension
       mTrees.emplace( i, hypro::Hyperoctree<Number>( mStorageSettings.treeSplits, mStorageSettings.treeDepth,
                                                      mStorageSettings.treeContainer ) );
@@ -35,29 +37,37 @@ void Trainer::run() {
   // run iterations
   auto i = 0;
   while ( i++ < mTrainingSettings.iterations ) {
-    runIteration( automaton, settings );
+    runIteration( settings );
   }
 }
 
-locationConditionMap Trainer::generateInitialStates( const hypro::HybridAutomaton<Number>& automaton ) const {
+void Trainer::plot( const std::string& outfilename ) {
+  hypro::Plotter<Number>& plt = hypro::Plotter<Number>::getInstance();
+  for ( const auto& [locationIndex, tree] : mTrees ) {
+    std::size_t idx = locationIndex;
+    plt.setFilename( outfilename + "_" + ( *std::next( mAutomaton.getLocations().begin(), idx ) )->getName() );
+    plotOctree( tree, plt );
+  }
+}
+
+locationConditionMap Trainer::generateInitialStates() const {
   switch ( mTrainingSettings.heuristics ) {
     case INITIAL_STATE_HEURISTICS::RANDOM: {
       auto initialStatesFunctor{ Random() };
-      return initialStatesFunctor( automaton, mTrainingSettings );
+      return initialStatesFunctor( mAutomaton, mTrainingSettings );
     }
     case INITIAL_STATE_HEURISTICS::GRID: {
       auto initialStatesFunctor{ Grid( mTrainingSettings.subdivision, mTrainingSettings ) };
-      return initialStatesFunctor( automaton, mTrainingSettings );
+      return initialStatesFunctor( mAutomaton, mTrainingSettings );
     }
     case INITIAL_STATE_HEURISTICS::GRID_COVER: {
       auto initialStatesFunctor{ GridCover( mTrainingSettings.subdivision, mTrainingSettings ) };
-      return initialStatesFunctor( automaton, mTrainingSettings );
+      return initialStatesFunctor( mAutomaton, mTrainingSettings );
     }
   }
 }
 
-void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots,
-                            const hypro::HybridAutomaton<Number>&                    automaton ) {
+void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots ) {
   //  constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
   hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
   hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );
@@ -71,8 +81,8 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
         if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
           // get location index
           std::size_t i = 0;
-          while ( i < automaton.getLocations().size() ) {
-            if ( automaton.getLocations().at( i ) == node.getLocation() ) {
+          while ( i < mAutomaton.getLocations().size() ) {
+            if ( mAutomaton.getLocations().at( i ) == node.getLocation() ) {
               mTrees.at( i ).add( s.projectOn( mStorageSettings.projectionDimensions ) );
             }
             ++i;
@@ -83,24 +93,24 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
   }
 }
 
-void Trainer::runIteration( hypro::HybridAutomaton<double> automaton, const hypro::Settings& settings ) {
-  auto roots = hypro::makeRoots<Representation>( automaton );
+void Trainer::runIteration( const hypro::Settings& settings ) {
+  auto roots = hypro::makeRoots<Representation>( mAutomaton );
   // obtain and set new initial states for training
-  auto newInitialStates = generateInitialStates( automaton );
-  automaton.setInitialStates( newInitialStates );
+  auto newInitialStates = generateInitialStates();
+  mAutomaton.setInitialStates( newInitialStates );
   // analysis
-  auto reacher = hypro::reachability::Reach<Representation>( automaton, settings.fixedParameters(),
+  auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, settings.fixedParameters(),
                                                              settings.strategy().front(), roots );
-  std::cout << "Run initial analysis ... " << std::flush;
+
   auto result = reacher.computeForwardReachability();
-  std::cout << "done, result: " << result << std::endl;
+
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
     std::cout << "System is initially not safe, need to deal with this." << std::endl;
   } else if ( !hasFixedPoint( roots ) ) {
     std::cout << "System has no fixed point initially, need to deal with this." << std::endl;
   } else {
-    updateOctree( roots, automaton );
+    updateOctree( roots );
   }
 }
 

@@ -48,20 +48,26 @@ class Trainer {
     cereal::BinaryOutputArchive oarchive( fs );
     oarchive( mTrees );
   }
+  /**
+   * Starts training with the provided settings. The trainer will try to load a file containing already discovered save
+   * sets (as specified in the filename) and extend those.
+   */
   void run();
+  /// Writes the currently available safe sets to a plot file.
+  void plot( const std::string& outfilename );
 
  private:
-  locationConditionMap generateInitialStates( const hypro::HybridAutomaton<Number>& automaton ) const;
-  void                 updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots,
-                                     const hypro::HybridAutomaton<Number>&                    automaton );
-  void                 runIteration( hypro::HybridAutomaton<double> automaton, const hypro::Settings& settings );
+  locationConditionMap generateInitialStates() const;
+  void                 updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots );
+  void                 runIteration( const hypro::Settings& settings );
 
  protected:
-  TrainingSettings mTrainingSettings;                        ///< settings for training
-  StorageSettings  mStorageSettings;                         ///< settings for storing reachability results
-  std::string      mFilename = "treearchive";                ///< filename for saving and loading safe sets
-  std::string      mModelFileName;                           ///< filename of the model file used for training
-  std::map<std::size_t, hypro::Hyperoctree<Number>> mTrees;  ///< storage for safe sets
+  TrainingSettings mTrainingSettings;                            ///< settings for training
+  StorageSettings  mStorageSettings;                             ///< settings for storing reachability results
+  std::string      mFilename = "treearchive";                    ///< filename for saving and loading safe sets
+  std::string      mModelFileName;                               ///< filename of the model file used for training
+  std::map<std::size_t, hypro::Hyperoctree<Number>> mTrees;      ///< storage for safe sets
+  hypro::HybridAutomaton<Number>                    mAutomaton;  ///< automaton representing the model
 };
 
 }  // namespace simplexArchitectures
