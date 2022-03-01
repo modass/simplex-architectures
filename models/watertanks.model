@@ -13,6 +13,7 @@ hybrid reachability
         spec_high = 0.3      # if x2 >= spec_high: antecedent -> init
         base_ctrl_low = 0.35 # if x2 <= base_ctrl_low:  off -> on
         base_ctrl_high = 0.7 # if x1 >= base_ctrl_high: on -> off
+        u_on = 0.0002        # if on: u = u_on else: u = 0.0
     }
 
     setting
@@ -32,7 +33,7 @@ hybrid reachability
 
     modes
     {
-        valve_closed_on_init
+        closed_on_init
         {
             lti ode
             {
@@ -44,11 +45,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_closed_on_antecedent
+        closed_on_antecedent
         {
             lti ode
             {
@@ -60,11 +61,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = u_on   spec_t1 >= 0.0
             }
         }
 
-        valve_closed_on_bad
+        closed_on_bad
         {
             lti ode
             {
@@ -76,11 +77,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_closed_off_init
+        closed_off_init
         {
             lti ode
             {
@@ -92,11 +93,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_closed_off_antecedent
+        closed_off_antecedent
         {
             lti ode
             {
@@ -108,11 +109,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 >= 0.0
             }
         }
 
-        valve_closed_off_bad
+        closed_off_bad
         {
             lti ode
             {
@@ -124,11 +125,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_open1_on_init
+        open1_on_init
         {
             lti ode
             {
@@ -140,11 +141,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_open1_on_antecedent
+        open1_on_antecedent
         {
             lti ode
             {
@@ -156,11 +157,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = u_on   spec_t1 >= 0.0
             }
         }
 
-        valve_open1_on_bad
+        open1_on_bad
         {
             lti ode
             {
@@ -172,11 +173,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_open1_off_init
+        open1_off_init
         {
             lti ode
             {
@@ -188,11 +189,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_open1_off_antecedent
+        open1_off_antecedent
         {
             lti ode
             {
@@ -204,11 +205,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 >= 0.0
             }
         }
 
-        valve_open1_off_bad
+        open1_off_bad
         {
             lti ode
             {
@@ -220,11 +221,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_open2_on_init
+        open2_on_init
         {
             lti ode
             {
@@ -236,11 +237,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_open2_on_antecedent
+        open2_on_antecedent
         {
             lti ode
             {
@@ -252,11 +253,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = u_on   spec_t1 >= 0.0
             }
         }
 
-        valve_open2_on_bad
+        open2_on_bad
         {
             lti ode
             {
@@ -268,11 +269,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_open2_off_init
+        open2_off_init
         {
             lti ode
             {
@@ -284,11 +285,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_open2_off_antecedent
+        open2_off_antecedent
         {
             lti ode
             {
@@ -300,11 +301,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 >= 0.0
             }
         }
 
-        valve_open2_off_bad
+        open2_off_bad
         {
             lti ode
             {
@@ -316,11 +317,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_open3_on_init
+        open3_on_init
         {
             lti ode
             {
@@ -332,11 +333,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_open3_on_antecedent
+        open3_on_antecedent
         {
             lti ode
             {
@@ -348,11 +349,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = u_on   spec_t1 >= 0.0
             }
         }
 
-        valve_open3_on_bad
+        open3_on_bad
         {
             lti ode
             {
@@ -364,11 +365,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   u = u_on   spec_t1 = 0.0
             }
         }
 
-        valve_open3_off_init
+        open3_off_init
         {
             lti ode
             {
@@ -380,11 +381,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
 
-        valve_open3_off_antecedent
+        open3_off_antecedent
         {
             lti ode
             {
@@ -396,11 +397,11 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 >= 0.0
             }
         }
 
-        valve_open3_off_bad
+        open3_off_bad
         {
             lti ode
             {
@@ -412,14 +413,14 @@ hybrid reachability
             }
             inv
             {
-                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   u = 0.0   spec_t1 = 0.0
             }
         }
     }
 
     jumps
     {
-        valve_closed_on_init -> valve_open1_on_init
+        closed_on_init -> open1_on_init
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -429,7 +430,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_open1_on_antecedent
+        closed_on_antecedent -> open1_on_antecedent
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -439,7 +440,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_bad -> valve_open1_on_bad
+        closed_on_bad -> open1_on_bad
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -449,7 +450,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_init -> valve_open1_off_init
+        closed_off_init -> open1_off_init
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -459,7 +460,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_open1_off_antecedent
+        closed_off_antecedent -> open1_off_antecedent
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -469,7 +470,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_bad -> valve_open1_off_bad
+        closed_off_bad -> open1_off_bad
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -479,7 +480,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_init -> valve_open2_on_init
+        closed_on_init -> open2_on_init
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -489,7 +490,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_open2_on_antecedent
+        closed_on_antecedent -> open2_on_antecedent
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -499,7 +500,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_bad -> valve_open2_on_bad
+        closed_on_bad -> open2_on_bad
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -509,7 +510,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_init -> valve_open2_off_init
+        closed_off_init -> open2_off_init
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -519,7 +520,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_open2_off_antecedent
+        closed_off_antecedent -> open2_off_antecedent
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -529,7 +530,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_bad -> valve_open2_off_bad
+        closed_off_bad -> open2_off_bad
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -539,7 +540,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_init -> valve_open3_on_init
+        closed_on_init -> open3_on_init
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -549,7 +550,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_open3_on_antecedent
+        closed_on_antecedent -> open3_on_antecedent
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -559,7 +560,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_bad -> valve_open3_on_bad
+        closed_on_bad -> open3_on_bad
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -569,7 +570,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_init -> valve_open3_off_init
+        closed_off_init -> open3_off_init
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -579,7 +580,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_open3_off_antecedent
+        closed_off_antecedent -> open3_off_antecedent
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -589,7 +590,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_bad -> valve_open3_off_bad
+        closed_off_bad -> open3_off_bad
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -599,7 +600,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_init -> valve_closed_on_init
+        open1_on_init -> closed_on_init
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -609,7 +610,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_closed_on_antecedent
+        open1_on_antecedent -> closed_on_antecedent
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -619,7 +620,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_bad -> valve_closed_on_bad
+        open1_on_bad -> closed_on_bad
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -629,7 +630,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_init -> valve_closed_off_init
+        open1_off_init -> closed_off_init
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -639,7 +640,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_closed_off_antecedent
+        open1_off_antecedent -> closed_off_antecedent
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -649,7 +650,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_bad -> valve_closed_off_bad
+        open1_off_bad -> closed_off_bad
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -659,7 +660,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_init -> valve_open2_on_init
+        open1_on_init -> open2_on_init
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -669,7 +670,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_open2_on_antecedent
+        open1_on_antecedent -> open2_on_antecedent
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -679,7 +680,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_bad -> valve_open2_on_bad
+        open1_on_bad -> open2_on_bad
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -689,7 +690,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_init -> valve_open2_off_init
+        open1_off_init -> open2_off_init
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -699,7 +700,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_open2_off_antecedent
+        open1_off_antecedent -> open2_off_antecedent
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -709,7 +710,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_bad -> valve_open2_off_bad
+        open1_off_bad -> open2_off_bad
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -719,7 +720,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_init -> valve_open3_on_init
+        open1_on_init -> open3_on_init
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -729,7 +730,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_open3_on_antecedent
+        open1_on_antecedent -> open3_on_antecedent
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -739,7 +740,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_bad -> valve_open3_on_bad
+        open1_on_bad -> open3_on_bad
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -749,7 +750,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_init -> valve_open3_off_init
+        open1_off_init -> open3_off_init
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -759,7 +760,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_open3_off_antecedent
+        open1_off_antecedent -> open3_off_antecedent
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -769,7 +770,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_bad -> valve_open3_off_bad
+        open1_off_bad -> open3_off_bad
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -779,7 +780,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_init -> valve_closed_on_init
+        open2_on_init -> closed_on_init
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -789,7 +790,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_closed_on_antecedent
+        open2_on_antecedent -> closed_on_antecedent
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -799,7 +800,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_bad -> valve_closed_on_bad
+        open2_on_bad -> closed_on_bad
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -809,7 +810,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_init -> valve_closed_off_init
+        open2_off_init -> closed_off_init
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -819,7 +820,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_closed_off_antecedent
+        open2_off_antecedent -> closed_off_antecedent
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -829,7 +830,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_bad -> valve_closed_off_bad
+        open2_off_bad -> closed_off_bad
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -839,7 +840,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_init -> valve_open3_on_init
+        open2_on_init -> open3_on_init
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -849,7 +850,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_open3_on_antecedent
+        open2_on_antecedent -> open3_on_antecedent
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -859,7 +860,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_bad -> valve_open3_on_bad
+        open2_on_bad -> open3_on_bad
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -869,7 +870,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_init -> valve_open3_off_init
+        open2_off_init -> open3_off_init
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -879,7 +880,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_open3_off_antecedent
+        open2_off_antecedent -> open3_off_antecedent
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -889,7 +890,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_bad -> valve_open3_off_bad
+        open2_off_bad -> open3_off_bad
         guard
         {
             x1 >= 0.2   x2 <= 0.2
@@ -899,7 +900,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_init -> valve_open1_on_init
+        open2_on_init -> open1_on_init
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -909,7 +910,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_open1_on_antecedent
+        open2_on_antecedent -> open1_on_antecedent
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -919,7 +920,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_bad -> valve_open1_on_bad
+        open2_on_bad -> open1_on_bad
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -929,7 +930,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_init -> valve_open1_off_init
+        open2_off_init -> open1_off_init
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -939,7 +940,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_open1_off_antecedent
+        open2_off_antecedent -> open1_off_antecedent
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -949,7 +950,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_bad -> valve_open1_off_bad
+        open2_off_bad -> open1_off_bad
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -959,7 +960,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_init -> valve_closed_on_init
+        open3_on_init -> closed_on_init
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -969,7 +970,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_antecedent -> valve_closed_on_antecedent
+        open3_on_antecedent -> closed_on_antecedent
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -979,7 +980,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_bad -> valve_closed_on_bad
+        open3_on_bad -> closed_on_bad
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -989,7 +990,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_init -> valve_closed_off_init
+        open3_off_init -> closed_off_init
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -999,7 +1000,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_closed_off_antecedent
+        open3_off_antecedent -> closed_off_antecedent
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -1009,7 +1010,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_bad -> valve_closed_off_bad
+        open3_off_bad -> closed_off_bad
         guard
         {
             x1 <= 0.2   x2 <= 0.2
@@ -1019,7 +1020,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_init -> valve_open2_on_init
+        open3_on_init -> open2_on_init
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -1029,7 +1030,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_antecedent -> valve_open2_on_antecedent
+        open3_on_antecedent -> open2_on_antecedent
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -1039,7 +1040,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_bad -> valve_open2_on_bad
+        open3_on_bad -> open2_on_bad
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -1049,7 +1050,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_init -> valve_open2_off_init
+        open3_off_init -> open2_off_init
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -1059,7 +1060,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_open2_off_antecedent
+        open3_off_antecedent -> open2_off_antecedent
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -1069,7 +1070,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_bad -> valve_open2_off_bad
+        open3_off_bad -> open2_off_bad
         guard
         {
             x1 <= 0.2   x2 >= 0.2
@@ -1079,7 +1080,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_init -> valve_open1_on_init
+        open3_on_init -> open1_on_init
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -1089,7 +1090,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_antecedent -> valve_open1_on_antecedent
+        open3_on_antecedent -> open1_on_antecedent
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -1099,7 +1100,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_bad -> valve_open1_on_bad
+        open3_on_bad -> open1_on_bad
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -1109,7 +1110,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_init -> valve_open1_off_init
+        open3_off_init -> open1_off_init
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -1119,7 +1120,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_open1_off_antecedent
+        open3_off_antecedent -> open1_off_antecedent
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -1129,7 +1130,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_bad -> valve_open1_off_bad
+        open3_off_bad -> open1_off_bad
         guard
         {
             x1 >= 0.2   x2 >= 0.2
@@ -1139,7 +1140,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_init -> valve_closed_off_init
+        closed_on_init -> closed_off_init
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1151,19 +1152,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_init -> valve_closed_on_init
+        closed_on_init -> closed_on_init
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_closed_off_antecedent
+        closed_on_antecedent -> closed_off_antecedent
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1175,19 +1176,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_closed_on_antecedent
+        closed_on_antecedent -> closed_on_antecedent
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_closed_on_bad -> valve_closed_off_bad
+        closed_on_bad -> closed_off_bad
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1199,19 +1200,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_bad -> valve_closed_on_bad
+        closed_on_bad -> closed_on_bad
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open1_on_init -> valve_open1_off_init
+        open1_on_init -> open1_off_init
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1223,19 +1224,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_init -> valve_open1_on_init
+        open1_on_init -> open1_on_init
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_open1_off_antecedent
+        open1_on_antecedent -> open1_off_antecedent
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1247,19 +1248,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_open1_on_antecedent
+        open1_on_antecedent -> open1_on_antecedent
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open1_on_bad -> valve_open1_off_bad
+        open1_on_bad -> open1_off_bad
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1271,19 +1272,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_bad -> valve_open1_on_bad
+        open1_on_bad -> open1_on_bad
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open2_on_init -> valve_open2_off_init
+        open2_on_init -> open2_off_init
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1295,19 +1296,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_init -> valve_open2_on_init
+        open2_on_init -> open2_on_init
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_open2_off_antecedent
+        open2_on_antecedent -> open2_off_antecedent
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1319,19 +1320,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_open2_on_antecedent
+        open2_on_antecedent -> open2_on_antecedent
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open2_on_bad -> valve_open2_off_bad
+        open2_on_bad -> open2_off_bad
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1343,19 +1344,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_bad -> valve_open2_on_bad
+        open2_on_bad -> open2_on_bad
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open3_on_init -> valve_open3_off_init
+        open3_on_init -> open3_off_init
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1367,20 +1368,20 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_init -> valve_open3_on_init
+        open3_on_init -> open3_on_init
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
 
-        valve_open3_on_antecedent -> valve_open3_off_antecedent
+        open3_on_antecedent -> open3_off_antecedent
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1392,19 +1393,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_antecedent -> valve_open3_on_antecedent
+        open3_on_antecedent -> open3_on_antecedent
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open3_on_bad -> valve_open3_off_bad
+        open3_on_bad -> open3_off_bad
         guard
         {
             x1 >= base_ctrl_high   tick >= cycle_time
@@ -1416,31 +1417,31 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_bad -> valve_open3_on_bad
+        open3_on_bad -> open3_on_bad
         guard
         {
             x1 <= base_ctrl_high   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_closed_off_init -> valve_closed_on_init
+        closed_off_init -> closed_on_init
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_closed_off_init -> valve_closed_off_init
+        closed_off_init -> closed_off_init
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1452,19 +1453,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_closed_on_antecedent
+        closed_off_antecedent -> closed_on_antecedent
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_closed_off_antecedent
+        closed_off_antecedent -> closed_off_antecedent
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1476,19 +1477,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_bad -> valve_closed_on_bad
+        closed_off_bad -> closed_on_bad
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_closed_off_bad -> valve_closed_off_bad
+        closed_off_bad -> closed_off_bad
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1500,19 +1501,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_init -> valve_open1_on_init
+        open1_off_init -> open1_on_init
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open1_off_init -> valve_open1_off_init
+        open1_off_init -> open1_off_init
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1524,19 +1525,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_open1_on_antecedent
+        open1_off_antecedent -> open1_on_antecedent
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_open1_off_antecedent
+        open1_off_antecedent -> open1_off_antecedent
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1548,19 +1549,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_bad -> valve_open1_on_bad
+        open1_off_bad -> open1_on_bad
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open1_off_bad -> valve_open1_off_bad
+        open1_off_bad -> open1_off_bad
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1572,19 +1573,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_init -> valve_open2_on_init
+        open2_off_init -> open2_on_init
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open2_off_init -> valve_open2_off_init
+        open2_off_init -> open2_off_init
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1596,19 +1597,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_open2_on_antecedent
+        open2_off_antecedent -> open2_on_antecedent
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_open2_off_antecedent
+        open2_off_antecedent -> open2_off_antecedent
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1620,19 +1621,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_bad -> valve_open2_on_bad
+        open2_off_bad -> open2_on_bad
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open2_off_bad -> valve_open2_off_bad
+        open2_off_bad -> open2_off_bad
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1644,7 +1645,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_init -> valve_open3_on_init
+        open3_off_init -> open3_on_init
         guard
         {
             # Original guard: x2 <= 0.1
@@ -1653,12 +1654,12 @@ hybrid reachability
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open3_off_init -> valve_open3_off_init
+        open3_off_init -> open3_off_init
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1670,19 +1671,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_open3_on_antecedent
+        open3_off_antecedent -> open3_on_antecedent
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_open3_off_antecedent
+        open3_off_antecedent -> open3_off_antecedent
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1694,19 +1695,19 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_bad -> valve_open3_on_bad
+        open3_off_bad -> open3_on_bad
         guard
         {
             x2 <= base_ctrl_low   tick >= cycle_time
         }
         reset
         {
-            u' := 0.0002
+            u' := u_on
             tick' := 0.0
         }
         parallelotope aggregation {}
 
-        valve_open3_off_bad -> valve_open3_off_bad
+        open3_off_bad -> open3_off_bad
         guard
         {
             x2 >= base_ctrl_low   tick >= cycle_time
@@ -1718,7 +1719,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_init -> valve_closed_on_antecedent
+        closed_on_init -> closed_on_antecedent
         guard
         {
             x2 <= spec_low
@@ -1729,7 +1730,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_init -> valve_closed_off_antecedent
+        closed_off_init -> closed_off_antecedent
         guard
         {
             x2 <= spec_low
@@ -1740,7 +1741,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_init -> valve_open1_on_antecedent
+        open1_on_init -> open1_on_antecedent
         guard
         {
             x2 <= spec_low
@@ -1751,7 +1752,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_init -> valve_open1_off_antecedent
+        open1_off_init -> open1_off_antecedent
         guard
         {
             x2 <= spec_low
@@ -1762,7 +1763,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_init -> valve_open2_on_antecedent
+        open2_on_init -> open2_on_antecedent
         guard
         {
             x2 <= spec_low
@@ -1773,7 +1774,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_init -> valve_open2_off_antecedent
+        open2_off_init -> open2_off_antecedent
         guard
         {
             x2 <= spec_low
@@ -1784,7 +1785,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_init -> valve_open3_on_antecedent
+        open3_on_init -> open3_on_antecedent
         guard
         {
             x2 <= spec_low
@@ -1795,7 +1796,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_init -> valve_open3_off_antecedent
+        open3_off_init -> open3_off_antecedent
         guard
         {
             x2 <= spec_low
@@ -1806,7 +1807,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_closed_on_bad
+        closed_on_antecedent -> closed_on_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1817,7 +1818,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_closed_off_bad
+        closed_off_antecedent -> closed_off_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1828,7 +1829,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_open1_on_bad
+        open1_on_antecedent -> open1_on_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1839,7 +1840,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_open1_off_bad
+        open1_off_antecedent -> open1_off_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1850,7 +1851,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_open2_on_bad
+        open2_on_antecedent -> open2_on_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1861,7 +1862,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_open2_off_bad
+        open2_off_antecedent -> open2_off_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1872,7 +1873,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_antecedent -> valve_open3_on_bad
+        open3_on_antecedent -> open3_on_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1883,7 +1884,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_open3_off_bad
+        open3_off_antecedent -> open3_off_bad
         guard
         {
             spec_t1 >= spec_time
@@ -1894,7 +1895,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_on_antecedent -> valve_closed_on_init
+        closed_on_antecedent -> closed_on_init
         guard
         {
             x2 >= spec_high
@@ -1905,7 +1906,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_closed_off_antecedent -> valve_closed_off_init
+        closed_off_antecedent -> closed_off_init
         guard
         {
             x2 >= spec_high
@@ -1916,7 +1917,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_on_antecedent -> valve_open1_on_init
+        open1_on_antecedent -> open1_on_init
         guard
         {
             x2 >= spec_high
@@ -1927,7 +1928,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open1_off_antecedent -> valve_open1_off_init
+        open1_off_antecedent -> open1_off_init
         guard
         {
             x2 >= spec_high
@@ -1938,7 +1939,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_on_antecedent -> valve_open2_on_init
+        open2_on_antecedent -> open2_on_init
         guard
         {
             x2 >= spec_high
@@ -1949,7 +1950,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open2_off_antecedent -> valve_open2_off_init
+        open2_off_antecedent -> open2_off_init
         guard
         {
             x2 >= spec_high
@@ -1960,7 +1961,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_on_antecedent -> valve_open3_on_init
+        open3_on_antecedent -> open3_on_init
         guard
         {
             x2 >= spec_high
@@ -1971,7 +1972,7 @@ hybrid reachability
         }
         parallelotope aggregation {}
 
-        valve_open3_off_antecedent -> valve_open3_off_init
+        open3_off_antecedent -> open3_off_init
         guard
         {
             x2 >= spec_high
@@ -1985,9 +1986,21 @@ hybrid reachability
 
     init
     {
-        valve_open1_on_init
+        # open1  => x1 >= 0.2 & x2 >= 0.2
+        # open2  => x1 <= 0.2 & x2 >= 0.2
+        # open3  => x1 >= 0.2 & x2 <= 0.2
+        # closed => x1 <= 0.2 & x2 <= 0.2
+
+        # on => u = u_on
+        # off => u = 0.0
+
+        # init => spec_t1 = 0.0
+        # antecedent => spec_t1 >= 0.0 & spec_t1 <= spec_time
+        # bad => spec_t1 = 0.0
+
+        open1_on_init
         {
-            u in [0.0002, 0.0002]  # 0.0 / 0.0002
+            u in [u_on, u_on]
             spec_t1 in [0, 0]
             tick in [0, 0]
             x1 in [0.3, 0.6]
@@ -1998,12 +2011,12 @@ hybrid reachability
 
 unsafe set
 {
-    valve_closed_on_bad {   spec_t1 >= 0.0 }
-    valve_closed_off_bad { spec_t1 >= 0.0 }
-    valve_open1_on_bad {    spec_t1 >= 0.0 }
-    valve_open1_off_bad {  spec_t1 >= 0.0 }
-    valve_open2_on_bad {    spec_t1 >= 0.0 }
-    valve_open2_off_bad {  spec_t1 >= 0.0 }
-    valve_open3_on_bad {    spec_t1 >= 0.0 }
-    valve_open3_off_bad {  spec_t1 >= 0.0 }
+    closed_on_bad {   spec_t1 >= 0.0 }
+    closed_off_bad { spec_t1 >= 0.0 }
+    open1_on_bad {    spec_t1 >= 0.0 }
+    open1_off_bad {  spec_t1 >= 0.0 }
+    open2_on_bad {    spec_t1 >= 0.0 }
+    open2_off_bad {  spec_t1 >= 0.0 }
+    open3_on_bad {    spec_t1 >= 0.0 }
+    open3_off_bad {  spec_t1 >= 0.0 }
 }
