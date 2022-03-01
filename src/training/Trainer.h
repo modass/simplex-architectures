@@ -12,6 +12,7 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/map.hpp>
 #include <fstream>
+#include <spdlog/spdlog.h>
 
 #include "../types.h"
 #include "../utility/fileExists.h"
@@ -40,6 +41,7 @@ class Trainer {
         cereal::BinaryInputArchive iarchive( fs );
         iarchive( mTrees );
       }
+      spdlog::info("Read {} octrees from file", mTrees.size());
     }
   }
   ~Trainer() {
@@ -66,7 +68,7 @@ class Trainer {
   StorageSettings  mStorageSettings;                             ///< settings for storing reachability results
   std::string      mFilename = "treearchive";                    ///< filename for saving and loading safe sets
   std::string      mModelFileName;                               ///< filename of the model file used for training
-  std::map<std::size_t, hypro::Hyperoctree<Number>> mTrees;      ///< storage for safe sets
+  std::map<std::string, hypro::Hyperoctree<Number>> mTrees;      ///< storage for safe sets
   hypro::HybridAutomaton<Number>                    mAutomaton;  ///< automaton representing the model
 };
 

@@ -16,7 +16,8 @@
 namespace simplexArchitectures {
 
 void Trainer::run() {
-  auto [mAutomaton, reachSettings] = hypro::parseFlowstarFile<double>( mModelFileName );
+  hypro::ReachabilitySettings reachSettings;
+  std::tie(mAutomaton, reachSettings) = hypro::parseFlowstarFile<double>( mModelFileName );
   // reachability analysis settings
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
@@ -28,9 +29,9 @@ void Trainer::run() {
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
   // initialize storage
   if ( mTrees.empty() ) {
-    for ( auto i = 0; i < mAutomaton.getLocations().size(); ++i ) {
+    for ( const auto loc : mAutomaton.getLocations() ) {
       // octree to store reachable sets, here fixed to [0,1] in each dimension
-      mTrees.emplace( i, hypro::Hyperoctree<Number>( mStorageSettings.treeSplits, mStorageSettings.treeDepth,
+      mTrees.emplace( loc->getName(), hypro::Hyperoctree<Number>( mStorageSettings.treeSplits, mStorageSettings.treeDepth,
                                                      mStorageSettings.treeContainer ) );
     }
   }
@@ -43,10 +44,14 @@ void Trainer::run() {
 
 void Trainer::plot( const std::string& outfilename ) {
   hypro::Plotter<Number>& plt = hypro::Plotter<Number>::getInstance();
-  for ( const auto& [locationIndex, tree] : mTrees ) {
-    std::size_t idx = locationIndex;
-    plt.setFilename( outfilename + "_" + ( *std::next( mAutomaton.getLocations().begin(), idx ) )->getName() );
-    plotOctree( tree, plt );
+  plt.rSettings().xPlotInterval = carl::Interval<double>(0,1);
+  plt.rSettings().yPlotInterval = carl::Interval<double>(0,1);
+  plt.rSettings().overwriteFiles = true;
+  for ( const auto& [locationName, tree] : mTrees ) {
+    plt.setFilename( outfilename + "_" + locationName );
+    plotOctree( tree, plt, true );
+    plt.plot2d(hypro::PLOTTYPE::png, true);
+    plt.clear();
   }
 }
 
@@ -79,11 +84,9 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
       for ( const auto& s : node.getFlowpipe() ) {
         // only store segments which contain states where the cycle time is zero
         if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
-          // get location index
-          std::size_t i = 0;
-          while ( i < mAutomaton.getLocations().size() ) {
-            if ( mAutomaton.getLocations().at( i ) == node.getLocation() ) {
-              mTrees.at( i ).add( s.projectOn( mStorageSettings.projectionDimensions ) );
+          for(const auto locPtr : mAutomaton.getLocations()) {
+            if(locPtr->getName() == node.getLocation()->getName()) {
+              mTrees.at( locPtr->getName() ).add(s.projectOn( mStorageSettings.projectionDimensions ));
             }
             ++i;
           }
