@@ -6,18 +6,24 @@
 
 namespace simplexArchitectures {
 
-void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double> &plt ) {
+void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double> &plt, bool plotSets ) {
+  spdlog::debug("Plot octree: {}", octree);
   if ( octree.isCovered() ) {
     plt.addObject( octree.getContainer().projectOn( plt.settings().dimensions ).vertices(),
                    hypro::plotting::colors[hypro::plotting::green] );
   } else {
+    plt.addObject( octree.getContainer().projectOn( plt.settings().dimensions ).vertices(),
+                   hypro::plotting::colors[hypro::plotting::red] );
     if ( !octree.getChildren().empty() ) {
       for ( const auto &child : octree.getChildren() ) {
-        plotOctree( child, plt );
+        plotOctree( child, plt, plotSets );
       }
     } else {
-      plt.addObject( octree.getContainer().projectOn( plt.settings().dimensions ).vertices(),
-                     hypro::plotting::colors[hypro::plotting::red] );
+      if(plotSets) {
+        for(const auto& set : octree.getData()) {
+          plt.addObject( set.projectOn(plt.settings().dimensions).vertices());
+        }
+      }
     }
   }
 }
