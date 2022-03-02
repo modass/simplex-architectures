@@ -10,6 +10,7 @@
 #include <hypro/datastructures/reachability/Settings.h>
 
 #include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
 #include <cereal/types/map.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
@@ -38,7 +39,9 @@ class Trainer {
     if ( fileExists( mFilename ) ) {
       {
         std::ifstream              fs{ mFilename, std::ios::binary };
+        //std::ifstream              fs{ mFilename };
         cereal::BinaryInputArchive iarchive( fs );
+        //cereal::XMLInputArchive iarchive( fs );
         iarchive( mTrees );
       }
       spdlog::info("Read {} octrees which store {} sets from file", mTrees.size(), this->size());
@@ -51,7 +54,9 @@ class Trainer {
     // write tree to file upon destruction
     spdlog::info("Write {} octrees which store {} sets to file.", mTrees.size(), this->size());
     std::ofstream               fs{ mFilename, std::ios::binary };
+    //std::ofstream               fs{ mFilename };
     cereal::BinaryOutputArchive oarchive( fs );
+    //cereal::XMLOutputArchive oarchive( fs );
     oarchive( mTrees );
   }
   /**
