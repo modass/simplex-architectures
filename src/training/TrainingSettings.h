@@ -20,7 +20,7 @@ struct TrainingSettings {
   hypro::Box<Number>       samplingArea;
   std::vector<std::size_t> subdivision     = {};
   Number                   timeHorizon     = 100.0;
-  std::size_t              jumpDepth       = 200;
+  std::size_t              jumpDepth       = 10;
   Number                   initialSetWidth = 0.1;
 };
 

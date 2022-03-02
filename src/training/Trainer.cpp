@@ -38,6 +38,7 @@ void Trainer::run() {
   // run iterations
   auto i = 0;
   while ( i++ < mTrainingSettings.iterations ) {
+    spdlog::info("Run training iteration {}",i);
     runIteration( settings );
   }
 }
@@ -48,6 +49,7 @@ void Trainer::plot( const std::string& outfilename ) {
   plt.rSettings().yPlotInterval = carl::Interval<double>(0,1);
   plt.rSettings().overwriteFiles = true;
   for ( const auto& [locationName, tree] : mTrees ) {
+    spdlog::debug("Plot tree for location {} which stores {} sets", locationName, tree.size());
     plt.setFilename( outfilename + "_" + locationName );
     plotOctree( tree, plt, true );
     plt.plot2d(hypro::PLOTTYPE::png, true);
@@ -74,22 +76,29 @@ locationConditionMap Trainer::generateInitialStates() const {
 
 void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots ) {
   //  constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
-  hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
-  hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );
-  constraints( 0, 4 )                 = 1;
-  constraints( 1, 4 )                 = -1;
+  //hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
+  //hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );
+  //constraints( 0, 4 )                 = 1;
+  //constraints( 1, 4 )                 = -1;
 
+  spdlog::debug("Have {} root nodes", roots.size());
   for ( const auto& r : roots ) {
+    spdlog::debug("Have {} nodes", hypro::getNumberNodes(r));
     for ( const auto& node : hypro::preorder( r ) ) {
+      std::size_t count = 0;
       for ( const auto& s : node.getFlowpipe() ) {
         // only store segments which contain states where the cycle time is zero
-        if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
+        //if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
           for(const auto locPtr : mAutomaton.getLocations()) {
             if(locPtr->getName() == node.getLocation()->getName()) {
               mTrees.at( locPtr->getName() ).add(s.projectOn( mStorageSettings.projectionDimensions ));
+              ++count;
             }
           }
-        }
+        //}
+      }
+      if(count != node.getFlowpipe().size()) {
+        spdlog::warn("Could only insert {} of {} sets", count, node.getFlowpipe().size());
       }
     }
   }
@@ -105,20 +114,30 @@ void Trainer::runIteration( const hypro::Settings& settings ) {
                                                              settings.strategy().front(), roots );
 
   // set up callbacks which are used by hypro to access the octree
-  std::function<bool(const Representation&,const hypro::Location<double>*)> callback = [this](const auto& set, const auto locptr){ return mTrees.at(locptr->getName()).contains(set);};
+  std::size_t shortcuts = 0;
+  std::function<bool(const Representation&,const hypro::Location<double>*)> callback = [this, &shortcuts](const auto& set, const auto locptr){
+    if(mTrees.at(locptr->getName()).contains(set)) {
+      ++shortcuts;
+      return true;
+    }
+    return false;};
   hypro::ReachabilityCallbacks<Representation,hypro::Location<double>> callbackStructure{callback};
   reacher.setCallbacks(callbackStructure);
 
   auto result = reacher.computeForwardReachability();
+  spdlog::info("Found {} fixed points by exploiting existing results.", shortcuts);
 
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
-    std::cout << "System is initially not safe, need to deal with this." << std::endl;
+    spdlog::warn("System is initially not safe, need to deal with this.");
+    updateOctree( roots );
   } else if ( !hasFixedPoint( roots ) ) {
-    std::cout << "System has no fixed point initially, need to deal with this." << std::endl;
+    spdlog::warn("System has no fixed point initially, need to deal with this.");
+    updateOctree( roots );
   } else {
     updateOctree( roots );
   }
+  spdlog::info("Have {} octrees which store {} sets", mTrees.size(), this->size());
 }
 
 }  // namespace simplexArchitectures

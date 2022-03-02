@@ -41,11 +41,15 @@ class Trainer {
         cereal::BinaryInputArchive iarchive( fs );
         iarchive( mTrees );
       }
-      spdlog::info("Read {} octrees from file", mTrees.size());
+      spdlog::info("Read {} octrees which store {} sets from file", mTrees.size(), this->size());
+      for(const auto& [name,tree] : mTrees) {
+        spdlog::debug("Have tree for location {} which stores {} sets", name, tree.size());
+      }
     }
   }
   ~Trainer() {
     // write tree to file upon destruction
+    spdlog::info("Write {} octrees which store {} sets to file.", mTrees.size(), this->size());
     std::ofstream               fs{ mFilename, std::ios::binary };
     cereal::BinaryOutputArchive oarchive( fs );
     oarchive( mTrees );
