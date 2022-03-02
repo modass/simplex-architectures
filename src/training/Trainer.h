@@ -66,6 +66,7 @@ class Trainer {
   locationConditionMap generateInitialStates() const;
   void                 updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots );
   void                 runIteration( const hypro::Settings& settings );
+  std::size_t size() const;
 
  protected:
   TrainingSettings mTrainingSettings;                            ///< settings for training

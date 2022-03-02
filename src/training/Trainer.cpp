@@ -140,4 +140,10 @@ void Trainer::runIteration( const hypro::Settings& settings ) {
   spdlog::info("Have {} octrees which store {} sets", mTrees.size(), this->size());
 }
 
+std::size_t Trainer::size() const {
+  std::size_t res = 0;
+  std::for_each(std::begin(mTrees), std::end(mTrees), [&res](const auto& tree){ res += tree.second.size();});
+  return res;
+}
+
 }  // namespace simplexArchitectures
