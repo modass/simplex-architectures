@@ -89,16 +89,11 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
       for ( const auto& s : node.getFlowpipe() ) {
         // only store segments which contain states where the cycle time is zero
         //if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
-          for(const auto locPtr : mAutomaton.getLocations()) {
-            if(locPtr->getName() == node.getLocation()->getName()) {
-              mTrees.at( locPtr->getName() ).add(s.projectOn( mStorageSettings.projectionDimensions ));
-              ++count;
-            }
-          }
+        auto tmp = s.projectOn( mStorageSettings.projectionDimensions );
+        if(!mTrees.at( node.getLocation()->getName() ).contains(tmp)) {
+          mTrees.at( node.getLocation()->getName() ).add(tmp);
+        }
         //}
-      }
-      if(count != node.getFlowpipe().size()) {
-        spdlog::warn("Could only insert {} of {} sets", count, node.getFlowpipe().size());
       }
     }
   }
