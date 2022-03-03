@@ -17,7 +17,11 @@ namespace simplexArchitectures {
 
 using locationConditionMap = hypro::HybridAutomaton<Number>::locationConditionMap;
 
-struct Random {
+struct InitialStatesGenerator {
+  virtual locationConditionMap operator()( const hypro::HybridAutomaton<Number>& automaton, const TrainingSettings& settings ) = 0;
+};
+
+struct Random : public InitialStatesGenerator{
   locationConditionMap operator()( const hypro::HybridAutomaton<Number>& automaton, const TrainingSettings& settings ) {
     locationConditionMap                       res;
     std::mt19937                               generator;
@@ -39,7 +43,7 @@ struct Random {
   }
 };
 
-struct Single {
+struct Single : public InitialStatesGenerator {
   locationConditionMap operator()( const hypro::HybridAutomaton<Number>&, const TrainingSettings& settings ) {
     locationConditionMap res;
     res[loc] = hypro::Condition<Number>{ widenSample( sample, settings.initialSetWidth, settings.wideningDimensions ) };
@@ -50,7 +54,7 @@ struct Single {
   hypro::Location<Number>* loc;
 };
 
-struct Grid {
+struct Grid : public InitialStatesGenerator {
   Grid( const std::vector<std::size_t>& resolution, const TrainingSettings& settings )
       : resolution( resolution ),
         currentCell( std::vector<std::size_t>( 0, resolution.size() ) ),
@@ -88,7 +92,7 @@ struct Grid {
   std::size_t              locIndex = 0;
 };
 
-struct GridCover {
+struct GridCover : public InitialStatesGenerator {
   GridCover( const std::vector<std::size_t>& resolution, const TrainingSettings& settings )
       : resolution( resolution ),
         currentCell( std::vector<std::size_t>( 0, resolution.size() ) ),
