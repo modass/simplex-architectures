@@ -14,10 +14,12 @@
 #include <cereal/types/map.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
+#include <filesystem>
 
 #include "../types.h"
 #include "../utility/fileExists.h"
 #include "TrainingSettings.h"
+#include "TrainingHeuristics.h"
 
 namespace simplexArchitectures {
 
@@ -53,11 +55,17 @@ class Trainer {
   ~Trainer() {
     // write tree to file upon destruction
     spdlog::info("Write {} octrees which store {} sets to file.", mTrees.size(), this->size());
+    // if the file exists, use it as a backup
+    if( fileExists(mFilename)) {
+      std::filesystem::rename(mFilename, mFilename +".bak");
+    }
     std::ofstream               fs{ mFilename, std::ios::binary };
     //std::ofstream               fs{ mFilename };
-    cereal::BinaryOutputArchive oarchive( fs );
-    //cereal::XMLOutputArchive oarchive( fs );
-    oarchive( mTrees );
+    {
+      cereal::BinaryOutputArchive oarchive( fs );
+      //cereal::XMLOutputArchive oarchive( fs );
+      oarchive( mTrees );
+    }
   }
   /**
    * Starts training with the provided settings. The trainer will try to load a file containing already discovered save
@@ -70,8 +78,10 @@ class Trainer {
  private:
   locationConditionMap generateInitialStates() const;
   void                 updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots );
-  void                 runIteration( const hypro::Settings& settings );
+  void                 runIteration( const hypro::Settings& settings, InitialStatesGenerator& generator );
   std::size_t size() const;
+  InitialStatesGenerator* getInitialStatesGenerator() const;
+  std::size_t computeRequiredIterationsForFullCoverage() const;
 
  protected:
   TrainingSettings mTrainingSettings;                            ///< settings for training
