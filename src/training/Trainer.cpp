@@ -123,6 +123,8 @@ void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   spdlog::info("Location {}, initial box {}",newInitialStates.begin()->first->getName(), ss.str());
   //std::cout << "Initial set: " << Representation(newInitialStates.begin()->second.getMatrix(), newInitialStates.begin()->second.getVector()).projectOn({0,1}) << std::endl;
   mAutomaton.setInitialStates( newInitialStates );
+  // create roots for the reachtree from new initial states
+  auto roots = hypro::makeRoots<Representation>( mAutomaton );
   // analysis
   auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, settings.fixedParameters(),
                                                              settings.strategy().front(), roots );
