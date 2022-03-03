@@ -24,10 +24,11 @@ int main( int argc, char** argv ) {
                                                        { "grid", INITIAL_STATE_HEURISTICS::GRID },
                                                        { "gridCover", INITIAL_STATE_HEURISTICS::GRID_COVER } };
   TrainingSettings                                trainingSettings{ 1,
-                                     INITIAL_STATE_HEURISTICS::GRID,
+                                     INITIAL_STATE_HEURISTICS::GRID_COVER,
                                      { 0, 1 },
-                                     Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0 }, I{ 0 }, I{ 0 } } },
-                                     { 5, 5, 1, 1, 1 } };
+                                     Box{ IV{ I{ 0.2, 0.7 }, I{ 0.2, 0.7 }, I{ 0 }, I{ 0 }, I{ 0 } } },
+                                     { 10, 10, 1, 1, 1 } };
+  trainingSettings.fullCoverage = true;
   StorageSettings storageSettings{ { 0, 1, 4 }, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 15 } } }, 2, 4 };
   app.add_option( "-f,--file", modelfilename, "Path to the model file" )->required()->check(CLI::ExistingFile);
   app.add_option( "-i,--iterations", trainingSettings.iterations, "Number of trainings" )->check(CLI::PositiveNumber);
