@@ -72,8 +72,10 @@ class Trainer {
    * sets (as specified in the filename) and extend those.
    */
   void run();
-  /// Writes the currently available safe sets to a plot file.
+  /// Writes the currently available safe sets to a plot file, creating a file for each location.
   void plot( const std::string& outfilename );
+  /// Creates a combined plot of the currently available safe sets
+  void plotCombined(const std::string& outfilename);
 
  private:
   locationConditionMap generateInitialStates() const;

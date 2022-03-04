@@ -18,6 +18,8 @@ namespace simplexArchitectures {
  */
 void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double> &plt, bool plotSets = false );
 
+void plotOctrees( const std::map<std::string, hypro::Hyperoctree<double>>& octrees, hypro::Plotter<double>& plt, bool plotSets = false);
+
 }  // namespace simplexArchitectures
 
 #endif  // SIMPLEXARCHITECTURES_OCTREEPLOTTING_H

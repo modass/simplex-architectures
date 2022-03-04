@@ -27,4 +27,10 @@ void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double
   }
 }
 
+void plotOctrees( const std::map<std::string, hypro::Hyperoctree<double>>& octrees, hypro::Plotter<double>& plt, bool plotSets) {
+  for(const auto&[key,tree] : octrees) {
+    plotOctree(tree,plt,plotSets);
+  }
+}
+
 }  // namespace simplexArchitectures
