@@ -24,6 +24,7 @@ void Trainer::run() {
   settings.rStrategy().front().detectFixedPointsByCoverage        = true;
   settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
   settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
+  settings.rStrategy().front().detectZenoBehavior                 = true;
   settings.rFixedParameters().localTimeHorizon                    = mTrainingSettings.timeHorizon;
   settings.rFixedParameters().jumpDepth                           = mTrainingSettings.jumpDepth;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
@@ -65,6 +66,17 @@ void Trainer::plot( const std::string& outfilename ) {
     plt.plot2d( hypro::PLOTTYPE::png, true );
     plt.clear();
   }
+}
+
+void Trainer::plotCombined(const std::string& outfilename) {
+  hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
+  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
+  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
+  plt.rSettings().overwriteFiles = true;
+  plt.setFilename(outfilename);
+  plotOctrees(mTrees,plt,true);
+  plt.plot2d( hypro::PLOTTYPE::png, true );
+  plt.clear();
 }
 
 locationConditionMap Trainer::generateInitialStates() const {

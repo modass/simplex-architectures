@@ -26,7 +26,7 @@ int main( int argc, char** argv ) {
   TrainingSettings                                trainingSettings{ 1,
                                      INITIAL_STATE_HEURISTICS::GRID_COVER,
                                      { 0, 1 },
-                                     Box{ IV{ I{ 0.2, 0.7 }, I{ 0.2, 0.7 }, I{ 0 }, I{ 0 }, I{ 0 } } },
+                                     Box{ IV{ I{ 0.2, 0.5 }, I{ 0.2, 0.5 }, I{ 0 }, I{ 0 }, I{ 0 } } },
                                      { 10, 10, 1, 1, 1 } };
   trainingSettings.fullCoverage = true;
   StorageSettings storageSettings{ { 0, 1, 4 }, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 15 } } }, 2, 4 };
@@ -47,6 +47,7 @@ int main( int argc, char** argv ) {
   t.run();
   spdlog::info( "Finished training" );
   t.plot( "post_training" );
+  t.plotCombined( "post_training_combined");
 
   return 0;
 }
