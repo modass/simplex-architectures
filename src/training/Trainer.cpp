@@ -148,7 +148,7 @@ void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   std::size_t                                                                  shortcuts = 0;
   std::function<bool( const Representation&, const hypro::Location<double>* )> callback =
       [this, &shortcuts]( const auto& set, const auto locptr ) {
-        if ( mTrees.at( locptr->getName() ).contains( set ) ) {
+        if ( mTrees.at( locptr->getName() ).contains( set.projectOn(mStorageSettings.projectionDimensions) ) ) {
           ++shortcuts;
           return true;
         }
