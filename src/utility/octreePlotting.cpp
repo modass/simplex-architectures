@@ -7,6 +7,7 @@
 namespace simplexArchitectures {
 
 void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double> &plt, bool plotSets ) {
+  assert(!octree.getContainer().projectOn( plt.settings().dimensions ).vertices().empty());
   if ( octree.isCovered() ) {
     plt.addObject( octree.getContainer().projectOn( plt.settings().dimensions ).vertices(),
                    hypro::plotting::colors[hypro::plotting::green] );

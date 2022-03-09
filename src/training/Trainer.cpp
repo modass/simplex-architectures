@@ -104,9 +104,7 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
   constraints( 1, 4 )                 = -1;
   std::size_t added_sets              = 0;
   for ( const auto& r : roots ) {
-    // spdlog::debug("Have {} nodes", hypro::getNumberNodes(r));
     for ( const auto& node : hypro::preorder( r ) ) {
-      std::size_t count = 0;
       for ( const auto& s : node.getFlowpipe() ) {
         // only store segments which contain states where the cycle time is zero
         if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
@@ -114,13 +112,12 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
           if ( !mTrees.at( node.getLocation()->getName() ).contains( tmp ) ) {
             mTrees.at( node.getLocation()->getName() ).add( tmp );
             ++added_sets;
-            std::cout << "Added sets: " << added_sets << "\t\r" << std::flush;
           }
         }
       }
     }
   }
-  spdlog::debug( "Added {} new sets obtained from training", added_sets );
+  spdlog::debug( "Added {} new sets obtained from training.", added_sets );
 }
 
 void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenerator& generator ) {
@@ -135,7 +132,7 @@ void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
                    newInitialStates.begin()->first->getName() );
     return;
   }
-  spdlog::info( "Location {}, initial box {}", newInitialStates.begin()->first->getName(), ss.str() );
+  spdlog::info( "Location {}, initial box {}.", newInitialStates.begin()->first->getName(), ss.str() );
   // std::cout << "Initial set: " << Representation(newInitialStates.begin()->second.getMatrix(),
   // newInitialStates.begin()->second.getVector()).projectOn({0,1}) << std::endl;
   mAutomaton.setInitialStates( newInitialStates );
@@ -158,17 +155,19 @@ void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   reacher.setCallbacks( callbackStructure );
   // start reachability analysis
   auto result = reacher.computeForwardReachability();
-  spdlog::trace( "Found {} fixed points by exploiting existing results.", shortcuts );
+  if(shortcuts > 0) {
+    spdlog::debug( "Found {} fixed points by exploiting existing results.", shortcuts );
+  }
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
     spdlog::warn( "System is not safe, need to deal with this." );
   } else if ( !hasFixedPoint( roots ) ) {
     spdlog::warn( "System has no fixed point, need to deal with this." );
   } else {
-    spdlog::info( "Analysis complete, update octrees" );
+    spdlog::info( "Analysis complete, update octrees." );
     updateOctree( roots );
   }
-  spdlog::info( "Have {} octrees which store {} sets", mTrees.size(), this->size() );
+  spdlog::info( "Have {} octrees which store {} sets.", mTrees.size(), this->size() );
 }
 
 std::size_t Trainer::size() const {
