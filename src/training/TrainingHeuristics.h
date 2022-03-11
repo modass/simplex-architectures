@@ -44,14 +44,13 @@ struct Random : public InitialStatesGenerator{
 };
 
 struct Single : public InitialStatesGenerator {
-  locationConditionMap operator()( const hypro::HybridAutomaton<Number>&, const TrainingSettings& settings ) {
-    locationConditionMap res;
-    res[loc] = hypro::Condition<Number>{ widenSample( sample, settings.initialSetWidth, settings.wideningDimensions ) };
-    return res;
-  }
+  Single(const locationConditionMap& i) : initialStates(i) {}
 
-  hypro::Point<Number>     sample;
-  hypro::Location<Number>* loc;
+  locationConditionMap operator()( const hypro::HybridAutomaton<Number>&, const TrainingSettings& ) {
+    return initialStates;
+  }
+ private:
+  locationConditionMap initialStates;
 };
 
 struct Grid : public InitialStatesGenerator {

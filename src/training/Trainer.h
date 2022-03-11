@@ -18,6 +18,7 @@
 
 #include "../types.h"
 #include "../utility/fileExists.h"
+#include "TrainingHeuristics.h"
 #include "TrainingSettings.h"
 #include "TrainingHeuristics.h"
 
@@ -72,6 +73,12 @@ class Trainer {
    * sets (as specified in the filename) and extend those.
    */
   void run();
+  /**
+   * Train with the given settings, i.e., reachability analysis settings and initial state sets
+   * @param settings reachability analysis settings
+   * @param initialStates set of initial states
+   */
+  void run(const hypro::Settings& settings, const locationConditionMap& initialStates);
   /// Writes the currently available safe sets to a plot file, creating a file for each location.
   void plot( const std::string& outfilename );
   /// Creates a combined plot of the currently available safe sets

@@ -53,6 +53,25 @@ void Trainer::run() {
   delete generator;
 }
 
+void Trainer::run(const hypro::Settings& settings, const locationConditionMap& initialStates) {
+  hypro::ReachabilitySettings reachSettings;
+  std::tie( mAutomaton, reachSettings ) = hypro::parseFlowstarFile<double>( mModelFileName );
+  // initialize storage
+  if ( mTrees.empty() ) {
+    for ( const auto loc : mAutomaton.getLocations() ) {
+      // octree to store reachable sets, here fixed to [0,1] in each dimension
+      mTrees.emplace( loc->getName(),
+                      hypro::Hyperoctree<Number>( mStorageSettings.treeSplits, mStorageSettings.treeDepth,
+                                                  mStorageSettings.treeContainer ) );
+    }
+  }
+  // set up initial states generators
+  InitialStatesGenerator* generator = new Single(initialStates);
+  // run single iteration
+  runIteration( settings, *generator );
+  delete generator;
+}
+
 void Trainer::plot( const std::string& outfilename ) {
   hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
   plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
