@@ -44,11 +44,16 @@
 #include "../types.h"
 #include "../utility/reachTreeUtility.h"
 #include "../utility/treeSerialization.h"
+#include "../training/Trainer.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
 
 using namespace simplexArchitectures;
+
+using I = carl::Interval<Number>;
+using IV = std::vector<I>;
+using Box = hypro::Box<Number>;
 
 // global constants
 static const std::vector<std::size_t> interesting_dimensions{ 0, 1, 3 };
@@ -177,28 +182,18 @@ int                      main( int argc, char *argv[] ) {
   bool        training = true;
   std::string modelfilename;
   std::string storagefilename;
+  bool haveTreeFile = true;
+  std::map<std::string,hypro::Hyperoctree<Number>> trees;
 
   CLI::App app{ "Training application for simplex architectures project." };
   app.add_option( "-m,--model", modelfilename, "Path to the model file" )->required()->check( CLI::ExistingFile );
   app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" )->required();
   app.add_option( "-i,--iterations", iterations, "Number of iterations/steps" )->check( CLI::PositiveNumber );
+  app.add_flag("--learn", training, "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise the analysis terminates?");
   CLI11_PARSE( app, argc, argv );
   // parse model
   auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( modelfilename );
-  // load trees, if any
-  std::map<std::string, hypro::Hyperoctree<Number>> trees;
-  try {
-    trees = simplexArchitectures::loadTrees( storagefilename );
-  } catch ( std::ios_base::failure e ) {
-    // initialize map with location names
-    for ( const auto *locptr : automaton.getLocations() ) {
-      trees[locptr->getName()] = hypro::Hyperoctree<double>(
-          2, 4,
-          hypro::Box<Number>{ std::vector<carl::Interval<Number>>{
-              carl::Interval<Number>{ 0, 1 }, carl::Interval<Number>{ 0, 1 }, carl::Interval<Number>{ 0, 15 } } } );
-    }
-  }
-  // reachability analysis settings
+  // reachability analysis settings, here only used for simulation
   auto settings                                            = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints       = true;
   settings.rStrategy().front().detectFixedPointsByCoverage = true;
@@ -213,55 +208,21 @@ int                      main( int argc, char *argv[] ) {
   Controller advCtrl;
   // monitor
   Simulator sim{ baseCtrl, advCtrl, automaton, settings };
-  // initialize system
-  auto initialLocation  = automaton.getInitialStates().begin()->first;
-  auto initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint().value();
-  sim.mLastStates[initialLocation] = { initialValuation };
-  // initial first reachability analysis for the initial point
-  // new reachability analysis
-  // reachability tree
-  std::vector<hypro::ReachTreeNode<Representation>> roots;
-  // update initial states - set to small box around sample
-  auto                                                 intervals = widenSample( initialValuation, widening, { 0, 1 } );
-  auto                                                 initialBox = hypro::Condition<Number>{ intervals };
-  hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
-  initialStates[initialLocation] = initialBox;
-  //  automaton.setInitialStates( initialStates );
-  // store initial set in octree - we know its cycle-time is zero
-  //  octrees.at( initialLocation ).add( hypro::Box<Number>( intervals ) );
-  // initialize reachtree
-  roots = hypro::makeRoots<Representation>( automaton );
-  // analysis
-  auto reacher = hypro::reachability::Reach<Representation>( automaton, settings.fixedParameters(),
-                                                             settings.strategy().front(), roots );
-  // set callback structure for fixed points
-  std::function<bool( const Representation &, const hypro::Location<double>                      *)> callback =
-      [&trees]( const auto &set, const auto locptr ) {
-        if ( trees.at( locptr->getName() ).contains( set ) ) {
-          return true;
-        }
-        return false;
-      };
-  hypro::ReachabilityCallbacks<Representation, hypro::Location<double>> callbackStructure{ callback };
-  reacher.setCallbacks( callbackStructure );
-  // start initial analysis
-  std::cout << "Run initial analysis ... " << std::flush;
-  auto result = reacher.computeForwardReachability();
-  std::cout << "done, result: " << result << std::endl;
-  // post processing
-  if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
-    spdlog::warn( "System is initially not safe, need to deal with this." );
-    exit( 1 );
-  } else if ( !hasFixedPoint( roots ) ) {
-    spdlog::warn( "System has no fixed point initially, need to deal with this." );
-    exit( 1 );
-  } else {
-    updateOctree( trees, roots );
-  }
 
-  /* PLOTTING AFTER FIRST INIT */
-  reportIncompleteNodes( roots );
-  plotFlowpipes( roots, std::to_string( iteration_count ) );
+  // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
+  // Storagesettings will be overidden if a file with data exists
+  StorageSettings storageSettings{ { 0, 1, 4 }, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 15 } } }, 2, 4 };
+  TrainingSettings trainingSettings{ 1,
+                                     INITIAL_STATE_HEURISTICS::SINGLE,
+                                     { 0, 1 },
+                                     Box{ IV{ I{ 0.2, 0.5 }, I{ 0.2, 0.5 }, I{ 0 }, I{ 0 }, I{ 0 } } },
+                                     { 10, 10, 1, 1, 1 } };
+  Trainer trainer{storagefilename,modelfilename,trainingSettings,storageSettings};
+  if(training && !haveTreeFile) {
+    trainer.run(settings,automaton.getInitialStates());
+  }
+  // update octrees - the trainer loads the tree-file
+  trees = trainer.getTrainingData();
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
@@ -302,16 +263,11 @@ int                      main( int argc, char *argv[] ) {
       spdlog::info( "Advanced controller traces are not all in the octree." );
       if ( training ) {
         spdlog::info( "Start training with {} locations.", unknownSamples.size() );
-        //				std::cout << "Start training with samples: " << unknownSamples << std::endl;
-        // if not in reach set: take new part, run base controller reachability analysis on this part
 
-        // initialize reachtree
-        roots.clear();
         std::size_t initialstateCount{ 0 };
         for ( const auto &[loc, boxes] : unknownSamples ) {
           for ( const auto &box : boxes ) {
-            initialStates.clear();
-            // initialStates[loc] = hypro::Condition<Number>( widenSample( sim.mPotentialNewState, widening ) );
+            locationConditionMap newInitialStates;
             // set sample u-value to the correct value (corresponding to the value the base controller would have
             // chosen, this can be obtained from the location name)
             auto newintervals = box.intervals();
@@ -320,16 +276,14 @@ int                      main( int argc, char *argv[] ) {
             } else {
               newintervals[2] = carl::Interval<Number>( 0.0 );
             }
-            initialStates[loc] = hypro::Condition<Number>( newintervals );
-            automaton.setInitialStates( initialStates );
-            auto tmp = hypro::makeRoots<Representation>( automaton );
-            std::for_each( std::begin( tmp ), std::end( tmp ),
-                                                [&roots]( auto &&node ) { roots.emplace_back( std::move( node ) ); } );
-            ++initialstateCount;
+            newInitialStates[loc] = hypro::Condition<Number>( newintervals );
+
+            trainer.run(settings,newInitialStates);
+            trees = trainer.getTrainingData();
           }
         }
-        spdlog::info( "Set {} initial states for training, start analysis ... ", initialstateCount );
 
+        /*
         // analysis
         auto reacher = hypro::reachability::Reach<Representation>( automaton, settings.fixedParameters(),
                                                                    settings.strategy().front(), roots );
@@ -359,6 +313,7 @@ int                      main( int argc, char *argv[] ) {
           sim.pointify();
           updateOctree( trees, roots );
         }
+         */
       } else {
         // we are not training and the sample is not yet known to be safe, switch to base controller
         spdlog::info( "We are not training, simulate base controller, continue with next iteration." );
@@ -366,11 +321,8 @@ int                      main( int argc, char *argv[] ) {
         sim.pointify();
       }
     }
-
-    plotFlowpipes( roots, std::to_string( iteration_count ) );
   }
-  // store computed trees
-  simplexArchitectures::saveTrees( storagefilename, trees );
+  // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }
 #pragma clang diagnostic pop
