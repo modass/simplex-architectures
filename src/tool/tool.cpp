@@ -23,11 +23,8 @@
  */
 
 #include <hypro/algorithms/reachability/Reach.h>
-#include <hypro/algorithms/reachability/handlers/badStateHandlers/ltiBadStateHandler.h>
 #include <hypro/datastructures/Hyperoctree.h>
-#include <hypro/datastructures/reachability/ReachTreev2Util.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
-#include <hypro/paths.h>
 #include <hypro/util/linearOptimization/Optimizer.h>
 #include <hypro/util/plotting/Plotter.h>
 #include <spdlog/spdlog.h>
@@ -226,8 +223,7 @@ int                      main( int argc, char *argv[] ) {
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
-  while ( iteration_count < iterations ) {
-    ++iteration_count;
+  while ( iteration_count++ < iterations ) {
     spdlog::info( "Iteration {}", iteration_count );
 
     // 1 simulation advanced controller, starting from initialvalue & location
