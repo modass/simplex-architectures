@@ -57,6 +57,7 @@ void Trainer::plot( const std::string& outfilename ) {
   hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
   plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
   plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
+  plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
   plt.rSettings().overwriteFiles = true;
   for ( const auto& [locationName, tree] : mTrees ) {
     spdlog::debug( "Plot tree for location {} which stores {} sets to file {}", locationName, tree.size(),
