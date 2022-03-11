@@ -82,7 +82,9 @@ class Trainer {
   /// Writes the currently available safe sets to a plot file, creating a file for each location.
   void plot( const std::string& outfilename );
   /// Creates a combined plot of the currently available safe sets
-  void plotCombined(const std::string& outfilename);
+  void plotCombined( const std::string& outfilename );
+  /// Getter for the training results
+  const std::map<std::string, hypro::Hyperoctree<Number>>& getTrainingData() const { return mTrees; }
 
  private:
   locationConditionMap generateInitialStates() const;
