@@ -44,8 +44,8 @@ class Trainer {
         std::ifstream              fs{ mFilename, std::ios::binary };
         //std::ifstream              fs{ mFilename };
         cereal::BinaryInputArchive iarchive( fs );
-        //cereal::XMLInputArchive iarchive( fs );
-        iarchive( mTrees );
+        // cereal::XMLInputArchive iarchive( fs );
+        iarchive( mStorageSettings, mTrees );
       }
       spdlog::info("Read {} octrees which store {} sets from file", mTrees.size(), this->size());
       for(const auto& [name,tree] : mTrees) {
@@ -64,8 +64,8 @@ class Trainer {
     //std::ofstream               fs{ mFilename };
     {
       cereal::BinaryOutputArchive oarchive( fs );
-      //cereal::XMLOutputArchive oarchive( fs );
-      oarchive( mTrees );
+      // cereal::XMLOutputArchive oarchive( fs );
+      oarchive( mStorageSettings, mTrees );
     }
   }
   /**
