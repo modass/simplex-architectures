@@ -14,16 +14,7 @@
 
 namespace simplexArchitectures {
 
-bool hasFixedPoint( const std::vector<hypro::ReachTreeNode<Representation>> &roots ) {
-  for ( const auto &r : roots ) {
-    for ( const auto &node : hypro::preorder( r ) ) {
-      if ( node.hasFixedPoint() != hypro::TRIBOOL::TRUE ) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
+bool hasFixedPoint( const std::vector<hypro::ReachTreeNode<Representation>> &roots );
 
 }  // namespace simplexArchitectures
 
