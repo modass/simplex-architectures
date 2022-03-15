@@ -37,7 +37,7 @@
 
 #include "../controller/Controller.h"
 #include "../simulation/SamplingUtility.h"
-#include "../simulation/Simulator.h"
+#include "../simulation/Simulator_old.h"
 #include "../types.h"
 #include "../utility/reachTreeUtility.h"
 #include "../utility/treeSerialization.h"
