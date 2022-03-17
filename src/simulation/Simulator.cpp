@@ -16,7 +16,7 @@ namespace simplexArchitectures {
         }
     }
 
-    bool Simulator::simulateSafety(const Point& ctrlInput) {
+    hypro::TRIBOOL Simulator::isSafe(const Point& ctrlInput) {
         roots.clear();
 
         for ( const auto& [LocPtr, samples] : mLastStates ) {
@@ -51,11 +51,31 @@ namespace simplexArchitectures {
         auto result = reacher.computeForwardReachability();
 
         std::cout << "[Simulator] simulate safety result: " << result << std::endl;
-        return (result == hypro::REACHABILITY_RESULT::SAFE);
+        if(result != hypro::REACHABILITY_RESULT::SAFE) {
+          return hypro::TRIBOOL::FALSE;
+        }
+
+        // cutoff
+        unknownSamples.clear();
+        auto isSafe = hypro::TRIBOOL::TRUE;
+        auto nextStates = potentialNextStates();
+        for(const auto& [loc,setVector] : nextStates) {
+          for(const auto& set : setVector) {
+            if(!mStorage.isContained(loc->getName(),set)) {
+              isSafe = hypro::TRIBOOL::NSET;
+              if(unknownSamples.find(loc) == std::end(unknownSamples)) {
+                unknownSamples[loc] = std::vector<Representation>{};
+              }
+              unknownSamples[loc].emplace_back(set);
+            }
+          }
+        }
+        return isSafe;
     }
 
     void Simulator::update(const Point& ctrlInput, const Point& nextObservation) {
-        simulateSafety(ctrlInput);
+      spdlog::debug("Update simulator");
+      isSafe( ctrlInput );
         for (auto &root: roots) {
             cutoffControllerJumps(&root);
         }
@@ -63,7 +83,7 @@ namespace simplexArchitectures {
         std::map<LocPtr, Box> samplesBoxes;
         Matrix constraints = Matrix::Zero( 2, 5 );
         Vector constants = Vector::Zero( 2 );
-        // assign constraints: x1, x2 = observation, tick = cycle time
+        // assign constraints:  tick = 0
         // tick
         constraints( 0, 4 ) = 1;
         constraints( 1, 4 ) = -1;
@@ -75,6 +95,10 @@ namespace simplexArchitectures {
                 if ( n.isLeaf() ) {
                     // I don't think we really need this check. We only consider initial sets of nodes that where reached by resetting the cLocPtrk to zero.
                     auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
+                    if(containment != hypro::CONTAINMENT::FULL) {
+                      spdlog::warn("Leaf node initial set should be fully contained in tick = 0, but is actually not.");
+                      throw std::logic_error("Leaf node initial set should be fully contained in tick = 0, but is actually not.");
+                    }
                     if ( containment != hypro::CONTAINMENT::NO ) {
                         std::cout << "[Simulator] New sample: " << result << std::endl;
                         if ( samplesBoxes.find( n.getLocation() ) != samplesBoxes.end() ) {
@@ -87,7 +111,6 @@ namespace simplexArchitectures {
             }
         }
 
-        std::cout << "[Simulator] Observation: " << nextObservation << std::endl;
         // build constraints which represent the observation
         constraints = Matrix::Zero( 4, 5 );
         constants = Vector::Zero( 4 );
@@ -117,7 +140,7 @@ namespace simplexArchitectures {
                 assert( mLastStates[LocPtr].size() <= 2 );
             }
         }
-
+        spdlog::debug("Update simulator done.");
     }
 
     void Simulator::setCtrlValue(Point &sample, const Point &ctrlInput) {
