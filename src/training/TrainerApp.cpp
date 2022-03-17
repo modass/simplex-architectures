@@ -6,6 +6,7 @@
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
+#include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
 
 #include "Trainer.h"
 
@@ -40,7 +41,9 @@ int main( int argc, char** argv ) {
 
   CLI11_PARSE( app, argc, argv );
 
-  Trainer t{ storagefilename, modelfilename, trainingSettings, storageSettings };
+  auto [automaton,settings] = hypro::parseFlowstarFile<Number>(modelfilename);
+  Storage s{storagefilename,storageSettings};
+  Trainer t{ automaton, trainingSettings, s };
 
   t.plot( "pre_training" );
   spdlog::info( "Start training" );
