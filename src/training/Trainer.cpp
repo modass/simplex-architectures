@@ -17,7 +17,7 @@ namespace simplexArchitectures {
 
 void Trainer::run() {
   hypro::ReachabilitySettings reachSettings;
-  std::tie( mAutomaton, reachSettings ) = hypro::parseFlowstarFile<double>( mModelFileName );
+  reachSettings.timeStep = hypro::tNumber(0.01);
   // reachability analysis settings
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
@@ -28,15 +28,6 @@ void Trainer::run() {
   settings.rFixedParameters().localTimeHorizon                    = mTrainingSettings.timeHorizon;
   settings.rFixedParameters().jumpDepth                           = mTrainingSettings.jumpDepth;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
-  // initialize storage
-  if ( mTrees.empty() ) {
-    for ( const auto loc : mAutomaton.getLocations() ) {
-      // octree to store reachable sets, here fixed to [0,1] in each dimension
-      mTrees.emplace( loc->getName(),
-                      hypro::Hyperoctree<Number>( mStorageSettings.treeSplits, mStorageSettings.treeDepth,
-                                                  mStorageSettings.treeContainer ) );
-    }
-  }
   // set up initial states generators
   InitialStatesGenerator* generator = getInitialStatesGenerator();
   // override iterations in case full coverage is requested
@@ -53,23 +44,23 @@ void Trainer::run() {
   delete generator;
 }
 
-void Trainer::run(const hypro::Settings& settings, const locationConditionMap& initialStates) {
-  hypro::ReachabilitySettings reachSettings;
-  std::tie( mAutomaton, reachSettings ) = hypro::parseFlowstarFile<double>( mModelFileName );
-  // initialize storage
-  if ( mTrees.empty() ) {
-    for ( const auto loc : mAutomaton.getLocations() ) {
-      // octree to store reachable sets, here fixed to [0,1] in each dimension
-      mTrees.emplace( loc->getName(),
-                      hypro::Hyperoctree<Number>( mStorageSettings.treeSplits, mStorageSettings.treeDepth,
-                                                  mStorageSettings.treeContainer ) );
-    }
-  }
+bool Trainer::run(hypro::Settings settings, const locationConditionMap& initialStates) {
   // set up initial states generators
   InitialStatesGenerator* generator = new Single(initialStates);
+  // set fixedpoint detection in settings explicitly
+  settings.rStrategy().front().detectJumpFixedPoints              = true;
+  settings.rStrategy().front().detectFixedPointsByCoverage        = true;
+  settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
+  settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
+  settings.rFixedParameters().globalTimeHorizon = -1;
+  settings.rStrategy().front().detectZenoBehavior                 = true;
+  settings.rFixedParameters().localTimeHorizon = 100;
+  settings.rFixedParameters().jumpDepth = 200;
+  settings.rStrategy().front().aggregation = hypro::AGG_SETTING::AGG;
   // run single iteration
-  runIteration( settings, *generator );
+  auto res = runIteration( settings, *generator );
   delete generator;
+  return res;
 }
 
 void Trainer::plot( const std::string& outfilename ) {
@@ -78,7 +69,7 @@ void Trainer::plot( const std::string& outfilename ) {
   plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
   plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
   plt.rSettings().overwriteFiles = true;
-  for ( const auto& [locationName, tree] : mTrees ) {
+  for ( const auto& [locationName, tree] : mStorage.mTrees ) {
     spdlog::debug( "Plot tree for location {} which stores {} sets to file {}", locationName, tree.size(),
                    outfilename + "_" + locationName );
     plt.setFilename( outfilename + "_" + locationName );
@@ -94,7 +85,7 @@ void Trainer::plotCombined(const std::string& outfilename) {
   plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
   plt.rSettings().overwriteFiles = true;
   plt.setFilename(outfilename);
-  plotOctrees(mTrees,plt,true);
+  plotOctrees(mStorage.mTrees,plt,true);
   plt.plot2d( hypro::PLOTTYPE::png, true );
   plt.clear();
 }
@@ -122,35 +113,29 @@ void Trainer::updateOctree( const std::vector<hypro::ReachTreeNode<Representatio
   hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );
   constraints( 0, 4 )                 = 1;
   constraints( 1, 4 )                 = -1;
-  std::size_t added_sets              = 0;
   for ( const auto& r : roots ) {
     for ( const auto& node : hypro::preorder( r ) ) {
       for ( const auto& s : node.getFlowpipe() ) {
         // only store segments which contain states where the cycle time is zero
         if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
-          auto tmp = s.projectOn( mStorageSettings.projectionDimensions );
-          if ( !mTrees.at( node.getLocation()->getName() ).contains( tmp ) ) {
-            mTrees.at( node.getLocation()->getName() ).add( tmp );
-            ++added_sets;
-          }
+          mStorage.add(node.getLocation()->getName(), s);
         }
       }
     }
   }
-  spdlog::debug( "Added {} new sets obtained from training.", added_sets );
 }
 
-void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenerator& generator ) {
+bool Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenerator& generator ) {
   // obtain and set new initial states for training
   auto newInitialStates = generator( mAutomaton, mTrainingSettings );
   auto initialBox =
       Representation( newInitialStates.begin()->second.getMatrix(), newInitialStates.begin()->second.getVector() );
   std::stringstream ss;
   ss << initialBox;
-  if ( mTrees.at( newInitialStates.begin()->first->getName() ).contains( initialBox ) ) {
+  if ( mStorage.isContained( newInitialStates.begin()->first->getName(), initialBox ) ) {
     spdlog::debug( "Initial set {} for location {} already contained in octrees, skip iteration.", ss.str(),
                    newInitialStates.begin()->first->getName() );
-    return;
+    return true;
   }
   spdlog::info( "Location {}, initial box {}.", newInitialStates.begin()->first->getName(), ss.str() );
   // std::cout << "Initial set: " << Representation(newInitialStates.begin()->second.getMatrix(),
@@ -165,7 +150,7 @@ void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   std::size_t                                                                  shortcuts = 0;
   std::function<bool( const Representation&, const hypro::Location<double>* )> callback =
       [this, &shortcuts]( const auto& set, const auto locptr ) {
-        if ( mTrees.at( locptr->getName() ).contains( set.projectOn(mStorageSettings.projectionDimensions) ) ) {
+        if ( mStorage.isContained( locptr->getName(), set ) ) {
           ++shortcuts;
           return true;
         }
@@ -174,26 +159,43 @@ void Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   hypro::ReachabilityCallbacks<Representation, hypro::Location<double>> callbackStructure{ callback };
   reacher.setCallbacks( callbackStructure );
   // start reachability analysis
+  spdlog::debug("Start reachability analysis");
   auto result = reacher.computeForwardReachability();
   if(shortcuts > 0) {
     spdlog::debug( "Found {} fixed points by exploiting existing results.", shortcuts );
   }
+  spdlog::debug("Reachability analysis done");
+  // plot results
+  /*
+  hypro::Plotter<Number>& plt = hypro::Plotter<Number>::getInstance();
+  plt.rSettings().filename = "training_out";
+  plt.rSettings().overwriteFiles = false;
+  plt.clear();
+  for(const auto& root : roots) {
+    for(const auto& node : hypro::preorder(root)) {
+      for(const auto& set : node.getFlowpipe()) {
+        if(node.hasFixedPoint() == hypro::TRIBOOL::TRUE)
+          plt.addObject(set.projectOn({0,1}).vertices(), hypro::plotting::colors[hypro::plotting::green]);
+        else
+          plt.addObject(set.projectOn({0,1}).vertices(), hypro::plotting::colors[hypro::plotting::orange]);
+      }
+    }
+  }
+  plt.plot2d(hypro::PLOTTYPE::png);
+  */
+
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
-    spdlog::warn( "System is not safe, need to deal with this." );
+    spdlog::debug( "System is not safe." );
+    return false;
   } else if ( !hasFixedPoint( roots ) ) {
-    spdlog::warn( "System has no fixed point, need to deal with this." );
+    spdlog::debug( "System has no fixed point." );
+    return false;
   } else {
-    spdlog::info( "Analysis complete, update octrees." );
+    spdlog::debug( "Analysis complete & safe (unbounded time), update octrees." );
     updateOctree( roots );
+    return true;
   }
-  spdlog::info( "Have {} octrees which store {} sets.", mTrees.size(), this->size() );
-}
-
-std::size_t Trainer::size() const {
-  std::size_t res = 0;
-  std::for_each( std::begin( mTrees ), std::end( mTrees ), [&res]( const auto& tree ) { res += tree.second.size(); } );
-  return res;
 }
 
 InitialStatesGenerator* Trainer::getInitialStatesGenerator() const {
