@@ -1,4 +1,4 @@
-add_library(SimplexArchitectures controller/Controller.cpp simulation/Simulator.cpp simulation/Simulator_old.cpp simulation/Executor.cpp training/Trainer.cpp utility/octreePlotting.cpp utility/reachTreeUtility.cpp utility/treeSerialization.cpp   controller/RandomController.cpp  controller/RLController.cpp )
+add_library(SimplexArchitectures controller/Controller.cpp simulation/Simulator.cpp simulation/Simulator_old.cpp simulation/Executor.cpp training/Trainer.cpp utility/octreePlotting.cpp utility/reachTreeUtility.cpp utility/treeSerialization.cpp utility/Storage.cpp   controller/RandomController.cpp  controller/RLController.cpp )
 target_include_directories(SimplexArchitectures PUBLIC ./)
 target_link_libraries(SimplexArchitectures hypro-shared cereal::cereal spdlog stdc++fs)
 
