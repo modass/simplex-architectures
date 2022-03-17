@@ -2003,8 +2003,8 @@ hybrid reachability
             u in [u_on, u_on]
             spec_t1 in [0, 0]
             tick in [0, 0]
-            x1 in [0.3, 0.6]
-            x2 in [0.3, 0.6]
+            x1 in [0.40, 0.4]
+            x2 in [0.3, 0.3]
         }
     }
 }
