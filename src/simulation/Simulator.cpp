@@ -124,4 +124,20 @@ namespace simplexArchitectures {
         // augment state with controller input
         sample.at( 2 ) = ctrlInput.at( 0 );
     }
+
+    std::map<LocPtr, std::vector<Box>> Simulator::potentialNextStates() {
+        for (auto &root: roots) {
+            cutoffControllerJumps(&root);
+        }
+
+       std::map<LocPtr, std::vector<Box>> samples;
+        for ( const auto &r : roots ) {
+            for ( const auto &n : hypro::preorder( r ) ) {
+                if ( n.isLeaf() ) {
+                    samples[n.getLocation()].push_back( n.getInitialSet() );
+                }
+            }
+        }
+        return samples;
+    }
 }

@@ -22,13 +22,13 @@ namespace simplexArchitectures {
     struct Executor {
         Point execute(const Point& ctrlInput);
         hypro::HybridAutomaton<Number> &mAutomaton;
+        LocPtr mLastLocation;
+        Point mLastState;
     private:
         static void setCtrlValue(Point &state, const Point &ctrlInput);
         hypro::Settings mSettings;
         double mCycleTime = 1.0;
         std::vector<hypro::ReachTreeNode<Representation>> roots;
-        LocPtr mLastLocation;
-        Point mLastState;
         std::mt19937 mGenerator;
     };
 

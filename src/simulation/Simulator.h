@@ -21,11 +21,12 @@ namespace simplexArchitectures {
     using Vector = hypro::vector_t<Number>;
 
     struct Simulator {
-        // Assumptions: Hidden state variables of the specification are always cLocPtrks, we keep only the minimum and maximum in case simulation allows several values
+        // Assumptions: Hidden state variables of the specification are always clocks, we keep only the minimum and maximum in case simulation allows several values
         
         Point getBaseControllerOutput();  // extract the base controller output from the current state
 
         bool simulateSafety(const Point& ctrlInput); // Simulation with output, returns if execution is safe or not.
+        std::map<LocPtr, std::vector<Box>> potentialNextStates();
 
         void update(const Point& ctrlInput, const Point& nextObservation); // Update current state based on input and next observation
 
