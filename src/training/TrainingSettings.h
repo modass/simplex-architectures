@@ -19,23 +19,12 @@ struct TrainingSettings {
   std::vector<std::size_t> wideningDimensions;
   hypro::Box<Number>       samplingArea;
   std::vector<std::size_t> subdivision     = {};
-  Number                   timeHorizon     = 100.0;
+  Number                   timeHorizon     = 200.0;
   std::size_t              jumpDepth       = 200;
   Number                   initialSetWidth = 0.1;
   bool fullCoverage = false;
 };
 
-struct StorageSettings {
-  std::vector<std::size_t> projectionDimensions;
-  hypro::Box<Number>       treeContainer;
-  std::size_t              treeSplits = 2;
-  std::size_t              treeDepth  = 4;
-
-  template <typename Archive>
-  void serialize( Archive& ar ) {
-    ar( projectionDimensions, treeContainer, treeSplits, treeDepth );
-  }
-};
 
 }  // namespace simplexArchitectures
 
