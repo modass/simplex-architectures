@@ -3,15 +3,22 @@
 //
 
 #include "Executor.h"
+#include <spdlog/spdlog.h>
 
 Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     roots.clear();
 
-    setCtrlValue(mLastState, ctrlInput);
+    hypro::Point<Number> extendedState = hypro::Point<Number>(hypro::vector_t<Number>::Zero(5));
+    extendedState[0] = mLastState[0];
+    extendedState[1] = mLastState[1];
+    extendedState[2] = ctrlInput[0];
+    std::stringstream  ss;
+    ss << extendedState;
+    spdlog::debug("Run executor with initial state {} in location {}", ss.str(), mLastLocation->getName());
     // create intervals representing the initial state
     std::vector<carl::Interval<Number>> intervals;
-    for ( Eigen::Index i = 0; i < mLastState.dimension(); ++i ) {
-        intervals.emplace_back( carl::Interval<Number>( mLastState.at( i ) ) );
+    for ( Eigen::Index i = 0; i < extendedState.dimension(); ++i ) {
+        intervals.emplace_back( carl::Interval<Number>( extendedState.at( i ) ) );
     }
     auto initialBox = hypro::Condition<Number>{ intervals };
     typename hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
@@ -70,11 +77,9 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
 
     mLastLocation = location;
     mLastState = observation;
+    ss.str(std::string());
+    ss << observation;
+    spdlog::debug("Executor has new state: {} in location {}", ss.str(), mLastLocation->getName());
 
     return observation;
-}
-
-void simplexArchitectures::Executor::setCtrlValue(Point &state, const Point &ctrlInput) {
-    // augment state with controller input
-    state.at( 2 ) = ctrlInput.at( 0 );
 }
