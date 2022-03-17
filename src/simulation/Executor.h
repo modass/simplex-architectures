@@ -20,13 +20,14 @@ namespace simplexArchitectures {
     using Vector = hypro::vector_t<Number>;
 
     struct Executor {
+        Executor(hypro::HybridAutomaton<Number>& automaton, LocPtr initialLocation, Point initialValuation) :mAutomaton(automaton), mLastLocation(initialLocation), mLastState(initialValuation) {}
+
         Point execute(const Point& ctrlInput);
         hypro::HybridAutomaton<Number> &mAutomaton;
         LocPtr mLastLocation;
         Point mLastState;
-    private:
-        static void setCtrlValue(Point &state, const Point &ctrlInput);
         hypro::Settings mSettings;
+    private:
         double mCycleTime = 1.0;
         std::vector<hypro::ReachTreeNode<Representation>> roots;
         std::mt19937 mGenerator;
