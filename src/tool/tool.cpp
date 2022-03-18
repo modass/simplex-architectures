@@ -115,6 +115,7 @@ int main( int argc, char* argv[] ) {
       widening,
       false };
   Storage storage{ storagefilename, storageSettings };
+  storage.plotCombined("storage_post_loading_combined");
   Trainer trainer{ automaton, trainingSettings, storage };
   // monitor
   Simulator sim{ automaton, settings, storage };
@@ -124,6 +125,7 @@ int main( int argc, char* argv[] ) {
     auto                                initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace( std::make_pair( executor.mLastLocation, hypro::Condition<Number>( widenSample(initialValuation.value(),widening,{0,1}) ) ) );
     trainer.run( settings, initialStates );
+    storage.plotCombined("storage_post_initial_training_combined");
   }
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
@@ -138,6 +140,7 @@ int main( int argc, char* argv[] ) {
     s << advControllerInput;
     spdlog::info( "Start advanced controller simulation with controller output {}", s.str() );
     hypro::TRIBOOL advControllerSafe = sim.isSafe( advControllerInput );
+    bool advControllerUsed = true;
 
     // if all safe & last point in reach set, pointify resulting set, update initialstate, update monitor (current
     // point)
@@ -153,6 +156,7 @@ int main( int argc, char* argv[] ) {
       spdlog::debug("Advanced controller is unsafe, use base controller with output {}", ss.str());
       executor.execute( sim.getBaseControllerOutput() );
       sim.update(sim.getBaseControllerOutput(),executor.mLastState);
+      advControllerUsed = false;
     } else {
       spdlog::debug("Advanced controller is safe (bounded time), but traces end in unknown safety area");
       bool allSafe = false;
@@ -173,6 +177,10 @@ int main( int argc, char* argv[] ) {
             allSafe                    = allSafe && safe;
           }
         }
+        std::stringstream ss;
+        std::size_t l = std::to_string(iterations).size();
+        ss << std::setw(l) << std::setfill('0') << iteration_count;
+        storage.plotCombined("storage_post_training_" + ss.str() + "_combined");
       }
       if ( !allSafe ) {
         std::stringstream ss;
@@ -180,6 +188,7 @@ int main( int argc, char* argv[] ) {
         spdlog::debug("Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         executor.execute( sim.getBaseControllerOutput() );
         sim.update(sim.getBaseControllerOutput(),executor.mLastState);
+        advControllerUsed = false;
       } else {
         std::stringstream ss;
         ss <<advControllerInput;
@@ -188,6 +197,20 @@ int main( int argc, char* argv[] ) {
         sim.update(advControllerInput,executor.mLastState);
       }
     }
+
+    std::stringstream ss;
+    std::size_t l = std::to_string(iterations).size();
+    ss << std::setw(l) << std::setfill('0') << iteration_count;
+    storage.plotCombined("storage_post_iteration_" + ss.str() + "_combined", false);
+    auto fillsettings = hypro::Plotter<Number>::getInstance().settings();
+    fillsettings.fill = true;
+    if(advControllerUsed) {
+      hypro::Plotter<Number>::getInstance().addPoint(executor.mLastState.projectOn({0,1}), hypro::plotting::colors[hypro::plotting::green], fillsettings);
+    } else {
+      hypro::Plotter<Number>::getInstance().addPoint(executor.mLastState.projectOn({0,1}), hypro::plotting::colors[hypro::plotting::orange], fillsettings);
+    }
+    hypro::Plotter<Number>::getInstance().plot2d(hypro::PLOTTYPE::png, true);
+    hypro::Plotter<Number>::getInstance().clear();
   }
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;

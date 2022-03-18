@@ -7,10 +7,7 @@
 #include <hypro/algorithms/reachability/Reach.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
 #include <hypro/representations/GeometricObjectBase.h>
-#include <hypro/util/plotting/FlowpipePlotting.h>
-#include <hypro/util/plotting/Plotter.h>
 
-#include "../utility/octreePlotting.h"
 #include "../utility/reachTreeUtility.h"
 
 namespace simplexArchitectures {
@@ -61,33 +58,6 @@ bool Trainer::run(hypro::Settings settings, const locationConditionMap& initialS
   auto res = runIteration( settings, *generator );
   delete generator;
   return res;
-}
-
-void Trainer::plot( const std::string& outfilename ) {
-  hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
-  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
-  plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
-  plt.rSettings().overwriteFiles = true;
-  for ( const auto& [locationName, tree] : mStorage.mTrees ) {
-    spdlog::debug( "Plot tree for location {} which stores {} sets to file {}", locationName, tree.size(),
-                   outfilename + "_" + locationName );
-    plt.setFilename( outfilename + "_" + locationName );
-    plotOctree( tree, plt, true );
-    plt.plot2d( hypro::PLOTTYPE::png, true );
-    plt.clear();
-  }
-}
-
-void Trainer::plotCombined(const std::string& outfilename) {
-  hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
-  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
-  plt.rSettings().overwriteFiles = true;
-  plt.setFilename(outfilename);
-  plotOctrees(mStorage.mTrees,plt,true);
-  plt.plot2d( hypro::PLOTTYPE::png, true );
-  plt.clear();
 }
 
 locationConditionMap Trainer::generateInitialStates() const {
@@ -165,24 +135,6 @@ bool Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
     spdlog::debug( "Found {} fixed points by exploiting existing results.", shortcuts );
   }
   spdlog::debug("Reachability analysis done");
-  // plot results
-  /*
-  hypro::Plotter<Number>& plt = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().filename = "training_out";
-  plt.rSettings().overwriteFiles = false;
-  plt.clear();
-  for(const auto& root : roots) {
-    for(const auto& node : hypro::preorder(root)) {
-      for(const auto& set : node.getFlowpipe()) {
-        if(node.hasFixedPoint() == hypro::TRIBOOL::TRUE)
-          plt.addObject(set.projectOn({0,1}).vertices(), hypro::plotting::colors[hypro::plotting::green]);
-        else
-          plt.addObject(set.projectOn({0,1}).vertices(), hypro::plotting::colors[hypro::plotting::orange]);
-      }
-    }
-  }
-  plt.plot2d(hypro::PLOTTYPE::png);
-  */
 
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {

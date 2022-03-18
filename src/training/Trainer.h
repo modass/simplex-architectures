@@ -51,10 +51,6 @@ class Trainer {
    * @param initialStates set of initial states
    */
   bool run(hypro::Settings settings, const locationConditionMap& initialStates);
-  /// Writes the currently available safe sets to a plot file, creating a file for each location.
-  void plot( const std::string& outfilename );
-  /// Creates a combined plot of the currently available safe sets
-  void plotCombined( const std::string& outfilename );
 
  private:
   /// Calls the chosen generator and returns a new set of initial states (location + state set)

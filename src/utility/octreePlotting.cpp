@@ -7,6 +7,9 @@
 namespace simplexArchitectures {
 
 void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double> &plt, bool plotSets ) {
+  auto fillSettings = plt.settings();
+  fillSettings.fill = true;
+
   assert(!octree.getContainer().projectOn( plt.settings().dimensions ).vertices().empty());
   if ( octree.isCovered() ) {
     plt.addObject( octree.getContainer().projectOn( plt.settings().dimensions ).vertices(),
@@ -21,7 +24,7 @@ void plotOctree( const hypro::Hyperoctree<double> &octree, hypro::Plotter<double
     } else {
       if(plotSets) {
         for(const auto& set : octree.getData()) {
-          plt.addObject( set.projectOn(plt.settings().dimensions).vertices());
+          plt.addObject( set.projectOn(plt.settings().dimensions).vertices(), hypro::plotting::colors[hypro::plotting::blue], fillSettings );
         }
       }
     }
