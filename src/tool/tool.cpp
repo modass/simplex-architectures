@@ -108,7 +108,7 @@ int main( int argc, char* argv[] ) {
   executor.mSettings = settings;
   // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
   // Storagesettings will be overidden if a file with data exists
-  StorageSettings  storageSettings{ { 0, 1, 4 }, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 15 } } }, 2, 4 };
+  StorageSettings  storageSettings{ interesting_dimensions, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 31 } } }, 2, 4 };
   TrainingSettings trainingSettings{
       1,
       INITIAL_STATE_HEURISTICS::SINGLE,
