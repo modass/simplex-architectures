@@ -14,6 +14,7 @@ hybrid reachability
         base_ctrl_low = 0.35 # if x2 <= base_ctrl_low:  off -> on
         base_ctrl_high = 0.7 # if x1 >= base_ctrl_high: on -> off
         u_on = 0.0002        # if on: u = u_on else: u = 0.0
+        level_max = 0.8      # maximal filling level
     }
 
     setting
@@ -2019,4 +2020,11 @@ unsafe set
     open2_off_bad {  spec_t1 >= 0.0 }
     open3_on_bad {    spec_t1 >= 0.0 }
     open3_off_bad {  spec_t1 >= 0.0 }
+
+    {
+    x1 >= level_max
+    }
+    {
+    x2 >= level_max
+    }
 }
