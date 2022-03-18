@@ -42,9 +42,14 @@ namespace simplexArchitectures {
 
         // call simulation as reachability analysis for a maximal time duration of 1 (cycle time)
         // copy settings to adjust global time etc.
-        mSettings.rFixedParameters().globalTimeHorizon = mCycleTime;
+        mSettings.rFixedParameters().globalTimeHorizon = mCycleTime*1.5;
         mSettings.rFixedParameters().localTimeHorizon = carl::convert<double, hypro::tNumber>( mCycleTime );
         mSettings.rFixedParameters().jumpDepth = 2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
+        mSettings.rStrategy().front().detectJumpFixedPoints = false;
+        mSettings.rStrategy().front().detectContinuousFixedPointsLocally = false;
+        mSettings.rStrategy().front().detectFixedPointsByCoverage = false;
+        mSettings.rStrategy().front().numberSetsForContinuousCoverage = 0;
+        mSettings.rStrategy().front().detectZenoBehavior = true;
         // analysis
         auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, mSettings.fixedParameters(),
                                                                    mSettings.strategy().front(), roots );
@@ -55,7 +60,7 @@ namespace simplexArchitectures {
           return hypro::TRIBOOL::FALSE;
         }
 
-        // cutoff
+        // collect unknown samples
         unknownSamples.clear();
         auto isSafe = hypro::TRIBOOL::TRUE;
         auto nextStates = potentialNextStates();
