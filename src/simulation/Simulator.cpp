@@ -101,8 +101,20 @@ namespace simplexArchitectures {
                     // I don't think we really need this check. We only consider initial sets of nodes that where reached by resetting the cLocPtrk to zero.
                     auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
                     if(containment != hypro::CONTAINMENT::FULL) {
-                      spdlog::warn("Leaf node initial set should be fully contained in tick = 0, but is actually not.");
-                      throw std::logic_error("Leaf node initial set should be fully contained in tick = 0, but is actually not.");
+                      std::stringstream ss,sss;
+                      ss << n.getInitialSet();
+                      sss << n.getParent()->getInitialSet();
+                      spdlog::warn("Leaf node ({}, parent {}, parent initial: {}) initial set {} should be fully contained in tick = 0, but is actually not.", n.getLocation()->getName(), n.getParent()->getLocation()->getName(), sss.str(), ss.str());
+                      ss.str(std::string());
+                      ss << n.getPath();
+                      spdlog::warn("Node path: {}", ss.str());
+                      ss.str(std::string());
+                      for(const auto& s : n.getFlowpipe()) {
+                        ss << s << "\n";
+                      }
+                      std::cout << "Node flowpipe:\n" << ss.str() << std::endl;
+                      spdlog::warn("Node flags: timelock: {}, bad state: {}, has fixed point: {}, is on Zeno-cycle: {}", n.hasTimelock(), n.intersectedUnsafeRegion(), n.hasFixedPoint()==hypro::TRIBOOL::TRUE, n.isOnZenoCycle());
+                      throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
                     }
                     if ( containment != hypro::CONTAINMENT::NO ) {
                         std::cout << "[Simulator] New sample: " << result << std::endl;
