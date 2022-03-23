@@ -3,6 +3,7 @@
 //
 
 #include "generateBicycle.h"
+#include <spdlog/spdlog.h>
 
 #include <vector>
 
@@ -30,7 +31,6 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
   double theta_increment = ( 2 * M_PI ) / double( discretization );
   for ( std::size_t id = 0; id < discretization; ++id ) {
     double dtheta    = velocity / wheelbase * tan( delta );
-    double theta     = 0.0;
     double theta_low = theta - theta_increment / 2.0;
     double theta_up  = theta + theta_increment / 2.0;
     for ( std::size_t it = 0; it < discretization; ++it ) {
@@ -40,11 +40,11 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       // compute and set flow
       double dx = velocity * cos( theta );
       double dy = velocity * sin( theta );
-      theta += theta_increment;
-      Matrix flowmatrix      = Matrix::Zero( variableNames.size(), C );
+      Matrix flowmatrix      = Matrix::Zero( variableNames.size(), C+1 );
       flowmatrix( x, C )     = dx;
       flowmatrix( y, C )     = dy;
       flowmatrix( theta, C ) = dtheta;
+      flowmatrix( tick, C ) = 1.0;
       loc->setFlow( hypro::linearFlow<double>( flowmatrix ) );
       // compute and set invariants
       Matrix invariant_constraints      = Matrix::Zero( 3, variableNames.size() );
@@ -53,14 +53,20 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       invariant_constraints( 1, theta ) = -1;
       invariant_constraints( 2, tick )  = 1;
       invariant_constants << theta_up, -theta_low, tick_time;
+      loc->setInvariant({invariant_constraints,invariant_constants});
       // update values
       theta_low += theta_increment;
       theta_up += theta_increment;
-      theta += theta_increment;
+      dtheta += theta_increment;
     }
     // update values
     delta += delta_increment;
   }
+
+  // set some dummy initial states
+  std::vector<carl::Interval<double>> initialSet{ { carl::Interval<double>{ 0, 0 }, carl::Interval<double>{ 0, 0 }, carl::Interval<double>{ 0, 0 }, carl::Interval<double>{ 0, 0 } } };
+  hypro::HybridAutomaton<double>::locationConditionMap initialConfigurations{{res.getLocations().front(), hypro::conditionFromIntervals(initialSet)}};
+  res.setInitialStates(initialConfigurations);
 
   return res;
 }
