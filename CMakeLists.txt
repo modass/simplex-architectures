@@ -26,6 +26,7 @@ include(resources)
 add_subdirectory(src)
 add_subdirectory(src/tool)
 add_subdirectory(src/training)
+add_subdirectory(src/model_generation)
 
 # configure paths.h.in (helper file which allows to get the absolute path for model files)
 configure_file(src/paths.h.in src/paths.h)
