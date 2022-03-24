@@ -16,7 +16,7 @@ namespace simplexArchitectures {
     }
 
     void RLController::print_network(const VVVF& weight0, const VVVF& weight2,
-                                     const VF& bias0, const VF& bias2) {
+                                    const VF& bias0, const VF& bias2) {
         cout << "Weight 0 \n";
 
         for (int i = 0; i < weight0.size(); ++i) {
@@ -169,7 +169,10 @@ namespace simplexArchitectures {
             }
             layer3[i] += bias2[i];
         }
-
+        //~ for (int i =0; i < layer3.size(); ++i) {
+        //~ cout << layer3[i] << ", ";
+        //~ }
+        //~ cout << endl;
         return layer3;
     }
 
@@ -190,7 +193,8 @@ namespace simplexArchitectures {
             }
         }
         float result = best_action;
-        result = result*5.0/(bias2.size()-1)*1e-4;
+        result = result*max_flow/(bias2.size()-1)*1e-4;
+//        cout << best_action << " ";
         return result;
     }
 

@@ -37,6 +37,7 @@
 
 #include "../controller/AbstractController.h"
 #include "../controller/ConstantController.h"
+#include "../controller/RandomController.h"
 #include "../controller/RLController.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
@@ -94,11 +95,12 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
   // random controller
-  //AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
-  if(!fileExists("/home/stefan/tu/repositories/simplex-architectures/networks/watertanks.txt")) {
+//  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
+  if(!fileExists("../../networks/watertanks/bilinear_high.txt")) {
     throw std::ios_base::failure("File does not exist.");
   }
-  AbstractController<Point, Point>* advCtrl = new RLController("/home/stefan/tu/repositories/simplex-architectures/networks/watertanks.txt");
+  AbstractController<Point, Point>* advCtrl = new RLController("../../networks/watertanks/bilinear_high.txt");
+//  AbstractController<Point, Point>* advCtrl = new RandomController();
   // initialize Executor
   std::optional<Point> initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint();
   if ( !initialValuation ) {

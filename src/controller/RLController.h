@@ -44,6 +44,7 @@ namespace simplexArchitectures {
 
         const int input_dim = 2;
         const int output_dim = 11;
+        constexpr static const float max_flow = 2;
         VVVF mWeight0;
         VVVF mWeight2;
         VF mBias0;
