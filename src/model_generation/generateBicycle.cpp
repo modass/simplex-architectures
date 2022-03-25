@@ -34,16 +34,16 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
   double theta_increment = ( 2 * M_PI ) / double( discretization );
   for ( std::size_t id = 0; id < discretization; ++id ) {
     double dtheta    = velocity / wheelbase * tan( delta );
-    double theta_low = theta - theta_increment / 2.0;
-    double theta_up  = theta + theta_increment / 2.0;
+    double theta_low = dtheta - theta_increment / 2.0;
+    double theta_up  = dtheta + theta_increment / 2.0;
     for ( std::size_t it = 0; it < discretization; ++it ) {
       auto loc = res.createLocation();
       buckets.emplace(std::make_pair(id,it),loc);
       // set name
       loc->setName( "delta_" + std::to_string( id ) + "_theta_" + std::to_string( it ) );
       // compute and set flow
-      double dx = velocity * cos( theta );
-      double dy = velocity * sin( theta );
+      double dx = velocity * cos( dtheta );
+      double dy = velocity * sin( dtheta );
       Matrix flowmatrix      = Matrix::Zero( variableNames.size(), C+1 );
       flowmatrix( x, C )     = dx;
       flowmatrix( y, C )     = dy;
@@ -51,6 +51,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       flowmatrix( tick, C ) = 1.0;
       loc->setFlow( hypro::linearFlow<double>( flowmatrix ) );
       // compute and set invariants
+      // ATTENTION: The order of constraints is important, it is reused for guards later!!!
       Matrix invariant_constraints      = Matrix::Zero( 3, variableNames.size() );
       Vector invariant_constants        = Vector::Zero( 3 );
       invariant_constraints( 0, theta ) = 1;
@@ -74,24 +75,24 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
 
   /* compute/add transitions
    * Idea: Transitions where delta changes can only occur between two cycles (i.e., when tick = tick_time), all other
-   * transitions are enabled by the violation of respective invariants.
+   * transitions are enabled by the violation of respective invariants. The only variable that is reset is tick.
    */
 
   for(auto& [key,source] : buckets) {
-    auto& [delta,theta] = key;
+    auto& [deltaBucket,thetaBucket] = key;
     // determine neighbor indices
-    auto lowerDeltaNeighbor = delta > 0 ? delta-1 : discretization-1;
-    auto upperDeltaNeighbor = delta < discretization - 1 ? delta+1 : 0;
-    auto lowerThetaNeighbor = theta > 0 ? theta-1 : discretization-1;
-    auto upperThetaNeighbor = theta < discretization - 1 ? theta+1 : 0;
+    auto lowerDeltaNeighbor = deltaBucket > 0 ? deltaBucket-1 : discretization-1;
+    auto upperDeltaNeighbor = deltaBucket < discretization - 1 ? deltaBucket+1 : 0;
+    auto lowerThetaNeighbor = thetaBucket > 0 ? thetaBucket-1 : discretization-1;
+    auto upperThetaNeighbor = thetaBucket < discretization - 1 ? thetaBucket+1 : 0;
     // create theta-transitions, lower first
-    auto lowerTheta = source->createTransition(buckets[std::make_pair(delta,lowerThetaNeighbor)]);
+    auto lowerTheta = source->createTransition(buckets[std::make_pair(deltaBucket,lowerThetaNeighbor)]);
     // upper theta neighbor
-    auto upperTheta = source->createTransition(buckets[std::make_pair(delta,upperThetaNeighbor)]);
+    auto upperTheta = source->createTransition(buckets[std::make_pair(deltaBucket,upperThetaNeighbor)]);
     // create delta-transitions, lower first
-    auto lowerDelta = source->createTransition(buckets[std::make_pair(lowerDeltaNeighbor,theta)]);
+    auto lowerDelta = source->createTransition(buckets[std::make_pair(lowerDeltaNeighbor,thetaBucket)]);
     // upper delta neighbor
-    auto upperDelta = source->createTransition(buckets[std::make_pair(upperThetaNeighbor,theta)]);
+    auto upperDelta = source->createTransition(buckets[std::make_pair(upperDeltaNeighbor,thetaBucket)]);
     // delta-guard
     Matrix guard_constraints = Matrix::Zero(2,variableNames.size());
     guard_constraints(0,tick) = 1;
@@ -106,6 +107,20 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     reset_matrix(tick,tick) = 0;
     lowerDelta->setReset(hypro::Reset<double>(reset_matrix,reset_vector));
     upperDelta->setReset(hypro::Reset<double>(reset_matrix,reset_vector));
+    // theta-guard upper
+    guard_constraints = Matrix::Zero(2,variableNames.size());
+    guard_constraints(0,theta) = 1;
+    guard_constraints(1,theta) = -1;
+    guard_constants = Vector::Zero(2);
+    guard_constants << source->getInvariant().getVector()(0), -source->getInvariant().getVector()(0);
+    upperTheta->setGuard({guard_constraints,guard_constants});
+    // theta-guard lower
+    guard_constraints = Matrix::Zero(2,variableNames.size());
+    guard_constraints(0,theta) = 1;
+    guard_constraints(1,theta) = -1;
+    guard_constants = Vector::Zero(2);
+    guard_constants << -source->getInvariant().getVector()(1), source->getInvariant().getVector()(1);
+    lowerTheta->setGuard({guard_constraints,guard_constants});
   }
 
   return res;
