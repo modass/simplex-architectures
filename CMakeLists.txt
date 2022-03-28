@@ -25,6 +25,7 @@ include(resources)
 # invoke cmake for the subdirectories
 add_subdirectory(src)
 add_subdirectory(src/tool)
+add_subdirectory(src/tool_car)
 add_subdirectory(src/training)
 add_subdirectory(src/model_generation)
 
