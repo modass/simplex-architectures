@@ -11,10 +11,14 @@
 namespace simplexArchitectures {
 
 struct RaceTrack {
-  hypro::Box<double> playground;
+  std::vector<Point>              waypoints;
+  hypro::Box<double>              playground;
   std::vector<hypro::Box<double>> obstacles;
+  double                          safetyMargin = 0.2;
 
+  std::vector<hypro::Condition<double>> createSafetySpecification() const;
 
+  void addToPlotter( std::optional<Point> car = std::nullopt );
 };
 
 }
