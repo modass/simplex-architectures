@@ -7,12 +7,24 @@
 
 #include "AbstractController.h"
 #include "../types.h"
+#include "../utility/RaceTrack.h"
+#include "../utility/coordinate_util.h"
 
 namespace simplexArchitectures {
 
 class BicycleBaseController : public AbstractController<Point, Point> {
+ public:
+  Point generateInput( Point state );
 
-  Point generateInput(Point state);
+  Point computeTarget( Point state );
+
+  Point lastWaypoint;
+  Point currentWaypoint;
+
+ private:
+  RaceTrack track;
+
+  const double wheelbase = 1.0;
 };
 
 }
