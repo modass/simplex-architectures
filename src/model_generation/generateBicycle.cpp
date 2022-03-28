@@ -18,12 +18,13 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
   constexpr Eigen::Index         y     = 1;
   constexpr Eigen::Index         theta = 2;
   constexpr Eigen::Index         tick  = 3;
-  constexpr Eigen::Index         C     = 4;
-  std::vector<std::string>       variableNames{ "x", "y", "theta", "tick" };
+  constexpr Eigen::Index         v     = 4;
+  constexpr Eigen::Index         C     = 5;
+  std::vector<std::string>       variableNames{ "x", "y", "theta", "tick", "v" };
   res.setVariables( variableNames );
 
   // map which assigns locations to buckets
-  std::map<std::pair<std::size_t,std::size_t>, hypro::Location<double>*> buckets;
+  std::map<std::pair<std::size_t, std::size_t>, hypro::Location<double>*> buckets;
 
   constexpr double velocity  = 1.0;  // use velocity = one
   constexpr double wheelbase = 1.0;  // wheelbase = 1.0
@@ -34,21 +35,23 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
   double theta_increment = ( 2 * M_PI ) / double( discretization );
   for ( std::size_t id = 0; id < discretization; ++id ) {
     double dtheta    = velocity / wheelbase * tan( delta );
-    double theta_low = dtheta - theta_increment / 2.0;
-    double theta_up  = dtheta + theta_increment / 2.0;
+    double vtheta    = theta_increment / 2.0;
+    double theta_low = 0;
+    double theta_up  = theta_increment;
     for ( std::size_t it = 0; it < discretization; ++it ) {
       auto loc = res.createLocation();
-      buckets.emplace(std::make_pair(id,it),loc);
+      buckets.emplace( std::make_pair( id, it ), loc );
       // set name
       loc->setName( "delta_" + std::to_string( id ) + "_theta_" + std::to_string( it ) );
       // compute and set flow
-      double dx = velocity * cos( dtheta );
-      double dy = velocity * sin( dtheta );
-      Matrix flowmatrix      = Matrix::Zero( variableNames.size(), C+1 );
-      flowmatrix( x, C )     = dx;
-      flowmatrix( y, C )     = dy;
-      flowmatrix( theta, C ) = dtheta;
-      flowmatrix( tick, C ) = 1.0;
+      double dx              = cos( vtheta );
+      double dy              = sin( vtheta );
+      Matrix flowmatrix      = Matrix::Zero( variableNames.size(), C + 1 );
+      flowmatrix( x, v )     = dx;
+      flowmatrix( y, v )     = dy;
+      flowmatrix( theta, v ) = dtheta;
+      flowmatrix( tick, C )  = 1.0;
+      flowmatrix( v, C )     = 0;
       loc->setFlow( hypro::linearFlow<double>( flowmatrix ) );
       // compute and set invariants
       // ATTENTION: The order of constraints is important, it is reused for guards later!!!
@@ -62,7 +65,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       // update values
       theta_low += theta_increment;
       theta_up += theta_increment;
-      dtheta += theta_increment;
+      vtheta += theta_increment;
     }
     // update values
     delta += delta_increment;
