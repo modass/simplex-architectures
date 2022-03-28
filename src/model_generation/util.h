@@ -10,7 +10,6 @@
 
 namespace modelGenerator {
 
-inline double DegreesToRadians( double degrees ) { return degrees * ( M_PI / 180 ); }
 
 }  // namespace modelGenerator
 
