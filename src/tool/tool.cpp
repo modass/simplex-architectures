@@ -167,17 +167,23 @@ int main( int argc, char* argv[] ) {
       widening,
       false };
   Storage storage{ storagefilename, storageSettings };
-  storage.plotCombined("storage_post_loading_combined");
+  storage.plotCombined( "storage_post_loading_combined" );
   Trainer trainer{ automaton, trainingSettings, storage };
   // monitor
   Simulator sim{ automaton, settings, storage };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
   if ( training && storage.size() == 0 ) {
-    auto                                initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
-    initialStates.emplace( std::make_pair( executor.mLastLocation, hypro::Condition<Number>( widenSample(initialValuation.value(),widening,{0,1}) ) ) );
-    trainer.run( settings, initialStates );
-    storage.plotCombined("storage_post_initial_training_combined");
+    auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
+    initialStates.emplace(
+        std::make_pair( executor.mLastLocation,
+                        hypro::Condition<Number>( widenSample( initialValuation.value(), widening, { 0, 1 } ) ) ) );
+    auto isSafe = trainer.run( settings, initialStates );
+    if ( !isSafe ) {
+      spdlog::warn( "System is not safe in initial condition, abort computation." );
+      exit( 0 );
+    }
+    storage.plotCombined( "storage_post_initial_training_combined" );
   }
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
