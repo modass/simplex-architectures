@@ -258,7 +258,7 @@ int main( int argc, char* argv[] ) {
         ss << advControllerInput;
         spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
         executor.execute( advControllerInput );
-        sim.update(advControllerInput,executor.mLastState);
+        sim.update( advControllerInput, executor.mLastState );
       }
       computeAdaptation[iteration_count - 1] = true;
     }
