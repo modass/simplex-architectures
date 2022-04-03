@@ -37,8 +37,8 @@
 
 #include "../controller/AbstractController.h"
 #include "../controller/ConstantController.h"
-#include "../controller/RandomController.h"
 #include "../controller/RLController.h"
+#include "../controller/RandomController.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
 #include "../simulation/Simulator.h"
@@ -64,15 +64,18 @@ static const std::vector<std::size_t> controller_dimensions{ 2 };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t                                       iterations{ 5 };
-  std::size_t                                       iteration_count{ 0 };
-  std::size_t                                       maxJumps = 200;
-  Number                                            widening = 0.1;
-  bool                                              training = true;
-  std::string                                       modelfilename;
-  std::string                                       storagefilename;
+  std::size_t iterations{ 5 };
+  std::size_t iteration_count{ 0 };
+  std::size_t maxJumps = 200;
+  Number      widening = 0.1;
+  bool        training = true;
+  std::string modelfilename;
+  std::string storagefilename;
+  bool        randomInitialSet = false;
+  std::size_t seed             = 0;
+  bool        plotIntermediate = false;
 
-  spdlog::set_level(spdlog::level::trace);
+  spdlog::set_level( spdlog::level::trace );
 
   CLI::App app{ "Training application for simplex architectures project." };
   app.add_option( "-m,--model", modelfilename, "Path to the model file" )->required()->check( CLI::ExistingFile );
@@ -81,6 +84,10 @@ int main( int argc, char* argv[] ) {
   app.add_flag( "--learn", training,
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
                 "the analysis terminates?" );
+  app.add_flag( "--random", randomInitialSet, "If provided, a random initial point will be selected." );
+  app.add_option( "--seed", seed, "The random seed" );
+  app.add_flag( "--plotIntermediate", plotIntermediate,
+                "If provided, intermediate states of the storage will be plotted." );
   CLI11_PARSE( app, argc, argv );
   // parse model
   auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( modelfilename );
@@ -95,18 +102,56 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
   // random controller
-//  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
-  if(!fileExists("../../networks/watertanks/bilinear_high.txt")) {
-    throw std::ios_base::failure("File does not exist.");
+  //  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
+  // std::string abstractControllerFileName = "../../networks/watertanks/bilinear_high.txt";
+  std::string abstractControllerFileName =
+      "/home/stefan/tu/repositories/simplex-architectures/networks/watertanks/bilinear_high.txt";
+  if ( !fileExists( abstractControllerFileName ) ) {
+    throw std::ios_base::failure( "File for the advanced controller does not exist." );
   }
-  AbstractController<Point, Point>* advCtrl = new RLController("../../networks/watertanks/bilinear_high.txt");
-//  AbstractController<Point, Point>* advCtrl = new RandomController();
+  AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
+  // AbstractController<Point, Point>* advCtrl = new RandomController();
   // initialize Executor
-  std::optional<Point> initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint();
-  if ( !initialValuation ) {
-    throw std::logic_error( "Initial set is empty, abort." );
+  std::optional<Point>           initialValuation = std::nullopt;
+  const hypro::Location<Number>* initialLoc       = automaton.getInitialStates().begin()->first;
+  // create random initial point, if required
+  if ( randomInitialSet ) {
+    std::mt19937                               rng( seed );
+    std::uniform_real_distribution<Number>     xdist( 0, 1 );
+    std::uniform_real_distribution<Number>     ydist( 0, 1 );
+    std::uniform_real_distribution<Number>     specdist( 0, 30 );
+    std::uniform_int_distribution<std::size_t> locdist( 0, automaton.getLocations().size() );
+    initialLoc = automaton.getLocations()[locdist( rng )];
+    while ( initialLoc->getName().find( "bad" ) != std::string::npos ) {
+      initialLoc = automaton.getLocations()[locdist( rng )];
+    }
+    spdlog::info( "Chose initial location {}", initialLoc->getName() );
+    Point potentialValuation{ 0, 0, 0, 0, 0 };
+    if ( initialLoc->getName().find( "init" ) != std::string::npos ) {
+      potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, 0, 0 };
+      while ( !initialLoc->getInvariant().contains( potentialValuation ) ) {
+        // std::cout << "Try: " << potentialValuation << " @" << initialLoc->getName() << std::endl;
+        potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, 0, 0 };
+      }
+    } else {
+      potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, specdist( rng ), 0 };
+      while ( !initialLoc->getInvariant().contains( potentialValuation ) ) {
+        // std::cout << "Try: " << potentialValuation << " @" << initialLoc->getName() << std::endl;
+        potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, specdist( rng ), 0 };
+      }
+    }
+
+    std::stringstream ss;
+    ss << potentialValuation;
+    spdlog::info( "Chose initial point {}", ss.str() );
+    initialValuation = potentialValuation;
+  } else {
+    initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint();
+    if ( !initialValuation ) {
+      throw std::logic_error( "Initial set is empty, abort." );
+    }
   }
-  Executor executor{ automaton, automaton.getInitialStates().begin()->first, initialValuation.value() };
+  Executor executor{ automaton, initialLoc, initialValuation.value() };
   executor.mSettings = settings;
   // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
   // Storagesettings will be overidden if a file with data exists
