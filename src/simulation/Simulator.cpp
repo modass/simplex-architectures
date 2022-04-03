@@ -36,7 +36,7 @@ namespace simplexArchitectures {
                 for ( auto&& sr : sampleRoots ) {
                     roots.emplace_back( std::move( sr ) );
                 }
-                std::cout << "[Simulator] Add sample " << sample << " for simulation." << std::endl;
+                // std::cout << "[Simulator] Add sample " << sample << " for simulation." << std::endl;
             }
         }
 
@@ -55,7 +55,7 @@ namespace simplexArchitectures {
                                                                    mSettings.strategy().front(), roots );
         auto result = reacher.computeForwardReachability();
 
-        std::cout << "[Simulator] simulate safety result: " << result << std::endl;
+        // std::cout << "[Simulator] simulate safety result: " << result << std::endl;
         if(result != hypro::REACHABILITY_RESULT::SAFE) {
           return hypro::TRIBOOL::FALSE;
         }
@@ -112,13 +112,13 @@ namespace simplexArchitectures {
                       for(const auto& s : n.getFlowpipe()) {
                         ss << s << "\n";
                       }
-                      std::cout << "Node flowpipe:\n" << ss.str() << std::endl;
+                      // std::cout << "Node flowpipe:\n" << ss.str() << std::endl;
                       spdlog::warn("Node flags: timelock: {}, bad state: {}, has fixed point: {}, is on Zeno-cycle: {}", n.hasTimelock(), n.intersectedUnsafeRegion(), n.hasFixedPoint()==hypro::TRIBOOL::TRUE, n.isOnZenoCycle());
                       throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
                     }
                     if ( containment != hypro::CONTAINMENT::NO ) {
-                        std::cout << "[Simulator] New sample: " << result << std::endl;
-                        if ( samplesBoxes.find( n.getLocation() ) != samplesBoxes.end() ) {
+                      // std::cout << "[Simulator] New sample: " << result << std::endl;
+                      if ( samplesBoxes.find( n.getLocation() ) != samplesBoxes.end() ) {
                             samplesBoxes[n.getLocation()] = samplesBoxes[n.getLocation()].unite( result );
                         } else {
                             samplesBoxes[n.getLocation()] = result;
@@ -153,7 +153,8 @@ namespace simplexArchitectures {
             auto tmp = box.vertices();
             if ( !tmp.empty() ) {
                 mLastStates[LocPtr] = std::set<Point>( tmp.begin(), tmp.end() );
-                std::cout << "[Simulator] Add samples " << mLastStates[LocPtr] << " to mLastStates (Location: " << LocPtr->getName() << ")" << std::endl;
+                // std::cout << "[Simulator] Add samples " << mLastStates[LocPtr] << " to mLastStates (Location: " <<
+                // LocPtr->getName() << ")" << std::endl;
                 assert( mLastStates[LocPtr].size() <= 2 );
             }
         }
