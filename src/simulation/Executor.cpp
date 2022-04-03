@@ -27,26 +27,31 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
     // add roots for this sample to global reachtree
     for ( auto&& sr : sampleRoots ) {
-        roots.emplace_back( std::move( sr ) );
+      roots.emplace_back( std::move( sr ) );
     }
 
     mSettings.rFixedParameters().globalTimeHorizon = mCycleTime;
-    mSettings.rFixedParameters().localTimeHorizon = carl::convert<double, hypro::tNumber>( mCycleTime );
-    mSettings.rFixedParameters().jumpDepth = 2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
+    mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( mCycleTime );
+    mSettings.rFixedParameters().jumpDepth =
+        2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
 
     auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, mSettings.fixedParameters(),
                                                                mSettings.strategy().front(), roots );
-    reacher.computeForwardReachability();
+    auto isSafe  = reacher.computeForwardReachability();
+    if ( isSafe != hypro::REACHABILITY_RESULT::SAFE ) {
+      spdlog::warn( "Executor reports potenitally unsafe state!" );
+      exit( 0 );
+    }
 
-    for (auto &root: roots) {
-        cutoffControllerJumps(&root);
+    for ( auto& root : roots ) {
+      cutoffControllerJumps( &root );
     }
 
     // Pick an artificial observation.
     std::map<LocPtr, Box> samplesBoxes;
     // create constraints which fix the time to the last tick
     Matrix constraints = Matrix::Zero( 2, 5 );
-    Vector constants = Vector::Zero( 2 );
+    Vector constants   = Vector::Zero( 2 );
     // tick
     constraints( 0, 4 ) = 1;
     constraints( 1, 4 ) = -1;
