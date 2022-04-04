@@ -134,10 +134,12 @@ int main( int argc, char* argv[] ) {
         potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, 0, 0 };
       }
     } else {
-      potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, specdist( rng ), 0 };
+      // potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, specdist( rng ), 0 };
+      potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, 0, 0 };
       while ( !initialLoc->getInvariant().contains( potentialValuation ) ) {
         // std::cout << "Try: " << potentialValuation << " @" << initialLoc->getName() << std::endl;
-        potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, specdist( rng ), 0 };
+        // potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, specdist( rng ), 0 };
+        potentialValuation = Point{ xdist( rng ), ydist( rng ), 0, 0, 0 };
       }
     }
 
@@ -173,7 +175,7 @@ int main( int argc, char* argv[] ) {
   Simulator sim{ automaton, settings, storage };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
-  if ( training && storage.size() == 0 ) {
+  if ( storage.size() == 0 ) {
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace(
         std::make_pair( executor.mLastLocation,
@@ -259,8 +261,8 @@ int main( int argc, char* argv[] ) {
         spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
         executor.execute( advControllerInput );
         sim.update( advControllerInput, executor.mLastState );
+        computeAdaptation[iteration_count - 1] = true;
       }
-      computeAdaptation[iteration_count - 1] = true;
     }
 
     if ( plotIntermediate ) {
