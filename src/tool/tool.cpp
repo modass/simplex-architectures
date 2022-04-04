@@ -101,16 +101,24 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().localTimeHorizon                    = 200;
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
-  // random controller
-  //  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
-  // std::string abstractControllerFileName = "../../networks/watertanks/bilinear_high.txt";
+  
+  // Experiment 1 AC = RL
   std::string abstractControllerFileName =
       "/home/stefan/tu/repositories/simplex-architectures/networks/watertanks/bilinear_high.txt";
   if ( !fileExists( abstractControllerFileName ) ) {
     throw std::ios_base::failure( "File for the advanced controller does not exist." );
   }
   AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
+
+  // Experiment 2 AC = const 0
+//  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
+
+  // Experiment 3 AC = const 0.0004
+//  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0.0004 } );
+
+  // random controller
   // AbstractController<Point, Point>* advCtrl = new RandomController();
+
   // initialize Executor
   std::optional<Point>           initialValuation = std::nullopt;
   const hypro::Location<Number>* initialLoc       = automaton.getInitialStates().begin()->first;
