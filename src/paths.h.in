@@ -11,5 +11,10 @@ std::string getModelsPath()
 {
   return "@CMAKE_SOURCE_DIR@/models/";
 }
+/// get input files path for neural networks
+std::string getNetworksPath()
+{
+  return "@CMAKE_SOURCE_DIR@/networks/";
+}
 
 } // namespace simplexArchitectures

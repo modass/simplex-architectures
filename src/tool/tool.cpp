@@ -48,6 +48,7 @@
 #include "../utility/StorageSettings.h"
 #include "../utility/reachTreeUtility.h"
 #include "../utility/treeSerialization.h"
+#include "paths.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -103,15 +104,15 @@ int main( int argc, char* argv[] ) {
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
   // Experiment 1 AC = RL
-  //  std::string abstractControllerFileName =
-  //      "../../networks/watertanks/bilinear_high.txt";
-  //  if ( !fileExists( abstractControllerFileName ) ) {
-  //    throw std::ios_base::failure( "File for the advanced controller does not exist." );
-  //  }
-  //  AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
+  std::string abstractControllerFileName =
+      getNetworksPath() + "watertanks/bilinear_high.txt";
+  if ( !fileExists( abstractControllerFileName ) ) {
+    throw std::ios_base::failure( "File " + abstractControllerFileName + " for the advanced controller does not exist." );
+  }
+  AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
 
   // Experiment 2 AC = const 0
-  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
+  //AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
 
   // Experiment 3 AC = const 0.0004
   // AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0.0004 } );
