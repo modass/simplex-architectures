@@ -16,7 +16,7 @@ namespace simplexArchitectures {
 
         std::mt19937 generator;
         std::uniform_real_distribution<Number> dist = std::uniform_real_distribution<Number>( 0.0001, 0.0005 );
-        std::discrete_distribution<int> disc_dist = std::discrete_distribution( { 1, 1 } );
+        std::discrete_distribution<int> disc_dist = std::discrete_distribution( { 10, 1 } );
     };
 
 }
