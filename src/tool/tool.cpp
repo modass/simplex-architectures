@@ -101,23 +101,23 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().localTimeHorizon                    = 200;
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
-  
+
   // Experiment 1 AC = RL
-  std::string abstractControllerFileName =
-      "/home/stefan/tu/repositories/simplex-architectures/networks/watertanks/bilinear_high.txt";
-  if ( !fileExists( abstractControllerFileName ) ) {
-    throw std::ios_base::failure( "File for the advanced controller does not exist." );
-  }
-  //AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
+  //  std::string abstractControllerFileName =
+  //      "../../networks/watertanks/bilinear_high.txt";
+  //  if ( !fileExists( abstractControllerFileName ) ) {
+  //    throw std::ios_base::failure( "File for the advanced controller does not exist." );
+  //  }
+  //  AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
 
   // Experiment 2 AC = const 0
-  //AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
+  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
 
   // Experiment 3 AC = const 0.0004
   // AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0.0004 } );
 
   // Experiment 4: random controller
-  AbstractController<Point, Point>* advCtrl = new RandomController();
+  // AbstractController<Point, Point>* advCtrl = new RandomController();
 
   // initialize Executor
   std::optional<Point>           initialValuation = std::nullopt;
@@ -199,7 +199,8 @@ int main( int argc, char* argv[] ) {
   // for statistics: record in which iteration the base controller was needed
   std::vector<bool> baseControllerInvocations( iterations, false );
   std::vector<bool> computeAdaptation( iterations, false );
-
+  std::vector<Point> trace(iterations+1, Point());
+  trace[0] = executor.mLastState.projectOn( { 0, 1 } );
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
@@ -273,7 +274,8 @@ int main( int argc, char* argv[] ) {
       }
     }
 
-    if ( plotIntermediate ) {
+    trace[iteration_count] = executor.mLastState.projectOn( { 0, 1 } );
+    if ( plotIntermediate || iteration_count == iterations ) {
       std::stringstream ss;
       std::size_t       l = std::to_string( iterations ).size();
       ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
@@ -286,6 +288,18 @@ int main( int argc, char* argv[] ) {
       } else {
         hypro::Plotter<Number>::getInstance().addPoint(
             executor.mLastState.projectOn( { 0, 1 } ), hypro::plotting::colors[hypro::plotting::orange], fillsettings );
+      }
+      auto lastPoint = trace[0];
+      for (int i=0; i<iteration_count; i++){
+          std::vector<Point> line{lastPoint, trace[i+1]};
+          if ( !baseControllerInvocations[i] ) {
+              hypro::Plotter<Number>::getInstance().addPolyline(line,
+                                                                hypro::plotting::colors[hypro::plotting::green]);
+          } else {
+              hypro::Plotter<Number>::getInstance().addPolyline(line,
+                                                                hypro::plotting::colors[hypro::plotting::orange]);
+          }
+          lastPoint = trace[i+1];
       }
       hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
       hypro::Plotter<Number>::getInstance().clear();
