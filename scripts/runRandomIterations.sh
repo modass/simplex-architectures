@@ -7,6 +7,9 @@ seedOffset=0
 # determine seed offset: each line in baseControllerInvocations has been used with the 0-indexed line number
 if [ -f "baseControllerInvocations" ]; then
     seedOffset=$(wc -l < baseControllerInvocations)
+    if [[ $# -eq 2 ]]; then
+        seedOffset=$2
+    fi
     printf "Offset random seed by $seedOffset \n"
 fi
 
