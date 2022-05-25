@@ -157,6 +157,7 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
+  /*
   // initialize Executor
   std::optional<Point> initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint();
   if ( !initialValuation ) {
@@ -279,6 +280,7 @@ int main( int argc, char* argv[] ) {
     hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
     hypro::Plotter<Number>::getInstance().clear();
   }
+   */
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }

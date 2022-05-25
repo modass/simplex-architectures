@@ -45,12 +45,12 @@ int main( int argc, char** argv ) {
   Storage s{storagefilename,storageSettings};
   Trainer t{ automaton, trainingSettings, s };
 
-  t.plot( "pre_training" );
+  s.plotCombined("pre_training");
   spdlog::info( "Start training" );
   t.run();
   spdlog::info( "Finished training" );
-  t.plot( "post_training" );
-  t.plotCombined( "post_training_combined");
+  s.plot( "post_training" );
+  s.plotCombined( "post_training_combined");
 
   return 0;
 }

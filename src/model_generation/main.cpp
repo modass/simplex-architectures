@@ -18,7 +18,7 @@ int main( int argc, char** argv ) {
   CLI::App app{ "Model generation tool" };
 
   std::string                                     storagefilename = "out";
-  std::size_t discretization = 8;
+  std::size_t discretization = 9;
   std::pair<double,double> delta_range{-60.0, 60.0};
   MODEL model = MODEL::PURE_PURSUIT;
   app.add_option( "-d,--discretization", discretization, "Discretization for hybridization" )->check( CLI::PositiveNumber );

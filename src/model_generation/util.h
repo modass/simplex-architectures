@@ -10,7 +10,13 @@
 
 namespace modelGenerator {
 
+inline double degreeToRadiance(double angle) {
+  return (M_PI / 180) * angle;
+}
 
+inline double radianceToDegree(double angle) {
+  return (180 / M_PI) * angle;
+}
 }  // namespace modelGenerator
 
 #endif  // SIMPLEXARCHITECTURES_UTIL_H
