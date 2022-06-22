@@ -82,7 +82,7 @@ int main( int argc, char* argv[] ) {
   Number                    widening = 0.1;
   bool                      training = true;
   std::string               modelfilename{};
-  std::string               storagefilename;
+  std::string               storagefilename{ "storage" };
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -91,7 +91,7 @@ int main( int argc, char* argv[] ) {
 
   CLI::App app{ "Training application for simplex architectures project." };
   app.add_option( "-m,--model", modelfilename, "Path to the model file" );
-  app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" )->required();
+  app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" );
   app.add_option( "-i,--iterations", iterations, "Number of iterations/steps" )->check( CLI::PositiveNumber );
   app.add_flag( "--learn", training,
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
@@ -157,14 +157,16 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
-  /*
   // initialize Executor
   std::optional<Point> initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint();
   if ( !initialValuation ) {
     throw std::logic_error( "Initial set is empty, abort." );
   }
   Executor executor{ automaton, automaton.getInitialStates().begin()->first, initialValuation.value() };
-  executor.mSettings = settings;
+  executor.mSettings          = settings;
+  executor.mExecutionSettings = ExecutionSettings{ 3, {} };
+
+  /*
   // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
   // Storagesettings will be overidden if a file with data exists
   StorageSettings  storageSettings{ interesting_dimensions, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 31 } } }, 2, 4 };
