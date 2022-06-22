@@ -129,6 +129,12 @@ int main( int argc, char* argv[] ) {
   // make the first point starting point
   dynamic_cast<BicycleBaseController*>( base )->lastWaypoint    = track.waypoints.front();
   dynamic_cast<BicycleBaseController*>( base )->currentWaypoint = track.waypoints.at( 1 );
+  // bicycle advanced controller
+  // TODO currently it is the same as the base controller, implement & add a pure pursuit controller
+  AbstractController<Point, Point>* advCtrl = new BicycleBaseController();
+  // make the first point starting point
+  dynamic_cast<BicycleBaseController*>( advCtrl )->lastWaypoint    = track.waypoints.front();
+  dynamic_cast<BicycleBaseController*>( advCtrl )->currentWaypoint = track.waypoints.at( 1 );
 
   // use first controller output to determine the starting location
   auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();
@@ -198,7 +204,7 @@ int main( int argc, char* argv[] ) {
     trainer.run( settings, initialStates );
     storage.plotCombined( "storage_post_initial_training_combined" );
   }
-  /*
+
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
@@ -285,7 +291,6 @@ int main( int argc, char* argv[] ) {
     hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
     hypro::Plotter<Number>::getInstance().clear();
   }
-   */
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }
