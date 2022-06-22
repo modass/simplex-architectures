@@ -51,7 +51,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       // compute and set flow
       double dx              = cos( vtheta );
       double dy              = sin( vtheta );
-      Matrix flowmatrix      = Matrix::Zero( variableNames.size(), C + 1 );
+      Matrix flowmatrix      = Matrix::Zero( variableNames.size() + 1, C + 1 );
       flowmatrix( x, v )     = dx;
       flowmatrix( y, v )     = dy;
       flowmatrix( theta, v ) = dtheta;

@@ -83,6 +83,7 @@ int main( int argc, char* argv[] ) {
   bool                      training = true;
   std::string               modelfilename{};
   std::string               storagefilename{ "storage" };
+  Number                    timeStepSize{ 0.01 };
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -103,7 +104,8 @@ int main( int argc, char* argv[] ) {
   if ( modelfilename != std::string() ) {
     std::tie( automaton, reachSettings ) = hypro::parseFlowstarFile<Number>( modelfilename );
   } else {
-    automaton = modelGenerator::generateBicycle( delta_ranges, discretization );
+    automaton              = modelGenerator::generateBicycle( delta_ranges, discretization );
+    reachSettings.timeStep = timeStepSize;
   }
 
   // Hard code Racetrack
@@ -166,16 +168,16 @@ int main( int argc, char* argv[] ) {
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, {} };
 
-  /*
   // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
   // Storagesettings will be overidden if a file with data exists
-  StorageSettings  storageSettings{ interesting_dimensions, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 31 } } }, 2, 4 };
+  StorageSettings  storageSettings{ interesting_dimensions, Box{ IV{ I{ 0, 10 }, I{ 0, 10 }, I{ 0, 360 }, I{ 0, 1 } } },
+                                   2, 4 };
   TrainingSettings trainingSettings{
       1,
       INITIAL_STATE_HEURISTICS::SINGLE,
       { 0, 1 },
-      Box{ IV{ I{ 0.2, 0.5 }, I{ 0.2, 0.5 }, I{ 0 }, I{ 0 }, I{ 0 } } },
-      { 10, 10, 1, 1, 1 },
+      Box{ IV{ I{ 0, 10 }, I{ 0, 10 }, I{ 0, 360 }, I{ 0 }, I{ 1 } } },
+      { 10, 10, 10, 1, 1 },
       carl::convert<hypro::tNumber, Number>( settings.fixedParameters().localTimeHorizon ),
       maxJumps,
       widening,
@@ -183,6 +185,7 @@ int main( int argc, char* argv[] ) {
   Storage storage{ storagefilename, storageSettings };
   storage.plotCombined( "storage_post_loading_combined" );
   Trainer trainer{ automaton, trainingSettings, storage };
+
   // monitor
   Simulator sim{ automaton, settings, storage };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
@@ -195,7 +198,7 @@ int main( int argc, char* argv[] ) {
     trainer.run( settings, initialStates );
     storage.plotCombined( "storage_post_initial_training_combined" );
   }
-
+  /*
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
