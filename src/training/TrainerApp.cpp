@@ -25,7 +25,7 @@ int main( int argc, char** argv ) {
                                                        { "grid", INITIAL_STATE_HEURISTICS::GRID },
                                                        { "gridCover", INITIAL_STATE_HEURISTICS::GRID_COVER } };
   TrainingSettings                                trainingSettings{ 1,
-                                     INITIAL_STATE_HEURISTICS::GRID_COVER,
+                                     INITIAL_STATE_HEURISTICS::SINGLE,
                                      { 0, 1 },
                                      Box{ IV{ I{ 0.2, 0.5 }, I{ 0.2, 0.5 }, I{ 0 }, I{ 0 }, I{ 0 } } },
                                      { 10, 10, 1, 1, 1 } };
@@ -47,7 +47,10 @@ int main( int argc, char** argv ) {
 
   s.plotCombined("pre_training");
   spdlog::info( "Start training" );
-  t.run();
+  //t.run();
+  auto strat = hypro::convert(settings);
+
+  t.run(strat, automaton.getInitialStates());
   spdlog::info( "Finished training" );
   s.plot( "post_training" );
   s.plotCombined( "post_training_combined");

@@ -18,10 +18,6 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*
- * Created by Stefan Schupp <stefan.schupp@tuwien.ac.at> on 28.10.21.
- */
-
 #include <hypro/algorithms/reachability/Reach.h>
 #include <hypro/datastructures/Hyperoctree.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
@@ -36,9 +32,6 @@
 #include <string>
 
 #include "../controller/AbstractController.h"
-#include "../controller/ConstantController.h"
-#include "../controller/RLController.h"
-#include "../controller/RandomController.h"
 #include "../model_generation/generateBicycle.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
@@ -50,7 +43,9 @@
 #include "../utility/reachTreeUtility.h"
 #include "../utility/treeSerialization.h"
 #include "controller/BicycleBaseController.h"
+#include "controller/PurePursuitController.h"
 #include "utility/RaceTrack.h"
+#include "ctrlConversion.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -74,7 +69,7 @@ static const std::vector<std::size_t> controller_dimensions{ 2, 4 };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 5 };
+  std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 200;
   std::size_t               discretization = 8;
@@ -130,11 +125,10 @@ int main( int argc, char* argv[] ) {
   dynamic_cast<BicycleBaseController*>( base )->lastWaypoint    = track.waypoints.front();
   dynamic_cast<BicycleBaseController*>( base )->currentWaypoint = track.waypoints.at( 1 );
   // bicycle advanced controller
-  // TODO currently it is the same as the base controller, implement & add a pure pursuit controller
-  AbstractController<Point, Point>* advCtrl = new BicycleBaseController();
+  AbstractController<Point, Point>* advCtrl = new PurePursuitController();
   // make the first point starting point
-  dynamic_cast<BicycleBaseController*>( advCtrl )->lastWaypoint    = track.waypoints.front();
-  dynamic_cast<BicycleBaseController*>( advCtrl )->currentWaypoint = track.waypoints.at( 1 );
+  dynamic_cast<PurePursuitController*>( advCtrl )->lastWaypoint    = track.waypoints.front();
+  dynamic_cast<PurePursuitController*>( advCtrl )->currentWaypoint = track.waypoints.at( 1 );
 
   // use first controller output to determine the starting location
   auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();
@@ -165,12 +159,23 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
-  // initialize Executor
-  std::optional<Point> initialValuation = automaton.getInitialStates().begin()->second.getInternalPoint();
-  if ( !initialValuation ) {
-    throw std::logic_error( "Initial set is empty, abort." );
+
+  // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match control output
+  auto theta_bucket_index = getThetaBucket(startingpoint.value()[theta], discretization);
+  std::string theta_string = "theta_" + std::to_string(theta_bucket_index);
+  LocPtr startingLocation = nullptr;
+  for(auto* lptr : automaton.getLocations()) {
+    if(lptr->getName().find(theta_string) != std::string::npos) {
+      startingLocation = lptr;
+      break;
+    }
   }
-  Executor executor{ automaton, automaton.getInitialStates().begin()->first, initialValuation.value() };
+  if(startingLocation == nullptr) {
+    throw std::logic_error("Could not determine correct starting location");
+  }
+
+  auto controlLocation = convertCtrlToLocation(base->generateInput(startingpoint.value()), automaton, startingLocation, discretization, delta_ranges);
+  Executor executor{ automaton, controlLocation, startingpoint.value() };
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, {} };
 
@@ -200,7 +205,7 @@ int main( int argc, char* argv[] ) {
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace(
         std::make_pair( executor.mLastLocation,
-                        hypro::Condition<Number>( widenSample( initialValuation.value(), widening, { 0, 1 } ) ) ) );
+                        hypro::Condition<Number>( widenSample( startingpoint.value(), widening, { 0, 1 } ) ) ) );
     trainer.run( settings, initialStates );
     storage.plotCombined( "storage_post_initial_training_combined" );
   }

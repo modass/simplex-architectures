@@ -109,7 +109,7 @@ int main( int argc, char* argv[] ) {
   if ( !fileExists( abstractControllerFileName ) ) {
     throw std::ios_base::failure( "File " + abstractControllerFileName + " for the advanced controller does not exist." );
   }
-  AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
+  // AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
 
   // Experiment 2 AC = const 0
   //AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
@@ -118,7 +118,7 @@ int main( int argc, char* argv[] ) {
   // AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0.0004 } );
 
   // Experiment 4: random controller
-  // AbstractController<Point, Point>* advCtrl = new RandomController();
+  AbstractController<Point, Point>* advCtrl = new RandomController();
 
   // initialize Executor
   std::optional<Point>           initialValuation = std::nullopt;
