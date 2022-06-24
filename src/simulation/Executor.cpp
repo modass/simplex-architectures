@@ -9,7 +9,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
   roots.clear();
 
   hypro::Point<Number> extendedState = mLastState;
-  // if any controll has been provided, set it here
+  // if any control has been provided, set it here
   for ( Eigen::Index d : mExecutionSettings.control_input_dimensions ) {
     extendedState[d] = ctrlInput[d];
   }
@@ -43,6 +43,8 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
       spdlog::warn( "Executor reports potenitally unsafe state!" );
       exit( 0 );
     }
+
+    spdlog::trace("Have computed {} flowpipes with {} segments", hypro::getNumberNodes(roots), hypro::getNumberSegments(roots));
 
     for ( auto& root : roots ) {
       cutoffControllerJumps( &root );

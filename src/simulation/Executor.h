@@ -5,6 +5,7 @@
 #include "../types.h"
 #include <hypro/types.h>
 #include <hypro/datastructures/reachability/ReachTreev2.h>
+#include <hypro/datastructures/reachability/ReachTreev2Util.h>
 #include <hypro/datastructures/reachability/TreeTraversal.h>
 #include <hypro/datastructures/HybridAutomaton/HybridAutomaton.h>
 #include <hypro/algorithms/reachability/Reach.h>
