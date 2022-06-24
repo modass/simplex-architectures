@@ -8,6 +8,7 @@
 #include <hypro/datastructures/reachability/ReachTreev2Util.h>
 #include <hypro/datastructures/reachability/TreeTraversal.h>
 #include <hypro/datastructures/HybridAutomaton/HybridAutomaton.h>
+#include <hypro/util/plotting/Plotter.h>
 #include <hypro/algorithms/reachability/Reach.h>
 #include "../controller/ControllerUtil.h"
 #include <random>
@@ -36,6 +37,7 @@ struct Executor {
   Point mLastState;
   hypro::Settings                 mSettings;
   ExecutionSettings               mExecutionSettings;
+  bool mPlot = true;
 
  private:
         double mCycleTime = 1.0;

@@ -39,6 +39,21 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, mSettings.fixedParameters(),
                                                                mSettings.strategy().front(), roots );
     auto isSafe  = reacher.computeForwardReachability();
+
+    if(mPlot) {
+      auto& plt = hypro::Plotter<Number>::getInstance();
+      plt.setFilename("executor");
+      plt.rSettings().overwriteFiles = false;
+      for(const auto& r : roots) {
+        for(const auto& n : hypro::preorder(r)) {
+          for(const auto& s: n.getFlowpipe()) {
+            plt.addObject(s.projectOn({0,1}).vertices()); // TODO this is hardcoded, maybe we can include this in the settings
+          }
+        }
+      }
+      plt.plot2d(hypro::PLOTTYPE::png, true);
+    }
+
     if ( isSafe != hypro::REACHABILITY_RESULT::SAFE ) {
       spdlog::warn( "Executor reports potenitally unsafe state!" );
       exit( 0 );
