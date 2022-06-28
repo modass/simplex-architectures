@@ -138,6 +138,12 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     guard_constants = Vector::Zero(2);
     guard_constants << source->getInvariant().getVector()(0), -source->getInvariant().getVector()(0);
     upperTheta->setGuard({guard_constraints,guard_constants});
+    if(thetaBucket == discretization-1){ //wrap around from 360 degree to 0 degree
+      Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
+      Vector theta_reset_vector = Vector::Zero(variableNames.size());
+      theta_reset_matrix(theta,theta) = 0;
+      upperTheta->setReset(hypro::Reset<double>(theta_reset_matrix, theta_reset_vector));
+    }
     // theta-guard lower
     guard_constraints = Matrix::Zero(2,variableNames.size());
     guard_constraints(0,theta) = 1;
@@ -145,6 +151,13 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     guard_constants = Vector::Zero(2);
     guard_constants << -source->getInvariant().getVector()(1), source->getInvariant().getVector()(1);
     lowerTheta->setGuard({guard_constraints,guard_constants});
+    if(thetaBucket == 0){ //wrap around from 0 degree to 360 degree
+      Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
+      Vector theta_reset_vector = Vector::Zero(variableNames.size());
+      theta_reset_matrix(theta,theta) = 0;
+      theta_reset_vector(theta) = 2 * M_PI;
+      lowerTheta->setReset(hypro::Reset<double>(theta_reset_matrix, theta_reset_vector));
+    }
   }
 
   return res;
