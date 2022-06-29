@@ -6,11 +6,11 @@
 
 namespace simplexArchitectures {
 
-LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Number>& automaton, LocPtr lastLocation, std::size_t discretization, const std::pair<double, double>& delta_ranges) {
+LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Number>& automaton, LocPtr lastLocation, std::size_t delta_discretization, const std::pair<double, double>& delta_ranges) {
   LocPtr res = nullptr;
   // By convention the first component of the point is the used delta.
   // Simple approach: string-comparison
-  // 1 find all locations for which the theta-component matches, should be |discretization| many
+  // 1 find all locations for which the theta-component matches, should be |delta_discretization| many
   std::string theta_substring = lastLocation->getName().substr(lastLocation->getName().find("theta_"), std::string::npos);
   std::vector<LocPtr> candidates;
   for(const auto* lptr : automaton.getLocations()) {
@@ -19,7 +19,7 @@ LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Numbe
     }
   }
   // 2 select the candidate with the correct delta-bucket
-  std::size_t delta_bucket_index = getDeltaBucket(in[0], delta_ranges, discretization);
+  std::size_t delta_bucket_index = getDeltaBucket(in[0], delta_ranges, delta_discretization);
   std::string delta_substring = "delta_" + std::to_string(delta_bucket_index);
   for(const auto* lptr : candidates) {
     if(lptr->getName().find(delta_substring) != std::string::npos) {

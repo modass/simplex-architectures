@@ -68,8 +68,9 @@ int main( int argc, char* argv[] ) {
   std::size_t               iterations{ 10 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
-  std::size_t               discretization = 8;
+  std::size_t               delta_discretization = 7;
   std::pair<double, double> delta_ranges{ -60, 60 };
+  std::size_t               theta_discretization = 12;
   Number                    widening = 0.1;
   Number                    timeStepSize{ 0.01 };
 
@@ -83,7 +84,7 @@ int main( int argc, char* argv[] ) {
   CLI11_PARSE( app, argc, argv );
   hypro::HybridAutomaton<Number> automaton;
   hypro::ReachabilitySettings    reachSettings;
-  automaton              = modelGenerator::generateBicycle( delta_ranges, discretization );
+  automaton              = modelGenerator::generateBicycle( delta_ranges, delta_discretization, theta_discretization);
   reachSettings.timeStep = timeStepSize;
 
   // Hard code Racetrack
@@ -129,7 +130,7 @@ int main( int argc, char* argv[] ) {
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
   // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match control output
-  auto theta_bucket_index = getThetaBucket(startingpoint.value()[theta], discretization);
+  auto theta_bucket_index = getThetaBucket(startingpoint.value()[theta], theta_discretization);
   std::string theta_string = "theta_" + std::to_string(theta_bucket_index);
   LocPtr startingLocation = nullptr;
   for(auto* lptr : automaton.getLocations()) {
@@ -156,7 +157,7 @@ int main( int argc, char* argv[] ) {
     spdlog::info( "Iteration {}", iteration_count );
     // get Controller input
     auto advControllerInput = advCtrl->generateInput( executor.mLastState );
-    auto controlLocation = convertCtrlToLocation(advControllerInput, automaton, executor.mLastLocation, discretization, delta_ranges);
+    auto controlLocation = convertCtrlToLocation(advControllerInput, automaton, executor.mLastLocation, delta_discretization, delta_ranges);
     executor.mLastLocation = controlLocation;
 
     auto nextState = executor.execute( advControllerInput );

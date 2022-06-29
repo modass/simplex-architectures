@@ -18,12 +18,12 @@ namespace modelGenerator {
  * @return
  */
 hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_ranges   = { -60, 60 },
-                                                std::size_t               discretization = 8 );
+                                                std::size_t delta_discretization = 7, std::size_t theta_discretization = 12 );
 
 inline void generateBicycleModelFile( std::string filename, std::pair<double, double> delta_ranges = { -60, 60 },
-                                      std::size_t delta_discretization = 8 ) {
+                                      std::size_t delta_discretization = 7, std::size_t theta_discretization = 12 ) {
   std::ofstream fs{ filename };
-  fs << hypro::toFlowstarFormat( generateBicycle( delta_ranges, delta_discretization ) );
+  fs << hypro::toFlowstarFormat( generateBicycle( delta_ranges, delta_discretization, theta_discretization ) );
   fs.close();
 }
 }  // namespace modelGenerator

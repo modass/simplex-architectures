@@ -10,7 +10,7 @@
 
 namespace modelGenerator {
 
-hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_ranges, std::size_t discretization ) {
+hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_ranges, std::size_t delta_discretization, std::size_t theta_discretization ) {
   // delta: steering angle, relative to the current heading
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
@@ -35,15 +35,15 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
   double delta_min_rad = degreeToRadiance(delta_ranges.first);
   double delta_max_rad = degreeToRadiance(delta_ranges.second);
 
-  double delta_increment = (delta_max_rad - delta_min_rad ) / double( discretization );
+  double delta_increment = (delta_max_rad - delta_min_rad ) / double( delta_discretization );
   double delta           = delta_min_rad + delta_increment / 2.0;
-  double theta_increment = ( 2 * M_PI ) / double( discretization );
-  for ( std::size_t id = 0; id < discretization; ++id ) {
+  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
+  for ( std::size_t id = 0; id < delta_discretization; ++id ) {
     double dtheta    = 1 / wheelbase * tan( delta );
     double vtheta    = theta_increment / 2.0; //theta value
     double theta_low = 0;
     double theta_up  = theta_increment;
-    for ( std::size_t it = 0; it < discretization; ++it ) {
+    for ( std::size_t it = 0; it < theta_discretization; ++it ) {
       auto loc = res.createLocation();
       buckets.emplace( std::make_pair( id, it ), loc );
       // set name
@@ -93,10 +93,10 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     //bool haveUpperDeltaNeighbor = deltaBucket < discretization - 1;
     bool haveLowerDeltaNeighbor = false;
     bool haveUpperDeltaNeighbor = false;
-    auto lowerDeltaNeighbor = deltaBucket > 0 ? deltaBucket-1 : discretization-1;
-    auto upperDeltaNeighbor = deltaBucket < discretization - 1 ? deltaBucket+1 : 0;
-    auto lowerThetaNeighbor = thetaBucket > 0 ? thetaBucket-1 : discretization-1;
-    auto upperThetaNeighbor = thetaBucket < discretization - 1 ? thetaBucket+1 : 0;
+    auto lowerDeltaNeighbor = deltaBucket > 0 ? deltaBucket-1 : delta_discretization-1;
+    auto upperDeltaNeighbor = deltaBucket < delta_discretization - 1 ? deltaBucket+1 : 0;
+    auto lowerThetaNeighbor = thetaBucket > 0 ? thetaBucket-1 : theta_discretization-1;
+    auto upperThetaNeighbor = thetaBucket < theta_discretization - 1 ? thetaBucket+1 : 0;
     // create theta-transitions, lower first
     auto lowerTheta = source->createTransition(buckets[std::make_pair(deltaBucket,lowerThetaNeighbor)]);
     // upper theta neighbor
@@ -138,7 +138,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     guard_constants = Vector::Zero(2);
     guard_constants << source->getInvariant().getVector()(0), -source->getInvariant().getVector()(0);
     upperTheta->setGuard({guard_constraints,guard_constants});
-    if(thetaBucket == discretization-1){ //wrap around from 360 degree to 0 degree
+    if(thetaBucket == theta_discretization-1){ //wrap around from 360 degree to 0 degree
       Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
       Vector theta_reset_vector = Vector::Zero(variableNames.size());
       theta_reset_matrix(theta,theta) = 0;
