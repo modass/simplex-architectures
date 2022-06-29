@@ -4,6 +4,8 @@
 
 #include "ctrlConversion.h"
 
+#include "utility/coordinate_util.h"
+
 namespace simplexArchitectures {
 
 LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Number>& automaton, LocPtr lastLocation, std::size_t delta_discretization, const std::pair<double, double>& delta_ranges) {
@@ -31,7 +33,7 @@ LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Numbe
 }
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization) {
-  if(theta < 0 || theta > 360) {
+  if(theta < 0 || theta > 2 * M_PI) {
     throw std::logic_error("Invalid theta-value, must be between 0 and 360");
   }
   double theta_increment = ( 2 * M_PI ) / double( discretization );
@@ -47,12 +49,14 @@ std::size_t getThetaBucket(Number theta, std::size_t discretization) {
 }
 
 std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_ranges, std::size_t discretization) {
-  if(delta > delta_ranges.second || delta < delta_ranges.first) {
+  auto deltaMin = DegreesToRadians(delta_ranges.first);
+  auto deltaMax = DegreesToRadians(delta_ranges.second);
+  if(delta > deltaMax || delta < deltaMin) {
     throw std::logic_error("Provided delta is not within the provided range");
   }
   std::size_t delta_bucket_index = 0;
-  double current_lower_bound = delta_ranges.first;
-  double bucket_width = (delta_ranges.second - delta_ranges.first) / discretization;
+  double current_lower_bound = deltaMin;
+  double bucket_width = (deltaMax - deltaMin) / discretization;
   bool first = true;
   while(delta > current_lower_bound && delta_bucket_index < discretization) {
     ++delta_bucket_index;

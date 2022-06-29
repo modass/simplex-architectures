@@ -77,6 +77,9 @@ int main( int argc, char* argv[] ) {
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
+  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 10 );
+  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 10 );
+  plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
   plt.rSettings().overwriteFiles = false;
 
   CLI::App app{ "Simple simulator for the car case study to check, whether the pure pursuit controller works" };

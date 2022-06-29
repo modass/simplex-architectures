@@ -10,6 +10,8 @@
 #include "../types.h"
 
 namespace simplexArchitectures {
+using Matrix = hypro::matrix_t<Number>;
+using Vector = hypro::vector_t<Number>;
 
 inline double DegreesToRadians( double degrees ) { return degrees * ( M_PI / 180 ); }
 
@@ -30,6 +32,18 @@ inline Point projectPointForwardsOnLine( const Point& input, const Point& startL
   // compute projection
   auto proj = v * ( v.dot( p ) / v.dot( v ) ) * shiftingFactor;
   return Point{ proj + startLine.rawCoordinates() };
+}
+
+inline Point translateToCarCoordinates(const Point& point, const Point& carPosition, double carHeading) {
+  Matrix rotation = Matrix::Zero( 2, 2);
+  rotation( 0, 0 ) = std::cos( carHeading );
+  rotation( 0, 1 ) = -std::sin( carHeading );
+  rotation( 1, 0 ) = std::sin( carHeading );
+  rotation( 1, 1 ) = std::cos( carHeading );
+
+  Vector translatedPoint = (point - carPosition).rawCoordinates();
+  Vector rotatedPoint = rotation * translatedPoint;
+  return Point{rotatedPoint};
 }
 
 }  // namespace simplexArchitectures

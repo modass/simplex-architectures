@@ -62,7 +62,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     spdlog::trace("Have computed {} flowpipes with {} segments", hypro::getNumberNodes(roots), hypro::getNumberSegments(roots));
 
     for ( auto& root : roots ) {
-      cutoffControllerJumps( &root );
+//      cutoffControllerJumps( &root );
     }
 
     // Pick an artificial observation.

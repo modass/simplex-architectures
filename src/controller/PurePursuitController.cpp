@@ -10,7 +10,8 @@ Point PurePursuitController::generateInput( Point state ) {
   double delta    = 0;
   double velocity = 1.0;
 
-  Point target = currentWaypoint;
+  // TODO: The positions of x,y,theta in state should not be hard coded!
+  Point target = translateToCarCoordinates(currentWaypoint, Point{state.at(0), state.at(1)}, state.at(2));
   // lookahead-distance l = sqrt(x^2 + y^2)
   double l = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
 
@@ -28,7 +29,7 @@ Point PurePursuitController::generateInput( Point state ) {
     throw std::domain_error( "The target lies behind the car - this is not implemented yet." );
   }
 
-  std::cout << "Base controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
+  std::cout << "Pure pursuit controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
 
   return Point( { delta, velocity } );
 }
