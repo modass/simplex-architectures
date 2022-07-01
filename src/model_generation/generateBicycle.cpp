@@ -103,12 +103,14 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     auto upperTheta = source->createTransition(buckets[std::make_pair(deltaBucket,upperThetaNeighbor)]);
     // create delta-transitions, lower first
     hypro::Transition<double>* lowerDelta = nullptr;
-    if(haveLowerDeltaNeighbor)
-      lowerDelta = source->createTransition(buckets[std::make_pair(lowerDeltaNeighbor,thetaBucket)]);
+    if(haveLowerDeltaNeighbor) {
+      lowerDelta = source->createTransition( buckets[std::make_pair( lowerDeltaNeighbor, thetaBucket )] );
+    }
     // upper delta neighbor
     hypro::Transition<double>* upperDelta = nullptr;
-    if(haveUpperDeltaNeighbor)
-      upperDelta = source->createTransition(buckets[std::make_pair(upperDeltaNeighbor,thetaBucket)]);
+    if(haveUpperDeltaNeighbor) {
+      upperDelta = source->createTransition( buckets[std::make_pair( upperDeltaNeighbor, thetaBucket )] );
+    }
     // delta self loop
     auto keepDelta = source->createTransition(source);
     // delta-guard
@@ -117,19 +119,23 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     guard_constraints(1,tick) = -1;
     Vector guard_constants = Vector::Zero(2);
     guard_constants << tick_time, -tick_time;
-    if(haveLowerDeltaNeighbor)
-      lowerDelta->setGuard({guard_constraints,guard_constants});
-    if(haveUpperDeltaNeighbor)
-      upperDelta->setGuard({guard_constraints,guard_constants});
+    if(haveLowerDeltaNeighbor) {
+      lowerDelta->setGuard( { guard_constraints, guard_constants } );
+    }
+    if(haveUpperDeltaNeighbor) {
+      upperDelta->setGuard( { guard_constraints, guard_constants } );
+    }
     keepDelta->setGuard({guard_constraints,guard_constants});
     // delta-reset
     Matrix reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
     Vector reset_vector = Vector::Zero(variableNames.size());
     reset_matrix(tick,tick) = 0;
-    if(haveLowerDeltaNeighbor)
-      lowerDelta->setReset(hypro::Reset<double>(reset_matrix,reset_vector));
-    if(haveUpperDeltaNeighbor)
-      upperDelta->setReset(hypro::Reset<double>(reset_matrix,reset_vector));
+    if(haveLowerDeltaNeighbor) {
+      lowerDelta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
+    }
+    if(haveUpperDeltaNeighbor) {
+      upperDelta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
+    }
     keepDelta->setReset(hypro::Reset<double>(reset_matrix,reset_vector));
     // theta-guard upper
     guard_constraints = Matrix::Zero(2,variableNames.size());
@@ -155,7 +161,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
       Vector theta_reset_vector = Vector::Zero(variableNames.size());
       theta_reset_matrix(theta,theta) = 0;
-      theta_reset_vector(theta) = 2 * M_PI;
+      theta_reset_vector(theta) = lowerTheta->getTarget()->getInvariant().getVector()(0);
       lowerTheta->setReset(hypro::Reset<double>(theta_reset_matrix, theta_reset_vector));
     }
   }

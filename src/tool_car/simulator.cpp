@@ -90,6 +90,9 @@ int main( int argc, char* argv[] ) {
   hypro::ReachabilitySettings    reachSettings;
   automaton              = modelGenerator::generateBicycle( delta_ranges, delta_discretization, theta_discretization);
   reachSettings.timeStep = timeStepSize;
+  std::ofstream fs{ "car.model" };
+  fs << hypro::toFlowstarFormat( automaton );
+  fs.close();
 
   // Hard code Racetrack
   RaceTrack track;
