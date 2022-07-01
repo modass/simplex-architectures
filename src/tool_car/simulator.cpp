@@ -69,9 +69,9 @@ int main( int argc, char* argv[] ) {
   std::size_t               iterations{ 100 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
-  std::size_t               delta_discretization = 7;
+  std::size_t               delta_discretization = 21;
   std::pair<double, double> delta_ranges{ -60, 60 };
-  std::size_t               theta_discretization = 12;
+  std::size_t               theta_discretization = 36;
   Number                    widening = 0.1;
   Number                    timeStepSize{ 0.01 };
 

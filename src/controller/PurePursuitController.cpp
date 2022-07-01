@@ -3,6 +3,7 @@
  */
 
 #include "PurePursuitController.h"
+#include <spdlog/spdlog.h>
 
 namespace simplexArchitectures {
 
@@ -21,9 +22,11 @@ Point PurePursuitController::generateInput( Point state ) {
   if ( l < 0.5 ) {
     lastWaypoint = currentWaypoint;
     if(currentWaypoint != track.waypoints.end()) {
+      spdlog::debug("Switch to next waypoint");
       ++currentWaypoint;
     } else {
       currentWaypoint = track.waypoints.begin();
+      spdlog::debug("Switch to first waypoint");
     }
   }
 
