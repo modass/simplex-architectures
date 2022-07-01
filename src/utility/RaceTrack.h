@@ -19,6 +19,10 @@ struct RaceTrack {
   std::vector<hypro::Condition<double>> createSafetySpecification() const;
 
   void addToPlotter( std::optional<Point> car = std::nullopt );
+
+#ifndef NDEBUG
+  inline bool is_sane() const { return waypoints.size() > 1 && !playground.empty();}
+#endif
 };
 
 }

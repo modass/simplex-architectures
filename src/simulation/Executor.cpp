@@ -4,6 +4,7 @@
 
 #include "Executor.h"
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
   roots.clear();
@@ -31,8 +32,8 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
       roots.emplace_back( std::move( sr ) );
     }
 
-    mSettings.rFixedParameters().globalTimeHorizon = mCycleTime;
-    mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( mCycleTime );
+    mSettings.rFixedParameters().globalTimeHorizon = 0.2;
+    mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( 1.1*mCycleTime );
     mSettings.rFixedParameters().jumpDepth =
         2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
 
@@ -42,6 +43,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
 
     if(mPlot) {
       auto& plt = hypro::Plotter<Number>::getInstance();
+      plt.clear();
       plt.setFilename("executor");
       plt.rSettings().overwriteFiles = false;
       for(const auto& r : roots) {
@@ -62,7 +64,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     spdlog::trace("Have computed {} flowpipes with {} segments", hypro::getNumberNodes(roots), hypro::getNumberSegments(roots));
 
     for ( auto& root : roots ) {
-//      cutoffControllerJumps( &root );
+      cutoffControllerJumps( &root );
     }
 
     // Pick an artificial observation.
@@ -94,6 +96,9 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
       }
     }
     // create an artificial observation
+    if ( samplesBoxes.empty() ) {
+      throw std::logic_error( "No samples available after execution" );
+    }
     std::uniform_int_distribution<std::size_t> LocPtr_dist{ 0, samplesBoxes.size() - 1 };
     std::size_t                                chosenLocPtr = LocPtr_dist( mGenerator );
     LocPtr                                     location     = std::next( samplesBoxes.begin(), chosenLocPtr )->first;

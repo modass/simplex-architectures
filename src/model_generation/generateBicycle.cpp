@@ -30,7 +30,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
 
   constexpr double velocity  = 1.0;  // use velocity = one
   constexpr double wheelbase = 1.0;  // wheelbase = 1.0
-  constexpr double tick_time = 1.0;  // duty cycle of the controller
+  constexpr double tick_time = 0.1;  // duty cycle of the controller
 
   double delta_min_rad = degreeToRadiance(delta_ranges.first);
   double delta_max_rad = degreeToRadiance(delta_ranges.second);

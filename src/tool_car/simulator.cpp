@@ -20,6 +20,7 @@
 #include <hypro/util/linearOptimization/Optimizer.h>
 #include <hypro/util/plotting/Plotter.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -65,7 +66,7 @@ static const std::vector<std::size_t> controller_dimensions{ };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 10 };
+  std::size_t               iterations{ 100 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
   std::size_t               delta_discretization = 7;
@@ -109,8 +110,14 @@ int main( int argc, char* argv[] ) {
   // bicycle advanced controller
   AbstractController<Point, Point>* advCtrl = new PurePursuitController();
   // make the first point starting point
-  dynamic_cast<PurePursuitController*>( advCtrl )->lastWaypoint    = track.waypoints.front();
-  dynamic_cast<PurePursuitController*>( advCtrl )->currentWaypoint = track.waypoints.at( 1 );
+  {
+    auto tmpCtrl             = dynamic_cast<PurePursuitController*>( advCtrl );
+    tmpCtrl->track           = track;
+    tmpCtrl->lastWaypoint    = tmpCtrl->track.waypoints.begin();
+    tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
+    spdlog::trace( "Last waypoint set to {}, current waypoint set to {}", ( *tmpCtrl->lastWaypoint ),
+                   ( *tmpCtrl->currentWaypoint ) );
+  }
 
   // use first controller output to determine the starting location
   auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();

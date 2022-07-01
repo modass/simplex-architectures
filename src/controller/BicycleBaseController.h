@@ -18,11 +18,12 @@ class BicycleBaseController : public AbstractController<Point, Point> {
 
   Point computeTarget( Point state );
 
-  Point lastWaypoint;
-  Point currentWaypoint;
+  std::vector<Point>::const_iterator lastWaypoint;
+  std::vector<Point>::const_iterator currentWaypoint;
 
- private:
   RaceTrack track;
+ private:
+
 
   const double wheelbase = 1.0;
 };

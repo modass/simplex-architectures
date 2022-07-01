@@ -9,6 +9,7 @@
 namespace simplexArchitectures {
 
 std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() const {
+  assert(is_sane());
   std::vector<hypro::Condition<double>> res;
   // bloat-functor
   auto bloat = [this]( const auto& intv ) {
@@ -51,6 +52,7 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
 }
 
 void RaceTrack::addToPlotter( std::optional<Point> car ) {
+  assert(is_sane());
   if ( car.has_value() && ( car.value() ).dimension() != 3 ) {
     throw std::logic_error( "The tuple representing the car-position and heading is not 3-dimensional." );
   }

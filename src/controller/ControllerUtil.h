@@ -13,7 +13,7 @@ template <typename R>
 void cutoffControllerJumps( hypro::ReachTreeNode<R>* node ) {
   auto children = node->getChildren();
   for ( auto childIt = children.begin(); childIt != children.end(); ++childIt ) {
-    if ( !( *childIt )->getTransition()->getReset().getAffineReset().isIdentity( 4 ) ) {
+    if ( !( *childIt )->getTransition()->getReset().isIdentity( 3 ) ) {
       (*childIt)->eraseChildren();
       ( *childIt )->getFlowpipe().clear();
     } else {

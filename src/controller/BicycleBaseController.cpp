@@ -16,6 +16,7 @@ Point BicycleBaseController::generateInput( Point state ) {
 
   // Stop the car in case the safe spot has been found
   // TODO make this more realistic later
+  // TODO what if we are already close to the current waypoint?
   if ( l < 0.5 ) {
     velocity = 0.0;
   }
@@ -35,7 +36,7 @@ Point BicycleBaseController::generateInput( Point state ) {
 
 Point BicycleBaseController::computeTarget( Point state ) {
   // project position on track
-  auto projectedPoint = projectPointForwardsOnLine( state.projectOn( { 0, 1 } ), lastWaypoint, currentWaypoint );
+  auto projectedPoint = projectPointForwardsOnLine( state.projectOn( { 0, 1 } ), *lastWaypoint, *currentWaypoint );
   std::cout << "Projected point: " << projectedPoint << std::endl;
   // transform point into car coordinate-system
   // 1 translation

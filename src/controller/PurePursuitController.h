@@ -16,11 +16,11 @@ class PurePursuitController : public AbstractController<Point, Point> {
  public:
   Point generateInput( Point state );
 
-  Point lastWaypoint;
-  Point currentWaypoint;
+  std::vector<Point>::const_iterator lastWaypoint;
+  std::vector<Point>::const_iterator currentWaypoint;
 
- private:
   RaceTrack track;
+ private:
 
   const double wheelbase = 1.0;
 
