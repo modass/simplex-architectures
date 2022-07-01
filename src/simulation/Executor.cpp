@@ -49,7 +49,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
       for(const auto& r : roots) {
         for(const auto& n : hypro::preorder(r)) {
           for(const auto& s: n.getFlowpipe()) {
-            plt.addObject(s.projectOn({0,1}).vertices()); // TODO this is hardcoded, maybe we can include this in the settings
+            plt.addObject(s.projectOn(plt.settings().dimensions).vertices());
           }
         }
       }
