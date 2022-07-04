@@ -66,7 +66,7 @@ static const std::vector<std::size_t> controller_dimensions{ };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 100 };
+  std::size_t               iterations{ 300 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
   std::size_t               delta_discretization = 21;
@@ -78,8 +78,8 @@ int main( int argc, char* argv[] ) {
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 10 );
-  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 10 );
+  plt.rSettings().xPlotInterval  = carl::Interval<double>( -2, 12 );
+  plt.rSettings().yPlotInterval  = carl::Interval<double>( -2, 12 );
   plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
   plt.rSettings().overwriteFiles = false;
 

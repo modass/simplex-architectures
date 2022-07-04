@@ -5,6 +5,8 @@
 #include "ctrlConversion.h"
 
 #include "utility/coordinate_util.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 namespace simplexArchitectures {
 
@@ -51,8 +53,16 @@ std::size_t getThetaBucket(Number theta, std::size_t discretization) {
 std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_ranges, std::size_t discretization) {
   auto deltaMin = DegreesToRadians(delta_ranges.first);
   auto deltaMax = DegreesToRadians(delta_ranges.second);
-  if(delta > deltaMax || delta < deltaMin) {
-    throw std::logic_error("Provided delta is not within the provided range");
+//  if(delta > deltaMax || delta < deltaMin) {
+//    throw std::logic_error("Provided delta is not within the provided range");
+//  }
+  if(delta > deltaMax) {
+    spdlog::debug( "Provided delta ({}) is above the provided range, truncating to maximum value.", delta);
+    delta = deltaMax;
+  }
+  if(delta < deltaMin) {
+    spdlog::debug( "Provided delta ({}) is below the provided range, truncating to minimum value.", delta );
+    delta = deltaMin;
   }
   std::size_t delta_bucket_index = 0;
   double current_lower_bound = deltaMin;

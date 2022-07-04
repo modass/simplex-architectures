@@ -37,8 +37,8 @@ inline Point projectPointForwardsOnLine( const Point& input, const Point& startL
 inline Point translateToCarCoordinates(const Point& point, const Point& carPosition, double carHeading) {
   Matrix rotation = Matrix::Zero( 2, 2);
   rotation( 0, 0 ) = std::cos( carHeading );
-  rotation( 0, 1 ) = -std::sin( carHeading );
-  rotation( 1, 0 ) = std::sin( carHeading );
+  rotation( 0, 1 ) = std::sin( carHeading );
+  rotation( 1, 0 ) = -std::sin( carHeading );
   rotation( 1, 1 ) = std::cos( carHeading );
 
   Vector translatedPoint = (point - carPosition).rawCoordinates();
