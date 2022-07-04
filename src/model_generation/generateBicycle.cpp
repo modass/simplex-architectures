@@ -148,6 +148,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
       Vector theta_reset_vector = Vector::Zero(variableNames.size());
       theta_reset_matrix(theta,theta) = 0;
+      theta_reset_vector(theta) = 0.00001;
       upperTheta->setReset(hypro::Reset<double>(theta_reset_matrix, theta_reset_vector));
     }
     // theta-guard lower
@@ -161,7 +162,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
       Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
       Vector theta_reset_vector = Vector::Zero(variableNames.size());
       theta_reset_matrix(theta,theta) = 0;
-      theta_reset_vector(theta) = lowerTheta->getTarget()->getInvariant().getVector()(0);
+      theta_reset_vector(theta) = lowerTheta->getTarget()->getInvariant().getVector()(0)-0.00001;
       lowerTheta->setReset(hypro::Reset<double>(theta_reset_matrix, theta_reset_vector));
     }
   }
