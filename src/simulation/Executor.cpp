@@ -12,7 +12,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
   hypro::Point<Number> extendedState = mLastState;
   // if any control has been provided, set it here
   for ( Eigen::Index d : mExecutionSettings.control_input_dimensions ) {
-    extendedState[d] = ctrlInput[d];
+    extendedState[d] = ctrlInput[0];
   }
   std::stringstream ss;
   ss << extendedState;

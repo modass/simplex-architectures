@@ -15,11 +15,11 @@ Point PurePursuitController::generateInput( Point state ) {
   Point target = translateToCarCoordinates(*currentWaypoint, Point{state.at(0), state.at(1)}, state.at(2));
   //Point target = *currentWaypoint;
   // lookahead-distance l = sqrt(x^2 + y^2)
-  double l = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
+//  double l = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
 
-  // Stop the car in case the safe spot has been found
-  // TODO make this more realistic later
-  if ( l < 0.5 ) {
+  double distanceToTarget = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
+  double l = std::min(4.0,distanceToTarget);
+  if ( distanceToTarget < 0.5 ) {
     lastWaypoint = currentWaypoint;
     if(currentWaypoint != (track.waypoints.end()-1)) {
       spdlog::debug("Switch to next waypoint");
@@ -35,7 +35,12 @@ Point PurePursuitController::generateInput( Point state ) {
   if ( target.at( 0 ) > 0 ) {
     delta = atan( ( 2 * wheelbase * target.at( 1 ) ) / pow( l, 2 ) );
   } else {
-    throw std::domain_error( "The target lies behind the car - this is not implemented yet." );
+    spdlog::debug("The target lies behind the car - turning around.");
+    if (target.at(1) > 0) {
+      delta = M_PI/2;
+    } else {
+      delta = -M_PI/2;
+    }
   }
 
   std::cout << "Pure pursuit controller output: delta = " << delta << ", velocity = " << velocity << std::endl;

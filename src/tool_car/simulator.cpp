@@ -66,7 +66,7 @@ static const std::vector<std::size_t> controller_dimensions{ };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 350 };
+  std::size_t               iterations{ 100 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
   std::size_t               delta_discretization = 21;
@@ -110,17 +110,17 @@ int main( int argc, char* argv[] ) {
   initialStates.emplace(
       std::make_pair( automaton.getLocations().front(), hypro::conditionFromIntervals( initialValuations ) ) );
 
-  // bicycle advanced controller
-  AbstractController<Point, Point>* advCtrl = new PurePursuitController();
-  // make the first point starting point
-  {
-    auto tmpCtrl             = dynamic_cast<PurePursuitController*>( advCtrl );
-    tmpCtrl->track           = track;
-    tmpCtrl->lastWaypoint    = tmpCtrl->track.waypoints.begin();
-    tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
-    spdlog::trace( "Last waypoint set to {}, current waypoint set to {}", ( *tmpCtrl->lastWaypoint ),
-                   ( *tmpCtrl->currentWaypoint ) );
-  }
+//  auto tmpCtrl             = new BicycleBaseController();
+  auto tmpCtrl             = new PurePursuitController();
+  tmpCtrl->track           = track;
+  tmpCtrl->lastWaypoint    = tmpCtrl->track.waypoints.begin();
+  tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
+  spdlog::trace( "Last waypoint set to {}, current waypoint set to {}", ( *tmpCtrl->lastWaypoint ),
+                 ( *tmpCtrl->currentWaypoint ) );
+  AbstractController<Point, Point>* advCtrl = tmpCtrl;
+
+
+
 
   // use first controller output to determine the starting location
   auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();
@@ -157,11 +157,11 @@ int main( int argc, char* argv[] ) {
   }
 
   // output the automaton
-  spdlog::debug("Plant model:\n{}", hypro::toFlowstarFormat(automaton));
+//  spdlog::debug("Plant model:\n{}", hypro::toFlowstarFormat(automaton));
 
   Executor executor{ automaton, startingLocation, startingpoint.value() };
   executor.mSettings          = settings;
-  executor.mExecutionSettings = ExecutionSettings{ 3, {} };
+  executor.mExecutionSettings = ExecutionSettings{ 3, {v} };
 
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
@@ -173,13 +173,11 @@ int main( int argc, char* argv[] ) {
     auto controlLocation = convertCtrlToLocation(advControllerInput, automaton, executor.mLastLocation, delta_discretization, delta_ranges);
     executor.mLastLocation = controlLocation;
 
-    auto nextState = executor.execute( advControllerInput );
+    auto nextState = executor.execute( advControllerInput.projectOn({1}) );
 
     plt.clear();
     Point adv_car = nextState.projectOn({0,1,2});
     track.addToPlotter( adv_car );
-//    std::cout << "Target-point: " << dynamic_cast<BicycleBaseController*>( base )->computeTarget( testcar ) << std::endl;
-//    plt.addPoint( dynamic_cast<BicycleBaseController*>( base )->computeTarget( testcar ) );
     plt.setFilename( "racetrack" );
     plt.plot2d( hypro::PLOTTYPE::png, true );
     plt.clear();

@@ -25,12 +25,13 @@ inline Point projectPointOnLine( const Point& input, const Point& startLine, con
 }
 
 inline Point projectPointForwardsOnLine( const Point& input, const Point& startLine, const Point& endLine,
-                                         double shiftingFactor = 1.5 ) {
+                                         double shiftingFactor = 0.8 ) {
   // shift line into origin
   auto v = ( endLine - startLine ).rawCoordinates();
   auto p = ( input - startLine ).rawCoordinates();
   // compute projection
-  auto proj = v * ( v.dot( p ) / v.dot( v ) ) * shiftingFactor;
+  auto shiftVector = (v/norm(v))*shiftingFactor;
+  auto proj = v * ( v.dot( p ) / v.dot( v ) ) + shiftVector;
   return Point{ proj + startLine.rawCoordinates() };
 }
 
