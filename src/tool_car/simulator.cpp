@@ -175,6 +175,14 @@ int main( int argc, char* argv[] ) {
 
     auto nextState = executor.execute( advControllerInput );
 
+    plt.clear();
+    Point adv_car = nextState.projectOn({0,1,2});
+    track.addToPlotter( adv_car );
+//    std::cout << "Target-point: " << dynamic_cast<BicycleBaseController*>( base )->computeTarget( testcar ) << std::endl;
+//    plt.addPoint( dynamic_cast<BicycleBaseController*>( base )->computeTarget( testcar ) );
+    plt.setFilename( "racetrack" );
+    plt.plot2d( hypro::PLOTTYPE::png, true );
+    plt.clear();
     /*
     std::stringstream ss;
     std::size_t       l = std::to_string( iterations ).size();
