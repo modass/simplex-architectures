@@ -66,7 +66,7 @@ static const std::vector<std::size_t> controller_dimensions{ };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 300 };
+  std::size_t               iterations{ 350 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
   std::size_t               delta_discretization = 21;

@@ -21,7 +21,7 @@ Point PurePursuitController::generateInput( Point state ) {
   // TODO make this more realistic later
   if ( l < 0.5 ) {
     lastWaypoint = currentWaypoint;
-    if(currentWaypoint != track.waypoints.end()) {
+    if(currentWaypoint != (track.waypoints.end()-1)) {
       spdlog::debug("Switch to next waypoint");
       ++currentWaypoint;
     } else {
