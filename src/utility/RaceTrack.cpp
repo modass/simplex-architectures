@@ -72,8 +72,8 @@ void RaceTrack::addToPlotter( std::optional<Point> car ) {
   }
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };
-  double xArrowOffset = std::cos( car.value().at( 2 ) * ( M_PI / 180 ) );
-  double yArrowOffset = std::sin( car.value().at( 2 ) * ( M_PI / 180 ) );
+  double xArrowOffset = std::cos( car.value().at( 2 ));
+  double yArrowOffset = std::sin( car.value().at( 2 ));
   Point  carDirection{ xArrowOffset, yArrowOffset };
   std::cout << "Direction: " << carDirection << std::endl;
   plt.addVector( ( carPosition + carDirection ).rawCoordinates(), carPosition.rawCoordinates() );
