@@ -127,6 +127,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     }
     keepDelta->setGuard({guard_constraints,guard_constants});
     // delta-reset
+    // TODO delta needs to be fully connected and labeled with the target delta, also add "stop" self loop to set v=0
     Matrix reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
     Vector reset_vector = Vector::Zero(variableNames.size());
     reset_matrix(tick,tick) = 0;
@@ -143,6 +144,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     guard_constraints(1,theta) = -1;
     guard_constants = Vector::Zero(2);
     guard_constants << source->getInvariant().getVector()(0), -source->getInvariant().getVector()(0);
+    upperTheta->addLabel(hypro::Label("theta_left"));
     upperTheta->setGuard({guard_constraints,guard_constants});
     if(thetaBucket == theta_discretization-1){ //wrap around from 360 degree to 0 degree
       Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
@@ -158,6 +160,7 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     guard_constants = Vector::Zero(2);
     guard_constants << -source->getInvariant().getVector()(1), source->getInvariant().getVector()(1);
     lowerTheta->setGuard({guard_constraints,guard_constants});
+    lowerTheta->addLabel(hypro::Label("theta_right"));
     if(thetaBucket == 0){ //wrap around from 0 degree to 360 degree
       Matrix theta_reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
       Vector theta_reset_vector = Vector::Zero(variableNames.size());
