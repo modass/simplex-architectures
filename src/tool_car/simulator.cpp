@@ -29,6 +29,7 @@
 #include <string>
 
 #include "../controller/AbstractController.h"
+#include "../controller/generateBaseController.h"
 #include "../model_generation/generateBicycle.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
@@ -110,17 +111,23 @@ int main( int argc, char* argv[] ) {
   initialStates.emplace(
       std::make_pair( automaton.getLocations().front(), hypro::conditionFromIntervals( initialValuations ) ) );
 
-//  auto tmpCtrl             = new BicycleBaseController();
+
   auto tmpCtrl             = new PurePursuitController();
   tmpCtrl->track           = track;
   tmpCtrl->lastWaypoint    = tmpCtrl->track.waypoints.begin();
   tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
   spdlog::trace( "Last waypoint set to {}, current waypoint set to {}", ( *tmpCtrl->lastWaypoint ),
                  ( *tmpCtrl->currentWaypoint ) );
+
+  auto baseCtrl             = new BicycleBaseController();
+  baseCtrl->track           = track;
+  baseCtrl->lastWaypoint    = baseCtrl->track.waypoints.begin();
+  baseCtrl->currentWaypoint = std::next( baseCtrl->lastWaypoint );
+
+//  hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
+//      0.0,7.0,0.0,3.0,*baseCtrl, delta_ranges, delta_discretization, theta_discretization);
+
   AbstractController<Point, Point>* advCtrl = tmpCtrl;
-
-
-
 
   // use first controller output to determine the starting location
   auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();

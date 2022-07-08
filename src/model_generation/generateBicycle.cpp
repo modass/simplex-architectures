@@ -91,53 +91,52 @@ hypro::HybridAutomaton<double> generateBicycle( std::pair<double, double> delta_
     // determine neighbor indices
     //bool haveLowerDeltaNeighbor = deltaBucket > 0;
     //bool haveUpperDeltaNeighbor = deltaBucket < discretization - 1;
-    bool haveLowerDeltaNeighbor = false;
-    bool haveUpperDeltaNeighbor = false;
-    auto lowerDeltaNeighbor = deltaBucket > 0 ? deltaBucket-1 : delta_discretization-1;
-    auto upperDeltaNeighbor = deltaBucket < delta_discretization - 1 ? deltaBucket+1 : 0;
     auto lowerThetaNeighbor = thetaBucket > 0 ? thetaBucket-1 : theta_discretization-1;
     auto upperThetaNeighbor = thetaBucket < theta_discretization - 1 ? thetaBucket+1 : 0;
     // create theta-transitions, lower first
     auto lowerTheta = source->createTransition(buckets[std::make_pair(deltaBucket,lowerThetaNeighbor)]);
     // upper theta neighbor
     auto upperTheta = source->createTransition(buckets[std::make_pair(deltaBucket,upperThetaNeighbor)]);
-    // create delta-transitions, lower first
-    hypro::Transition<double>* lowerDelta = nullptr;
-    if(haveLowerDeltaNeighbor) {
-      lowerDelta = source->createTransition( buckets[std::make_pair( lowerDeltaNeighbor, thetaBucket )] );
-    }
-    // upper delta neighbor
-    hypro::Transition<double>* upperDelta = nullptr;
-    if(haveUpperDeltaNeighbor) {
-      upperDelta = source->createTransition( buckets[std::make_pair( upperDeltaNeighbor, thetaBucket )] );
-    }
-    // delta self loop
-    auto keepDelta = source->createTransition(source);
-    // delta-guard
-    Matrix guard_constraints = Matrix::Zero(2,variableNames.size());
-    guard_constraints(0,tick) = 1;
-    guard_constraints(1,tick) = -1;
-    Vector guard_constants = Vector::Zero(2);
+
+    // stop car
+    Matrix guard_constraints     = Matrix::Zero( 2, variableNames.size() );
+    guard_constraints( 0, tick ) = 1;
+    guard_constraints( 1, tick ) = -1;
+    Vector guard_constants       = Vector::Zero( 2 );
     guard_constants << tick_time, -tick_time;
-    if(haveLowerDeltaNeighbor) {
-      lowerDelta->setGuard( { guard_constraints, guard_constants } );
+
+    Matrix reset_matrix        = Matrix::Identity( variableNames.size(), variableNames.size() );
+    Vector reset_vector        = Vector::Zero( variableNames.size() );
+    reset_matrix( tick, tick ) = 0;
+    reset_matrix( v, v ) = 0;
+
+    auto stopTransition = source->createTransition( source );
+    stopTransition->setGuard({guard_constraints, guard_constants});
+    stopTransition->setReset(hypro::Reset<double>( reset_matrix, reset_vector ));
+    stopTransition->addLabel(hypro::Label("stop"));
+
+    // delta can be changed to all other choices at end of each cycle
+    for ( std::size_t id = 0; id < delta_discretization; ++id ) {
+      // delta change
+      auto changeDelta = source->createTransition( buckets[std::make_pair(id,upperThetaNeighbor)] );
+      // delta-guard
+      guard_constraints     = Matrix::Zero( 2, variableNames.size() );
+      guard_constraints( 0, tick ) = 1;
+      guard_constraints( 1, tick ) = -1;
+      guard_constants       = Vector::Zero( 2 );
+      guard_constants << tick_time, -tick_time;
+
+      changeDelta->setGuard( { guard_constraints, guard_constants } );
+      // delta-reset
+      reset_matrix        = Matrix::Identity( variableNames.size(), variableNames.size() );
+      reset_vector        = Vector::Zero( variableNames.size() );
+      reset_matrix( tick, tick ) = 0;
+      changeDelta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
+
+      // label for controller synchronisation
+      changeDelta->addLabel(hypro::Label("delta_"+std::to_string(id)));
     }
-    if(haveUpperDeltaNeighbor) {
-      upperDelta->setGuard( { guard_constraints, guard_constants } );
-    }
-    keepDelta->setGuard({guard_constraints,guard_constants});
-    // delta-reset
-    // TODO delta needs to be fully connected and labeled with the target delta, also add "stop" self loop to set v=0
-    Matrix reset_matrix = Matrix::Identity(variableNames.size(), variableNames.size());
-    Vector reset_vector = Vector::Zero(variableNames.size());
-    reset_matrix(tick,tick) = 0;
-    if(haveLowerDeltaNeighbor) {
-      lowerDelta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
-    }
-    if(haveUpperDeltaNeighbor) {
-      upperDelta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
-    }
-    keepDelta->setReset(hypro::Reset<double>(reset_matrix,reset_vector));
+
     // theta-guard upper
     guard_constraints = Matrix::Zero(2,variableNames.size());
     guard_constraints(0,theta) = 1;

@@ -25,8 +25,8 @@ hypro::HybridAutomaton<double> generateBaseController( double x_min,
                                                        std::pair<double, double> delta_ranges   = { -60, 60 },
                                                        std::size_t delta_discretization = 7,
                                                        std::size_t theta_discretization = 12,
-                                                       double x_interval_size = 0.25,
-                                                       double y_interval_size = 0.25
+                                                       double x_interval_size = 0.5,
+                                                       double y_interval_size = 0.5
                                                        );
 
 }

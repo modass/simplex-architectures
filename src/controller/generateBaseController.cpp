@@ -46,7 +46,11 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
 
   //TODO merge (in x and y) neighboring locations with the same output.
   for ( std::size_t ix = 0; ix < num_x_buckets; ++ix ) {
+    y_low  = y_min;
+    y_high = y_min + y_interval_size;
+    y_representative = y_min + (y_interval_size/2);
     for ( std::size_t iy = 0; iy < num_y_buckets; ++iy ) {
+      theta_representative  = theta_increment;
       for ( std::size_t it = 0; it < theta_discretization; ++it ) {
         auto loc = res.createLocation();
         buckets.emplace( std::make_tuple( ix, iy, it ), loc );
@@ -63,19 +67,20 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
         invariant_constants << x_high, -x_low, y_high, -y_low;
         loc->setInvariant({invariant_constraints,invariant_constants});
 
+//        std::cout << "Queried position: ( " << x_representative << "; " << y_representative << "; " << theta_representative << ")" << std::endl;
         auto output = ctrl.generateInput(Point{ x_representative, y_representative, theta_representative, 1, 1});
         outputs.emplace(std::make_tuple( ix, iy, it ), std::make_pair(output[0], output[1]));
 
 
         theta_representative += theta_increment;
       }
-      x_low += x_interval_size;
-      x_high += x_interval_size;
-      x_representative += x_interval_size;
+      y_low += y_interval_size;
+      y_high += y_interval_size;
+      y_representative += y_interval_size;
     }
-    y_low += y_interval_size;
-    y_high += y_interval_size;
-    y_representative += y_interval_size;
+    x_low += x_interval_size;
+    x_high += x_interval_size;
+    x_representative += x_interval_size;
   }
 
   for(auto& [key,source] : buckets) {
@@ -95,7 +100,7 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
     upperTheta->addLabel(hypro::Label("theta_left"));
 
     // create x-transitions, lower first
-    if(lowerXNeighbor >= 0) {
+    if(xBucket > 0) {
       auto lowerX = source->createTransition( buckets[std::make_tuple( lowerXNeighbor, yBucket, thetaBucket )] );
 
       Matrix guard_constraints = Matrix::Zero(2,variableNames.size());
@@ -106,7 +111,7 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
       lowerX->setGuard({guard_constraints,guard_constants});
     }
     // upper x neighbor
-    if(upperXNeighbor < num_x_buckets) {
+    if(xBucket < num_x_buckets-1) {
       auto upperX = source->createTransition( buckets[std::make_tuple( upperXNeighbor, yBucket, thetaBucket )] );
 
       Matrix guard_constraints = Matrix::Zero(2,variableNames.size());
@@ -118,7 +123,7 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
     }
 
     // create y-transitions, lower first
-    if(lowerYNeighbor >= 0) {
+    if(yBucket > 0) {
       auto lowerY = source->createTransition( buckets[std::make_tuple( xBucket, lowerYNeighbor, thetaBucket )] );
 
       Matrix guard_constraints = Matrix::Zero(2,variableNames.size());
@@ -129,7 +134,7 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
       lowerY->setGuard({guard_constraints,guard_constants});
     }
     // upper x neighbor
-    if(upperYNeighbor < num_y_buckets) {
+    if(yBucket < num_y_buckets-1) {
       auto upperY = source->createTransition( buckets[std::make_tuple( xBucket, upperYNeighbor, thetaBucket )] );
 
       Matrix guard_constraints = Matrix::Zero(2,variableNames.size());

@@ -17,15 +17,14 @@ Point BicycleBaseController::generateInput( Point state ) {
   double distanceToTarget = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
   double l = distanceToTarget; //std::min(2.0,distanceToTarget);
   // Stop the car in case the safe spot has been found
-  // TODO make this more realistic later
-  // TODO what if we are already close to the current waypoint?
 
-  std::cout << "Target in car coordinates: ( " << target.at(0) << "; " << target.at(1) << ") ; distance to target = " << distanceToTarget << std::endl;
+//  std::cout << "Target in car coordinates: ( " << target.at(0) << "; " << target.at(1) << ") ; distance to target = " << distanceToTarget << std::endl;
 
-  auto waypointVector = *currentWaypoint - state;
+  auto currentPosition = state.projectOn({0,1});
+  auto waypointVector = *currentWaypoint - currentPosition;
   auto angleToWaypoint = atan2(waypointVector.at(1), waypointVector.at(0));
 
-  std::cout << "target y distance: " <<  abs(target.at(1)) <<" ; angle to waypoint = " << angleToWaypoint-state.at(2) << std::endl;
+//  std::cout << "target y distance: " <<  abs(target.at(1)) <<" ; angle to waypoint = " << angleToWaypoint-state.at(2) << std::endl;
   if ( abs(target.at(1)) < 0.15 && abs(angleToWaypoint - state.at(2)) < 0.2 ) {
     velocity = 0.0;
   }
@@ -42,7 +41,7 @@ Point BicycleBaseController::generateInput( Point state ) {
       delta = -M_PI/2;
     }
   }
-  std::cout << "Base controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
+//  std::cout << "Base controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
 
   return Point( { delta, velocity } );
 }
@@ -50,7 +49,7 @@ Point BicycleBaseController::generateInput( Point state ) {
 Point BicycleBaseController::computeTarget( Point state ) {
   // project position on track
   auto projectedPoint = projectPointForwardsOnLine( state.projectOn( { 0, 1 } ), *lastWaypoint, *currentWaypoint );
-  std::cout << "Projected point: " << projectedPoint << std::endl;
+//  std::cout << "Projected point: " << projectedPoint << std::endl;
   return translateToCarCoordinates(projectedPoint, Point{state.at(0), state.at(1)}, state.at(2));;
 //  // transform point into car coordinate-system
 //  // 1 translation
