@@ -14,13 +14,15 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "../simulation/Simulator.h"
+
 #include <hypro/algorithms/reachability/Reach.h>
 #include <hypro/datastructures/Hyperoctree.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
 #include <hypro/util/linearOptimization/Optimizer.h>
 #include <hypro/util/plotting/Plotter.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -29,11 +31,9 @@
 #include <string>
 
 #include "../controller/AbstractController.h"
-#include "../controller/generateBaseController.h"
 #include "../model_generation/generateBicycle.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
-#include "../simulation/Simulator.h"
 #include "../training/Trainer.h"
 #include "../types.h"
 #include "../utility/Storage.h"
@@ -42,8 +42,9 @@
 #include "../utility/treeSerialization.h"
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
-#include "utility/RaceTrack.h"
 #include "ctrlConversion.h"
+#include "model_generation/generateBaseController.h"
+#include "utility/RaceTrack.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -107,10 +108,6 @@ int main( int argc, char* argv[] ) {
   double               angularBloating = 0.0;  // 1.0472 approx. 60 degrees
   IV                   initialValuations{ I{ 1.5 - bloating,  1.5 + bloating }, I{ 1.5 - bloating, 1.5 + bloating },
                         I{ 0.1 - angularBloating, 0.1 + angularBloating }, I{ 0 }, I{ 1 } };
-  locationConditionMap initialStates;
-  initialStates.emplace(
-      std::make_pair( automaton.getLocations().front(), hypro::conditionFromIntervals( initialValuations ) ) );
-
 
   auto tmpCtrl             = new PurePursuitController();
   tmpCtrl->track           = track;
@@ -124,9 +121,6 @@ int main( int argc, char* argv[] ) {
   baseCtrl->lastWaypoint    = baseCtrl->track.waypoints.begin();
   baseCtrl->currentWaypoint = std::next( baseCtrl->lastWaypoint );
 
-//  hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
-//      0.0,7.0,0.0,3.0,*baseCtrl, delta_ranges, delta_discretization, theta_discretization);
-
   AbstractController<Point, Point>* advCtrl = tmpCtrl;
 
   // use first controller output to determine the starting location
@@ -138,16 +132,6 @@ int main( int argc, char* argv[] ) {
     throw std::logic_error( "Initial valuations are empty, cannot compute internal point." );
   }
 
-  // reachability analysis settings, here only used for simulation
-  auto settings                                                   = hypro::convert( reachSettings );
-  settings.rStrategy().front().detectJumpFixedPoints              = true;
-  settings.rStrategy().front().detectFixedPointsByCoverage        = true;
-  settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
-  settings.rStrategy().front().detectZenoBehavior                 = true;
-  settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
-  settings.rFixedParameters().localTimeHorizon                    = 200;
-  settings.rFixedParameters().jumpDepth                           = maxJumps;
-  settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
   // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match control output
   auto theta_bucket_index = getThetaBucket(startingpoint.value()[theta], theta_discretization);
@@ -162,6 +146,70 @@ int main( int argc, char* argv[] ) {
   if(startingLocation == nullptr) {
     throw std::logic_error("Could not determine correct starting location");
   }
+
+  locationConditionMap initialStates;
+  initialStates.emplace(
+      std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+  automaton.setInitialStates(initialStates);
+
+
+    auto x_min = 0.0;
+    auto x_max = 7.0;
+    auto y_min = 0.0;
+    auto y_max = 3.0;
+    hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
+        x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization);
+
+
+    IV initialValuationsBC{ I{1.5}, I{1.5} };
+
+    auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, 0.5);
+    std::string x_string = "x_" + std::to_string(x_bucket_index);
+    auto y_bucket_index = getXBucket(startingpoint.value()[y], y_min, y_max, 0.5);
+    std::string y_string = "y_" + std::to_string(x_bucket_index);
+
+    LocPtr startingLocationBC = nullptr;
+    for(auto* lptr : bcAtm.getLocations()) {
+      if(lptr->getName().find(theta_string) != std::string::npos) {
+        if(lptr->getName().find(x_string) != std::string::npos) {
+          if ( lptr->getName().find( y_string ) != std::string::npos ) {
+            startingLocationBC = lptr;
+            break;
+          }
+        }
+      }
+    }
+    if(startingLocationBC == nullptr) {
+      throw std::logic_error("Could not determine correct BC starting location");
+    }
+
+    locationConditionMap initialStatesBC;
+    initialStatesBC.emplace(
+        std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+    bcAtm.setInitialStates(initialStatesBC);
+
+    hypro::HybridAutomaton<Number> combinedAtm = automaton || bcAtm;
+
+
+
+
+
+
+  /////////////////////////////////////////////////////////////////////
+  // reachability analysis settings, here only used for simulation
+  auto settings                                                   = hypro::convert( reachSettings );
+  settings.rStrategy().front().detectJumpFixedPoints              = true;
+  settings.rStrategy().front().detectFixedPointsByCoverage        = true;
+  settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
+  settings.rStrategy().front().detectZenoBehavior                 = true;
+  settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
+  settings.rFixedParameters().localTimeHorizon                    = 200;
+  settings.rFixedParameters().jumpDepth                           = maxJumps;
+  settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
+
+
+
+
 
   // output the automaton
 //  spdlog::debug("Plant model:\n{}", hypro::toFlowstarFormat(automaton));

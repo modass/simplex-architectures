@@ -76,5 +76,36 @@ std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_r
   return first ? delta_bucket_index : --delta_bucket_index;
 }
 
+std::size_t getXBucket( Number x, double x_min, double x_max, double x_interval_size ) {
+  assert(x_max > x_min);
+  auto num_x_buckets = static_cast<size_t>(ceil((x_max-x_min)/x_interval_size));
+  auto x_low  = x_min;
+  auto x_high = x_min + x_interval_size;
+
+  for ( std::size_t ix = 0; ix < num_x_buckets; ++ix ) {
+    if(x >= x_low && x <= x_high) {
+      return ix;
+    }
+    x_low += x_interval_size;
+    x_high += x_interval_size;
+  }
+  throw std::logic_error("Value out of range");
+}
+
+std::size_t getYBucket( Number y, double y_min, double y_max, double y_interval_size ) {
+  assert(y_max > y_min);
+  auto num_y_buckets = static_cast<size_t>(ceil((y_max-y_min)/y_interval_size));
+  auto y_low  = y_min;
+  auto y_high = y_min + y_interval_size;
+
+  for ( std::size_t iy = 0; iy < num_y_buckets; ++iy ) {
+    if(y >= y_low && y <= y_high) {
+      return iy;
+    }
+    y_low += y_interval_size;
+    y_high += y_interval_size;
+  }
+  throw std::logic_error("Value out of range");}
+
 } // namespace
 

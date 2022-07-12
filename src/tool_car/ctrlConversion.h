@@ -25,6 +25,10 @@ std::size_t getThetaBucket(Number theta, std::size_t discretization);
 
 std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_ranges, std::size_t discretization);
 
+std::size_t getXBucket(Number x, double x_min, double x_max, double x_interval_size);
+
+std::size_t getYBucket(Number y, double y_min, double y_max, double y_interval_size);
+
 } // namespace
 
 #endif  // SIMPLEXARCHITECTURES_CTRLCONVERSION_H

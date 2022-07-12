@@ -8,7 +8,7 @@
 #include <hypro/datastructures/HybridAutomaton/HybridAutomaton.h>
 #include <hypro/datastructures/HybridAutomaton/output/Flowstar.h>
 
-#include "BicycleBaseController.h"
+#include "controller/BicycleBaseController.h"
 
 namespace simplexArchitectures {
 /**
