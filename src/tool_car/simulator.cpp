@@ -161,7 +161,7 @@ int main( int argc, char* argv[] ) {
         x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization);
 
 
-    IV initialValuationsBC{ I{1.5}, I{1.5} };
+    IV initialValuationsBC{ I{1.5}, I{1.5}, I{1.0}};
 
     auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, 0.5);
     std::string x_string = "x_" + std::to_string(x_bucket_index);

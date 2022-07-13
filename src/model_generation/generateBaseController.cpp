@@ -17,8 +17,10 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
   hypro::HybridAutomaton<double> res;
   constexpr Eigen::Index         x     = 0; // global position x
   constexpr Eigen::Index         y     = 1; // global position y
+  constexpr Eigen::Index         v     = 2; // global position v
+  constexpr Eigen::Index         C     = 3; // constants
 
-  std::vector<std::string>       variableNames{ "x", "y"};
+  std::vector<std::string>       variableNames{ "x", "y", "v"};
   res.setVariables(variableNames);
 
   // sync labels: theta_left, theta_right, delta_{0..delta_discretization-1}, stop
@@ -42,7 +44,7 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
   double y_representative = y_min + (y_interval_size/2);
 
   double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
-  double theta_representative  = theta_increment;
+  double theta_representative  = theta_increment / 2.0;
 
   //TODO merge (in x and y) neighboring locations with the same output.
   for ( std::size_t ix = 0; ix < num_x_buckets; ++ix ) {
@@ -50,7 +52,7 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
     y_high = y_min + y_interval_size;
     y_representative = y_min + (y_interval_size/2);
     for ( std::size_t iy = 0; iy < num_y_buckets; ++iy ) {
-      theta_representative  = theta_increment;
+      theta_representative  = theta_increment / 2.0;
       for ( std::size_t it = 0; it < theta_discretization; ++it ) {
         auto loc = res.createLocation();
         buckets.emplace( std::make_tuple( ix, iy, it ), loc );
@@ -71,6 +73,14 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
         auto output = ctrl.generateInput(Point{ x_representative, y_representative, theta_representative, 1, 1});
         outputs.emplace(std::make_tuple( ix, iy, it ), std::make_pair(output[0], output[1]));
 
+        // compute and set flow
+        double dx              = cos( theta_representative );
+        double dy              = sin( theta_representative );
+        Matrix flowmatrix      = Matrix::Zero( variableNames.size() + 1, C + 1 );
+        flowmatrix( x, v )     = dx;
+        flowmatrix( y, v )     = dy;
+        flowmatrix( v, C )     = 0;
+        loc->setFlow( hypro::linearFlow<double>( flowmatrix ) );
 
         theta_representative += theta_increment;
       }
@@ -147,11 +157,18 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
 
     // update transitions
 
-    auto& [delta, v] = outputs[key];
+    auto& [delta, val] = outputs[key];
 
-    if (v == 0.0) {
+    if (val == 0.0) {
       auto stopTrans = source->createTransition( source );
       stopTrans->addLabel(hypro::Label("stop"));
+
+      Matrix reset_matrix        = Matrix::Identity( variableNames.size(), variableNames.size() );
+      Vector reset_vector        = Vector::Zero( variableNames.size() );
+      reset_matrix( v, v ) = 0;
+
+      stopTrans->setReset(hypro::Reset<double>( reset_matrix, reset_vector ));
+
     } else {
       auto deltaChange = source->createTransition( source );
       auto delta_bucket = getDeltaBucket(delta, delta_ranges, delta_discretization);
