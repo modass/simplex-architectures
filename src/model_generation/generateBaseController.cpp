@@ -17,10 +17,9 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
   hypro::HybridAutomaton<double> res;
   constexpr Eigen::Index         x     = 0; // global position x
   constexpr Eigen::Index         y     = 1; // global position y
-  constexpr Eigen::Index         v     = 2; // global position v
-  constexpr Eigen::Index         C     = 3; // constants
+  constexpr Eigen::Index         C     = 2; // constants
 
-  std::vector<std::string>       variableNames{ "x", "y", "v"};
+  std::vector<std::string>       variableNames{ "x", "y"};
   res.setVariables(variableNames);
 
   // sync labels: theta_left, theta_right, delta_{0..delta_discretization-1}, stop
@@ -72,15 +71,6 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
 //        std::cout << "Queried position: ( " << x_representative << "; " << y_representative << "; " << theta_representative << ")" << std::endl;
         auto output = ctrl.generateInput(Point{ x_representative, y_representative, theta_representative, 1, 1});
         outputs.emplace(std::make_tuple( ix, iy, it ), std::make_pair(output[0], output[1]));
-
-        // compute and set flow
-        double dx              = cos( theta_representative );
-        double dy              = sin( theta_representative );
-        Matrix flowmatrix      = Matrix::Zero( variableNames.size() + 1, C + 1 );
-        flowmatrix( x, v )     = dx;
-        flowmatrix( y, v )     = dy;
-        flowmatrix( v, C )     = 0;
-        loc->setFlow( hypro::linearFlow<double>( flowmatrix ) );
 
         theta_representative += theta_increment;
       }
@@ -162,13 +152,6 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
     if (val == 0.0) {
       auto stopTrans = source->createTransition( source );
       stopTrans->addLabel(hypro::Label("stop"));
-
-      Matrix reset_matrix        = Matrix::Identity( variableNames.size(), variableNames.size() );
-      Vector reset_vector        = Vector::Zero( variableNames.size() );
-      reset_matrix( v, v ) = 0;
-
-      stopTrans->setReset(hypro::Reset<double>( reset_matrix, reset_vector ));
-
     } else {
       auto deltaChange = source->createTransition( source );
       auto delta_bucket = getDeltaBucket(delta, delta_ranges, delta_discretization);
@@ -177,8 +160,6 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateBaseController(
 
 
   }
-
-
 
   return res;
 }

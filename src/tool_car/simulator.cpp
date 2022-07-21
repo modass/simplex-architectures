@@ -29,6 +29,7 @@
 #include <CLI/Formatter.hpp>
 #include <random>
 #include <string>
+#include <chrono>
 
 #include "../controller/AbstractController.h"
 #include "../model_generation/generateBicycle.h"
@@ -71,9 +72,9 @@ int main( int argc, char* argv[] ) {
   std::size_t               iterations{ 100 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
-  std::size_t               delta_discretization = 21;
+  std::size_t               delta_discretization = 21; // 5
   std::pair<double, double> delta_ranges{ -60, 60 };
-  std::size_t               theta_discretization = 36;
+  std::size_t               theta_discretization = 36; // 8
   Number                    widening = 0.1;
   Number                    timeStepSize{ 0.01 };
 
@@ -157,16 +158,17 @@ int main( int argc, char* argv[] ) {
     auto x_max = 7.0;
     auto y_min = 0.0;
     auto y_max = 3.0;
+    auto bc_bucket_size = 0.5; // 3.0
     hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
-        x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization);
+        x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization, bc_bucket_size, bc_bucket_size);
 
 
-    IV initialValuationsBC{ I{1.5}, I{1.5}, I{1.0}};
+    IV initialValuationsBC{ I{1.5}, I{1.5}};
 
-    auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, 0.5);
+    auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, bc_bucket_size);
     std::string x_string = "x_" + std::to_string(x_bucket_index);
-    auto y_bucket_index = getXBucket(startingpoint.value()[y], y_min, y_max, 0.5);
-    std::string y_string = "y_" + std::to_string(x_bucket_index);
+    auto y_bucket_index = getXBucket(startingpoint.value()[y], y_min, y_max, bc_bucket_size);
+    std::string y_string = "y_" + std::to_string(y_bucket_index);
 
     LocPtr startingLocationBC = nullptr;
     for(auto* lptr : bcAtm.getLocations()) {
@@ -185,14 +187,29 @@ int main( int argc, char* argv[] ) {
 
     locationConditionMap initialStatesBC;
     initialStatesBC.emplace(
-        std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+        std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
     bcAtm.setInitialStates(initialStatesBC);
 
-    hypro::HybridAutomaton<Number> combinedAtm = automaton || bcAtm;
+    auto mainLocations = automaton.getLocations();
+    auto variables = automaton.getVariables();
+    std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
+    for (const auto& var : variables) {
+      variableMap[var] = mainLocations;
+    }
 
-
-
-
+    // Automata compostion:
+//    std::cout << "Env #locations:" << automaton.getLocations().size() << std::endl;
+//    std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
+//    std::cout << "Start composition" << std::endl;
+//    auto start = std::chrono::steady_clock::now();
+//    hypro::HybridAutomaton<Number> combinedAtm =
+//        hypro::parallelCompose(automaton, bcAtm, variableMap);
+//    auto end = std::chrono::steady_clock::now();
+//    std::cout << "Composition finished" << std::endl;
+//    std::cout << "Elapsed time in milliseconds: "
+//         << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+//         << " ms" << std::endl;
+//    std::cout << "Combined #locations:" << combinedAtm.getLocations().size() << std::endl;
 
 
   /////////////////////////////////////////////////////////////////////
