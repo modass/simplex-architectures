@@ -32,7 +32,7 @@
 #include <chrono>
 
 #include "../controller/AbstractController.h"
-#include "../model_generation/generateBicycle.h"
+#include "../model_generation/generateCarModel.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
 #include "../training/Trainer.h"
@@ -59,22 +59,19 @@ using Box = hypro::Box<Number>;
 // global constants
 constexpr Eigen::Index                x     = 0;
 constexpr Eigen::Index                y     = 1;
-constexpr Eigen::Index                theta = 2;
-constexpr Eigen::Index                tick  = 3;
-constexpr Eigen::Index                v     = 4;
-constexpr Eigen::Index                C     = 5;
-static const std::vector<std::size_t> interesting_dimensions{ x, y, theta, tick };
+constexpr Eigen::Index                tick  = 2;
+constexpr Eigen::Index                v     = 3;
+constexpr Eigen::Index                C     = 4;
+static const std::vector<std::size_t> interesting_dimensions{ x, y, tick };
 // the controller influences the set of modes available to the system, so there is no direct input
 static const std::vector<std::size_t> controller_dimensions{ };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 100 };
+  std::size_t               iterations{ 300 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
-  std::size_t               delta_discretization = 5; // 21
-  std::pair<double, double> delta_ranges{ -60, 60 };
-  std::size_t               theta_discretization = 8; // 36
+  std::size_t               theta_discretization = 36;
   Number                    widening = 0.1;
   Number                    timeStepSize{ 0.01 };
 
@@ -91,7 +88,7 @@ int main( int argc, char* argv[] ) {
   CLI11_PARSE( app, argc, argv );
   hypro::HybridAutomaton<Number> automaton;
   hypro::ReachabilitySettings    reachSettings;
-  automaton              = modelGenerator::generateBicycle( delta_ranges, delta_discretization, theta_discretization);
+  automaton              = modelGenerator::generateCarModel( theta_discretization);
   reachSettings.timeStep = timeStepSize;
   std::ofstream fs{ "car.model" };
   fs << hypro::toFlowstarFormat( automaton );
@@ -108,7 +105,7 @@ int main( int argc, char* argv[] ) {
   double               bloating        = 0.0;
   double               angularBloating = 0.0;  // 1.0472 approx. 60 degrees
   IV                   initialValuations{ I{ 1.5 - bloating,  1.5 + bloating }, I{ 1.5 - bloating, 1.5 + bloating },
-                        I{ 0.1 - angularBloating, 0.1 + angularBloating }, I{ 0 }, I{ 1 } };
+                       I{ 0 }, I{ 1 } };
 
   auto tmpCtrl             = new PurePursuitController();
   tmpCtrl->track           = track;
@@ -135,7 +132,7 @@ int main( int argc, char* argv[] ) {
 
 
   // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match control output
-  auto theta_bucket_index = getThetaBucket(startingpoint.value()[theta], theta_discretization);
+  auto theta_bucket_index = 0;
   std::string theta_string = "theta_" + std::to_string(theta_bucket_index);
   LocPtr startingLocation = nullptr;
   for(auto* lptr : automaton.getLocations()) {
@@ -154,49 +151,49 @@ int main( int argc, char* argv[] ) {
   automaton.setInitialStates(initialStates);
 
 
-    auto x_min = 0.0;
-    auto x_max = 7.0;
-    auto y_min = 0.0;
-    auto y_max = 3.0;
-    auto bc_bucket_size = 0.5; // 0.5
-    hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
-        x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization, bc_bucket_size, bc_bucket_size);
+//    auto x_min = 0.0;
+//    auto x_max = 7.0;
+//    auto y_min = 0.0;
+//    auto y_max = 3.0;
+//    auto bc_bucket_size = 0.5; // 0.5
+//    hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
+//        x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization, bc_bucket_size, bc_bucket_size);
+//
 
+//    IV initialValuationsBC{ I{1.5}, I{1.5}};
 
-    IV initialValuationsBC{ I{1.5}, I{1.5}};
-
-    auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, bc_bucket_size);
-    std::string x_string = "x_" + std::to_string(x_bucket_index);
-    auto y_bucket_index = getXBucket(startingpoint.value()[y], y_min, y_max, bc_bucket_size);
-    std::string y_string = "y_" + std::to_string(y_bucket_index);
-
-    LocPtr startingLocationBC = nullptr;
-    for(auto* lptr : bcAtm.getLocations()) {
-      if(lptr->getName().find(theta_string) != std::string::npos) {
-        if(lptr->getName().find(x_string) != std::string::npos) {
-          if ( lptr->getName().find( y_string ) != std::string::npos ) {
-            startingLocationBC = lptr;
-            break;
-          }
-        }
-      }
-    }
-    if(startingLocationBC == nullptr) {
-      throw std::logic_error("Could not determine correct BC starting location");
-    }
-
-    locationConditionMap initialStatesBC;
-    initialStatesBC.emplace(
-        std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
-    bcAtm.setInitialStates(initialStatesBC);
-
-    auto mainLocations = automaton.getLocations();
-    auto variables = automaton.getVariables();
-    std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
-    for (const auto& var : variables) {
-      variableMap[var] = mainLocations;
-    }
-
+//    auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, bc_bucket_size);
+//    std::string x_string = "x_" + std::to_string(x_bucket_index);
+//    auto y_bucket_index = getXBucket(startingpoint.value()[y], y_min, y_max, bc_bucket_size);
+//    std::string y_string = "y_" + std::to_string(y_bucket_index);
+//
+//    LocPtr startingLocationBC = nullptr;
+//    for(auto* lptr : bcAtm.getLocations()) {
+//      if(lptr->getName().find(theta_string) != std::string::npos) {
+//        if(lptr->getName().find(x_string) != std::string::npos) {
+//          if ( lptr->getName().find( y_string ) != std::string::npos ) {
+//            startingLocationBC = lptr;
+//            break;
+//          }
+//        }
+//      }
+//    }
+//    if(startingLocationBC == nullptr) {
+//      throw std::logic_error("Could not determine correct BC starting location");
+//    }
+//
+//    locationConditionMap initialStatesBC;
+//    initialStatesBC.emplace(
+//        std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
+//    bcAtm.setInitialStates(initialStatesBC);
+//
+//    auto mainLocations = automaton.getLocations();
+//    auto variables = automaton.getVariables();
+//    std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
+//    for (const auto& var : variables) {
+//      variableMap[var] = mainLocations;
+//    }
+//
 //    // Automata compostion:
 //    std::cout << "Env #locations:" << automaton.getLocations().size() << std::endl;
 //    std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
@@ -211,7 +208,6 @@ int main( int argc, char* argv[] ) {
 //         << " ms" << std::endl;
 //    std::cout << "Combined #locations:" << combinedAtm.getLocations().size() << std::endl;
 
-//    return 0;
 
   /////////////////////////////////////////////////////////////////////
   // reachability analysis settings, here only used for simulation
@@ -234,22 +230,27 @@ int main( int argc, char* argv[] ) {
 
   Executor executor{ automaton, startingLocation, startingpoint.value() };
   executor.mSettings          = settings;
-  executor.mExecutionSettings = ExecutionSettings{ 3, {v} };
+  executor.mExecutionSettings = ExecutionSettings{ 2, {v} };
+  executor.mPlot = false;
 
-
+  double currentTheta = 0.1;
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
     spdlog::info( "Iteration {}", iteration_count );
     // get Controller input
-    auto advControllerInput = advCtrl->generateInput( executor.mLastState );
-    auto controlLocation = convertCtrlToLocation(advControllerInput, automaton, executor.mLastLocation, delta_discretization, delta_ranges);
+    Point state = Point({executor.mLastState[0], executor.mLastState[1], currentTheta});
+    auto advControllerInput = advCtrl->generateInput( state );
+    currentTheta = convertDeltaToTheta(advControllerInput[0], currentTheta, theta_discretization);
+    auto controlLocation = convertCtrlToLocationSimple(currentTheta, automaton, theta_discretization);
     executor.mLastLocation = controlLocation;
 
-    auto nextState = executor.execute( advControllerInput.projectOn({1}) );
+    auto execInput = advControllerInput.projectOn({1});
+    auto nextState = executor.execute( execInput );
 
     plt.clear();
-    Point adv_car = nextState.projectOn({0,1,2});
+    auto adv_car = nextState.projectOn({0,1,2});
+    adv_car[2] = currentTheta;
     track.addToPlotter( adv_car );
     plt.setFilename( "racetrack" );
     plt.plot2d( hypro::PLOTTYPE::png, true );

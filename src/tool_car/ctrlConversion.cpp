@@ -34,9 +34,39 @@ LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Numbe
   return res;
 }
 
+LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Number>& automaton, std::size_t theta_discretization) {
+  LocPtr res = nullptr;
+
+  std::size_t theta_bucket_index = getThetaBucket(theta, theta_discretization);
+  std::string theta_substring = "theta_" + std::to_string(theta_bucket_index);
+  for(const auto* lptr : automaton.getLocations()) {
+    if(lptr->getName().find(theta_substring) != std::string::npos) {
+      return lptr;
+    }
+  }
+
+  return res;
+}
+
+double convertDeltaToTheta(double delta, double currentTheta, std::size_t theta_discretization) {
+
+  auto targetTheta = currentTheta + 0.5 * tan(delta);
+  if(targetTheta < 0) {
+    targetTheta = targetTheta + 2 * M_PI;
+  } else if(targetTheta >  2 * M_PI ) {
+    targetTheta = targetTheta - 2 * M_PI;
+  }
+
+  std::size_t theta_bucket_index = getThetaBucket(targetTheta, theta_discretization);
+  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
+
+  return theta_increment*0.5 + theta_bucket_index * theta_increment;
+
+}
+
 std::size_t getThetaBucket(Number theta, std::size_t discretization) {
   if(theta < 0 || theta > 2 * M_PI) {
-    throw std::logic_error("Invalid theta-value, must be between 0 and 360");
+    throw std::logic_error("Invalid theta-value, must be between 0 and 2*PI");
   }
   double theta_increment = ( 2 * M_PI ) / double( discretization );
   double theta_low = 0;

@@ -37,9 +37,9 @@ Point PurePursuitController::generateInput( Point state ) {
   } else {
     spdlog::debug("The target lies behind the car - turning around.");
     if (target.at(1) > 0) {
-      delta = M_PI/2;
+      delta = M_PI/3;
     } else {
-      delta = -M_PI/2;
+      delta = -M_PI/3;
     }
   }
 

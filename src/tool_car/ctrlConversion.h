@@ -21,6 +21,10 @@ namespace simplexArchitectures {
  */
 LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Number>& automaton, LocPtr lastLocation, std::size_t discretization, const std::pair<double, double>& delta_ranges);
 
+LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Number>& automaton, std::size_t theta_discretization);
+
+double convertDeltaToTheta(double delta, double currentTheta, std::size_t theta_discretization);
+
 std::size_t getThetaBucket(Number theta, std::size_t discretization);
 
 std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_ranges, std::size_t discretization);
