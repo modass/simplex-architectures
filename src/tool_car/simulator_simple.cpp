@@ -45,6 +45,7 @@
 #include "controller/PurePursuitController.h"
 #include "ctrlConversion.h"
 #include "model_generation/generateBaseController.h"
+#include "model_generation/generateSimpleBaseController.h"
 #include "utility/RaceTrack.h"
 
 /* GENERAL ASSUMPTIONS */
@@ -151,64 +152,52 @@ int main( int argc, char* argv[] ) {
   automaton.setInitialStates(initialStates);
 
 
-//    auto x_min = 0.0;
-//    auto x_max = 7.0;
-//    auto y_min = 0.0;
-//    auto y_max = 3.0;
-//    auto bc_bucket_size = 0.5; // 0.5
-//    hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateBaseController(
-//        x_min,x_max,y_min,y_max,*baseCtrl, delta_ranges, delta_discretization, theta_discretization, bc_bucket_size, bc_bucket_size);
-//
+    RoadSegment segment = {0.0, 0.0, 7.0, 3.0, LeftToRight};
 
-//    IV initialValuationsBC{ I{1.5}, I{1.5}};
-
-//    auto x_bucket_index = getXBucket(startingpoint.value()[x], x_min, x_max, bc_bucket_size);
-//    std::string x_string = "x_" + std::to_string(x_bucket_index);
-//    auto y_bucket_index = getXBucket(startingpoint.value()[y], y_min, y_max, bc_bucket_size);
-//    std::string y_string = "y_" + std::to_string(y_bucket_index);
-//
-//    LocPtr startingLocationBC = nullptr;
-//    for(auto* lptr : bcAtm.getLocations()) {
-//      if(lptr->getName().find(theta_string) != std::string::npos) {
-//        if(lptr->getName().find(x_string) != std::string::npos) {
-//          if ( lptr->getName().find( y_string ) != std::string::npos ) {
-//            startingLocationBC = lptr;
-//            break;
-//          }
-//        }
-//      }
-//    }
-//    if(startingLocationBC == nullptr) {
-//      throw std::logic_error("Could not determine correct BC starting location");
-//    }
-//
-//    locationConditionMap initialStatesBC;
-//    initialStatesBC.emplace(
-//        std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
-//    bcAtm.setInitialStates(initialStatesBC);
-//
-//    auto mainLocations = automaton.getLocations();
-//    auto variables = automaton.getVariables();
-//    std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
-//    for (const auto& var : variables) {
-//      variableMap[var] = mainLocations;
-//    }
-//
-//    // Automata compostion:
-//    std::cout << "Env #locations:" << automaton.getLocations().size() << std::endl;
-//    std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
-//    std::cout << "Start composition" << std::endl;
-//    auto start = std::chrono::steady_clock::now();
-//    hypro::HybridAutomaton<Number> combinedAtm =
-//        hypro::parallelCompose(automaton, bcAtm, variableMap);
-//    auto end = std::chrono::steady_clock::now();
-//    std::cout << "Composition finished" << std::endl;
-//    std::cout << "Elapsed time in milliseconds: "
-//         << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-//         << " ms" << std::endl;
-//    std::cout << "Combined #locations:" << combinedAtm.getLocations().size() << std::endl;
+    hypro::HybridAutomaton<Number> bcAtm = simplexArchitectures::generateSimpleBaseController(
+        theta_discretization, 0.5, 0.5, M_PI/12.0, M_PI/4.5, {segment} );
 
 
+    IV initialValuationsBC{ I{1.5}, I{1.5}};
+
+    LocPtr startingLocationBC = nullptr;
+    for(auto* lptr : bcAtm.getLocations()) {
+      if ( lptr->getName().find( theta_string ) != std::string::npos ) {
+        startingLocationBC = lptr;
+        break;
+      }
+    }
+    if(startingLocationBC == nullptr) {
+      throw std::logic_error("Could not determine correct BC starting location");
+    }
+
+    locationConditionMap initialStatesBC;
+    initialStatesBC.emplace(
+        std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
+    bcAtm.setInitialStates(initialStatesBC);
+
+    auto mainLocations = automaton.getLocations();
+    auto variables = automaton.getVariables();
+    std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
+    for (const auto& var : variables) {
+      variableMap[var] = mainLocations;
+    }
+
+    // Automata compostion:
+    std::cout << "Env #locations:" << automaton.getLocations().size() << std::endl;
+    std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
+    std::cout << "Start composition" << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    hypro::HybridAutomaton<Number> combinedAtm =
+        hypro::parallelCompose(automaton, bcAtm, variableMap);
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "Composition finished" << std::endl;
+    std::cout << "Elapsed time in milliseconds: "
+         << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+         << " ms" << std::endl;
+    std::cout << "Combined #locations:" << combinedAtm.getLocations().size() << std::endl;
+
+  return 0;
   /////////////////////////////////////////////////////////////////////
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );

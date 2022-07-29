@@ -15,6 +15,17 @@ using Vector = hypro::vector_t<Number>;
 
 inline double DegreesToRadians( double degrees ) { return degrees * ( M_PI / 180 ); }
 
+inline double normalizeAngle(double radians ) {
+  double angle = radians;
+  while (angle < 0) {
+    angle += 2*M_PI;
+  }
+  while (angle >= 2*M_PI) {
+    angle -= 2*M_PI;
+  }
+  return angle;
+}
+
 inline Point projectPointOnLine( const Point& input, const Point& startLine, const Point& endLine ) {
   // shift line into origin
   auto v = ( endLine - startLine ).rawCoordinates();

@@ -88,28 +88,28 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
     stopTransition->addLabel(hypro::Label("stop"));
 
 
-//    // theta can be changed to all other choices at end of each cycle
-//    for ( std::size_t it = 0; it < theta_discretization; ++it ) {
-//        // theta change
-//        auto changeTheta = source->createTransition( buckets[it] );
-//        // theta-guard
-//        guard_constraints            = Matrix::Zero( 2, variableNames.size() );
-//        guard_constraints( 0, tick ) = 1;
-//        guard_constraints( 1, tick ) = -1;
-//        guard_constants              = Vector::Zero( 2 );
-//        guard_constants << tick_time, -tick_time;
-//
-//        changeTheta->setGuard( { guard_constraints, guard_constants } );
-//        // theta-reset
-//        reset_matrix               = Matrix::Identity( variableNames.size(), variableNames.size() );
-//        reset_vector               = Vector::Zero( variableNames.size() );
-//        reset_matrix( tick, tick ) = 0;
-//        changeTheta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
-//
-//        // label for controller synchronisation
-//        changeTheta->addLabel( hypro::Label( "set_theta_" + std::to_string( it ) ) );
-//
-//    }
+    // theta can be changed to all other choices at end of each cycle
+    for ( std::size_t it = 0; it < theta_discretization; ++it ) {
+        // theta change
+        auto changeTheta = source->createTransition( buckets[it] );
+        // theta-guard
+        guard_constraints            = Matrix::Zero( 2, variableNames.size() );
+        guard_constraints( 0, tick ) = 1;
+        guard_constraints( 1, tick ) = -1;
+        guard_constants              = Vector::Zero( 2 );
+        guard_constants << tick_time, -tick_time;
+
+        changeTheta->setGuard( { guard_constraints, guard_constants } );
+        // theta-reset
+        reset_matrix               = Matrix::Identity( variableNames.size(), variableNames.size() );
+        reset_vector               = Vector::Zero( variableNames.size() );
+        reset_matrix( tick, tick ) = 0;
+        changeTheta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
+
+        // label for controller synchronisation
+        changeTheta->addLabel( hypro::Label( "set_theta_" + std::to_string( it ) ) );
+
+    }
   }
 
   return res;
