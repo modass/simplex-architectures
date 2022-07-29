@@ -17,7 +17,7 @@ namespace modelGenerator {
  * @param discretization
  * @return
  */
-hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization = 12 );
+hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization = 12, bool includeThetaTransitions = true);
 
 inline void generateCarModelFile( std::string filename, std::size_t theta_discretization = 12 ) {
   std::ofstream fs{ filename };

@@ -10,7 +10,7 @@
 
 namespace modelGenerator {
 
-hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization) {
+hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization, bool includeThetaTransitions) {
   // delta: steering angle, relative to the current heading
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
@@ -18,10 +18,11 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
   hypro::HybridAutomaton<double> res;
   constexpr Eigen::Index         x     = 0; // global position x
   constexpr Eigen::Index         y     = 1; // global position y
-  constexpr Eigen::Index         tick  = 2; // controller clock cycle
-  constexpr Eigen::Index         v     = 3; // velocity
-  constexpr Eigen::Index         C     = 4; // constants
-  std::vector<std::string>       variableNames{ "x", "y", "tick", "v" };
+  constexpr Eigen::Index         theta = 2; // global theta heading
+  constexpr Eigen::Index         tick  = 3; // controller clock cycle
+  constexpr Eigen::Index         v     = 4; // velocity
+  constexpr Eigen::Index         C     = 5; // constants
+  std::vector<std::string>       variableNames{ "x", "y", "theta", "tick", "v" };
   res.setVariables( variableNames );
 
   // map which assigns locations to buckets
@@ -45,6 +46,7 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
     Matrix flowmatrix      = Matrix::Zero( variableNames.size() + 1, C + 1 );
     flowmatrix( x, v )     = dx;
     flowmatrix( y, v )     = dy;
+    flowmatrix( theta, C )  = 0.0;
     flowmatrix( tick, C )  = 1.0;
     flowmatrix( v, C )     = 0;
     loc->setFlow( hypro::linearFlow<double>( flowmatrix ) );
@@ -88,8 +90,10 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
     stopTransition->addLabel(hypro::Label("stop"));
 
 
-    // theta can be changed to all other choices at end of each cycle
-    for ( std::size_t it = 0; it < theta_discretization; ++it ) {
+    if(includeThetaTransitions) {
+      // theta can be changed to all other choices at end of each cycle
+      vtheta = theta_increment / 2.0;  // theta value
+      for ( std::size_t it = 0; it < theta_discretization; ++it ) {
         // theta change
         auto changeTheta = source->createTransition( buckets[it] );
         // theta-guard
@@ -101,14 +105,17 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
 
         changeTheta->setGuard( { guard_constraints, guard_constants } );
         // theta-reset
-        reset_matrix               = Matrix::Identity( variableNames.size(), variableNames.size() );
-        reset_vector               = Vector::Zero( variableNames.size() );
-        reset_matrix( tick, tick ) = 0;
+        reset_matrix                 = Matrix::Identity( variableNames.size(), variableNames.size() );
+        reset_vector                 = Vector::Zero( variableNames.size() );
+        reset_matrix( tick, tick )   = 0;
+        reset_matrix( theta, theta ) = 0;
+        reset_vector( theta )        = vtheta;
         changeTheta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
 
         // label for controller synchronisation
         changeTheta->addLabel( hypro::Label( "set_theta_" + std::to_string( it ) ) );
-
+        vtheta += theta_increment;
+      }
     }
   }
 

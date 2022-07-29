@@ -60,16 +60,17 @@ using Box = hypro::Box<Number>;
 // global constants
 constexpr Eigen::Index                x     = 0;
 constexpr Eigen::Index                y     = 1;
-constexpr Eigen::Index                tick  = 2;
-constexpr Eigen::Index                v     = 3;
-constexpr Eigen::Index                C     = 4;
+constexpr Eigen::Index                theta = 2;
+constexpr Eigen::Index                tick  = 3;
+constexpr Eigen::Index                v     = 4;
+constexpr Eigen::Index                C     = 5;
 static const std::vector<std::size_t> interesting_dimensions{ x, y, tick };
 // the controller influences the set of modes available to the system, so there is no direct input
 static const std::vector<std::size_t> controller_dimensions{ };
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t               iterations{ 300 };
+  std::size_t               iterations{ 100 };
   std::size_t               iteration_count{ 0 };
   std::size_t               maxJumps       = 0;
   std::size_t               theta_discretization = 36;
@@ -106,7 +107,7 @@ int main( int argc, char* argv[] ) {
   double               bloating        = 0.0;
   double               angularBloating = 0.0;  // 1.0472 approx. 60 degrees
   IV                   initialValuations{ I{ 1.5 - bloating,  1.5 + bloating }, I{ 1.5 - bloating, 1.5 + bloating },
-                       I{ 0 }, I{ 1 } };
+                       I{ 0 }, I{ 0 }, I{ 1 } };
 
   auto tmpCtrl             = new PurePursuitController();
   tmpCtrl->track           = track;
@@ -114,11 +115,6 @@ int main( int argc, char* argv[] ) {
   tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
   spdlog::trace( "Last waypoint set to {}, current waypoint set to {}", ( *tmpCtrl->lastWaypoint ),
                  ( *tmpCtrl->currentWaypoint ) );
-
-  auto baseCtrl             = new BicycleBaseController();
-  baseCtrl->track           = track;
-  baseCtrl->lastWaypoint    = baseCtrl->track.waypoints.begin();
-  baseCtrl->currentWaypoint = std::next( baseCtrl->lastWaypoint );
 
   AbstractController<Point, Point>* advCtrl = tmpCtrl;
 
@@ -162,7 +158,7 @@ int main( int argc, char* argv[] ) {
 
     LocPtr startingLocationBC = nullptr;
     for(auto* lptr : bcAtm.getLocations()) {
-      if ( lptr->getName().find( theta_string ) != std::string::npos ) {
+      if ( lptr->getName().find( "segment_0_zone_2" ) != std::string::npos ) {
         startingLocationBC = lptr;
         break;
       }
@@ -197,7 +193,8 @@ int main( int argc, char* argv[] ) {
          << " ms" << std::endl;
     std::cout << "Combined #locations:" << combinedAtm.getLocations().size() << std::endl;
 
-  return 0;
+
+
   /////////////////////////////////////////////////////////////////////
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );
@@ -219,7 +216,7 @@ int main( int argc, char* argv[] ) {
 
   Executor executor{ automaton, startingLocation, startingpoint.value() };
   executor.mSettings          = settings;
-  executor.mExecutionSettings = ExecutionSettings{ 2, {v} };
+  executor.mExecutionSettings = ExecutionSettings{ 3, {theta,v} };
   executor.mPlot = false;
 
   double currentTheta = 0.1;
@@ -234,12 +231,12 @@ int main( int argc, char* argv[] ) {
     auto controlLocation = convertCtrlToLocationSimple(currentTheta, automaton, theta_discretization);
     executor.mLastLocation = controlLocation;
 
-    auto execInput = advControllerInput.projectOn({1});
+    auto execInput = advControllerInput.projectOn({0,1});
+    execInput[0] = currentTheta;
     auto nextState = executor.execute( execInput );
 
     plt.clear();
     auto adv_car = nextState.projectOn({0,1,2});
-    adv_car[2] = currentTheta;
     track.addToPlotter( adv_car );
     plt.setFilename( "racetrack" );
     plt.plot2d( hypro::PLOTTYPE::png, true );

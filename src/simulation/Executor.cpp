@@ -11,8 +11,10 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
 
   hypro::Point<Number> extendedState = mLastState;
   // if any control has been provided, set it here
+  auto i = 0;
   for ( Eigen::Index d : mExecutionSettings.control_input_dimensions ) {
-    extendedState[d] = ctrlInput[0];
+    extendedState[d] = ctrlInput[i];
+    i++;
   }
   std::stringstream ss;
   ss << extendedState;
@@ -57,7 +59,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     }
 
     if ( isSafe != hypro::REACHABILITY_RESULT::SAFE ) {
-      spdlog::warn( "Executor reports potenitally unsafe state!" );
+      spdlog::warn( "Executor reports potentially unsafe state!" );
       exit( 0 );
     }
 
