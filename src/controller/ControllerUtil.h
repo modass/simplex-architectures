@@ -9,8 +9,8 @@
 
 namespace simplexArchitectures {
 
-template <typename R>
-void cutoffControllerJumps( hypro::ReachTreeNode<R>* node ) {
+template <typename Node>
+void cutoffControllerJumps( Node* node ) {
   auto children = node->getChildren();
   for ( auto childIt = children.begin(); childIt != children.end(); ++childIt ) {
     if ( !( *childIt )->getTransition()->getReset().isIdentity( 3 ) ) {

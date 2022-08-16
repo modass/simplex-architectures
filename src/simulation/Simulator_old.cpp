@@ -141,7 +141,7 @@ bool Simulator::simulate( bool updateBaseController ) {
   mSettings.rFixedParameters().localTimeHorizon = carl::convert<double, hypro::tNumber>( mCycleTime );
   mSettings.rFixedParameters().jumpDepth = 2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
   // analysis
-  auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, mSettings.fixedParameters(),
+  auto reacher = hypro::reachability::Reach<Representation, Automaton>( mAutomaton, mSettings.fixedParameters(),
                                                             mSettings.strategy().front(), roots );
   auto result = reacher.computeForwardReachability();
 

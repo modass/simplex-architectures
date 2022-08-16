@@ -41,7 +41,7 @@ struct Executor {
 
  private:
         double mCycleTime = 1.0;
-        std::vector<hypro::ReachTreeNode<Representation>> roots;
+        std::vector<ReachTreeNode> roots;
         std::mt19937 mGenerator;
     };
 

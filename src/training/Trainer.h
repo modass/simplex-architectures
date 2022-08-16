@@ -59,7 +59,7 @@ class Trainer {
    * Integrates the computed sets of reachable states stored in the reachability tree into the training storage
    * @param roots reachability tree
    */
-  void updateOctree( const std::vector<hypro::ReachTreeNode<Representation>>& roots );
+  void updateOctree( const std::vector<ReachTreeNode>& roots );
   /**
    * Runs one training iteration, i.e., one run with one initial set and tries to find a fixed point
    * @param settings settings for the reachability analysis

@@ -33,7 +33,7 @@ struct Simulator {
   hypro::HybridAutomaton<Number> &mAutomaton;
   hypro::Settings mSettings;
   double mCycleTime = 1.0;
-  std::vector<hypro::ReachTreeNode<Representation>> roots;
+  std::vector<ReachTreeNode> roots;
   std::map<LocPtr, std::set<Point>> mLastStates;
 };
 

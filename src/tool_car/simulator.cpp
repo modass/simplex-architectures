@@ -21,6 +21,8 @@
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
 #include <hypro/util/linearOptimization/Optimizer.h>
 #include <hypro/util/plotting/Plotter.h>
+#include <hypro/util/plotting/HybridAutomatonPlotter.h>
+#include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
@@ -35,6 +37,7 @@
 #include "../model_generation/generateBicycle.h"
 #include "../simulation/Executor.h"
 #include "../simulation/SamplingUtility.h"
+#include "../simulation/Simulator.h"
 #include "../training/Trainer.h"
 #include "../types.h"
 #include "../utility/Storage.h"
@@ -43,6 +46,7 @@
 #include "../utility/treeSerialization.h"
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
+#include "utility/RaceTrack.h"
 #include "ctrlConversion.h"
 #include "model_generation/generateBaseController.h"
 #include "utility/RaceTrack.h"
@@ -96,6 +100,10 @@ int main( int argc, char* argv[] ) {
   std::ofstream fs{ "car.model" };
   fs << hypro::toFlowstarFormat( automaton );
   fs.close();
+  {
+    hypro::plotting::HybridAutomatonPlotter<Number> haplt{ automaton };
+    haplt.plot();
+  }
 
   // Hard code Racetrack
   RaceTrack track;
@@ -230,11 +238,11 @@ int main( int argc, char* argv[] ) {
 
 
   // output the automaton
-//  spdlog::debug("Plant model:\n{}", hypro::toFlowstarFormat(automaton));
+  spdlog::debug("Plant model:\n{}", hypro::toFlowstarFormat(automaton));
 
   Executor executor{ automaton, startingLocation, startingpoint.value() };
   executor.mSettings          = settings;
-  executor.mExecutionSettings = ExecutionSettings{ 3, {v} };
+  executor.mExecutionSettings = ExecutionSettings{ 3, {} };
 
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
@@ -246,7 +254,7 @@ int main( int argc, char* argv[] ) {
     auto controlLocation = convertCtrlToLocation(advControllerInput, automaton, executor.mLastLocation, delta_discretization, delta_ranges);
     executor.mLastLocation = controlLocation;
 
-    auto nextState = executor.execute( advControllerInput.projectOn({1}) );
+    auto nextState = executor.execute( advControllerInput );
 
     plt.clear();
     Point adv_car = nextState.projectOn({0,1,2});
