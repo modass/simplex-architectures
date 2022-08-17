@@ -19,6 +19,7 @@
  */
 
 #include <hypro/algorithms/reachability/Reach.h>
+#include <hypro/datastructures/HybridAutomaton/HybridAutomatonComp.h>
 #include <hypro/datastructures/Hyperoctree.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
 #include <hypro/util/linearOptimization/Optimizer.h>
@@ -31,30 +32,33 @@
 #include <random>
 #include <string>
 
-#include "../controller/AbstractController.h"
-#include "../model_generation/generateBicycle.h"
-#include "../simulation/Executor.h"
-#include "../simulation/SamplingUtility.h"
-#include "../simulation/Simulator.h"
-#include "../training/Trainer.h"
-#include "../types.h"
-#include "../utility/Storage.h"
-#include "../utility/StorageSettings.h"
-#include "../utility/reachTreeUtility.h"
-#include "../utility/treeSerialization.h"
+#include "controller/AbstractController.h"
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
-#include "utility/RaceTrack.h"
 #include "ctrlConversion.h"
+#include "model_generation/generateBicycle.h"
+#include "model_generation/generateCarModel.h"
+#include "model_generation/generateSimpleBaseController.h"
+#include "simulation/Executor.h"
+#include "simulation/SamplingUtility.h"
+#include "simulation/Simulator.h"
+#include "training/Trainer.h"
+#include "types.h"
+#include "utility/RaceTrack.h"
+#include "utility/Storage.h"
+#include "utility/StorageSettings.h"
+#include "utility/reachTreeUtility.h"
+#include "utility/treeSerialization.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
 
 using namespace simplexArchitectures;
 
-using I   = carl::Interval<Number>;
-using IV  = std::vector<I>;
-using Box = hypro::Box<Number>;
+using I            = carl::Interval<Number>;
+using IV           = std::vector<I>;
+using Box          = hypro::Box<Number>;
+using CarAutomaton = hypro::HybridAutomatonComp<Number>;
 
 // global constants
 constexpr Eigen::Index                x     = 0;
@@ -71,13 +75,12 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps       = 200;
-  std::size_t               discretization = 8;
+  std::size_t               maxJumps             = 200;
+  std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening = 0.1;
   bool                      training = true;
-  std::string               modelfilename{};
-  std::string               storagefilename{ "storage" };
+  std::string               storagefilename{ "storage_car" };
   Number                    timeStepSize{ 0.01 };
 
   spdlog::set_level( spdlog::level::trace );
@@ -86,7 +89,6 @@ int main( int argc, char* argv[] ) {
   plt.rSettings().overwriteFiles = false;
 
   CLI::App app{ "Training application for simplex architectures project." };
-  app.add_option( "-m,--model", modelfilename, "Path to the model file" );
   app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" );
   app.add_option( "-i,--iterations", iterations, "Number of iterations/steps" )->check( CLI::PositiveNumber );
   app.add_flag( "--learn", training,
@@ -94,13 +96,13 @@ int main( int argc, char* argv[] ) {
                 "the analysis terminates?" );
   CLI11_PARSE( app, argc, argv );
   // parse model
-  hypro::HybridAutomaton<Number> automaton;
-  hypro::ReachabilitySettings    reachSettings;
-  if ( modelfilename != std::string() ) {
-    std::tie( automaton, reachSettings ) = hypro::parseFlowstarFile<Number>( modelfilename );
-  } else {
-    automaton              = modelGenerator::generateBicycle( delta_ranges, discretization );
-    reachSettings.timeStep = timeStepSize;
+  hypro::ReachabilitySettings reachSettings;
+  auto                        carModel = modelGenerator::generateCarModel( theta_discretization );
+  reachSettings.timeStep               = timeStepSize;
+  {
+    std::ofstream fs{ "car.model" };
+    fs << hypro::toFlowstarFormat( carModel );
+    fs.close();
   }
 
   // Hard code Racetrack
@@ -109,44 +111,89 @@ int main( int argc, char* argv[] ) {
   track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
   track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
 
-  // Hard code starting position: take first waypoint, bloat it
+  // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
-  double               bloating        = 0.2;
-  double               angularBloating = 0.0;  // 1.0472 approx. 60 degrees
-  IV                   initialValuations{ I{ 1.5 - bloating, 1.5 + bloating }, I{ 1.5 - bloating, 1.5 + bloating },
-                        I{ 0 - angularBloating, 0 + angularBloating }, I{ 0 }, I{ 1 } };
-  locationConditionMap initialStates;
-  initialStates.emplace(
-      std::make_pair( automaton.getLocations().front(), hypro::conditionFromIntervals( initialValuations ) ) );
+  double bloating        = 0.0;
+  double angularBloating = 0.0;  // 1.0472 approx. 60 degrees
+  IV     initialValuations{ I{ 1.5 - bloating, 1.5 + bloating }, I{ 1.5 - bloating, 1.5 + bloating }, I{ 0 }, I{ 0 },
+                        I{ 1 } };
 
-  // bicycle base controller
-  AbstractController<Point, Point>* base = new BicycleBaseController();
-  // make the first point starting point
-  dynamic_cast<BicycleBaseController*>( base )->lastWaypoint    = track.waypoints.front();
-  dynamic_cast<BicycleBaseController*>( base )->currentWaypoint = track.waypoints.at( 1 );
-  // bicycle advanced controller
-  AbstractController<Point, Point>* advCtrl = new PurePursuitController();
-  // make the first point starting point
-  dynamic_cast<PurePursuitController*>( advCtrl )->lastWaypoint    = track.waypoints.front();
-  dynamic_cast<PurePursuitController*>( advCtrl )->currentWaypoint = track.waypoints.at( 1 );
+  auto tmpCtrl             = new PurePursuitController();
+  tmpCtrl->track           = track;
+  tmpCtrl->lastWaypoint    = tmpCtrl->track.waypoints.begin();
+  tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
+
+  AbstractController<Point, Point>* advCtrl = tmpCtrl;
 
   // use first controller output to determine the starting location
   auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();
   Point ctrlInput;
   if ( startingpoint ) {
-    ctrlInput = base->generateInput( startingpoint.value() );
+    ctrlInput = advCtrl->generateInput( startingpoint.value() );
   } else {
     throw std::logic_error( "Initial valuations are empty, cannot compute internal point." );
   }
 
-  // plot for testing, add fictional car facing right between the 1st and 2nd waypoint
-  Point testcar{ 5, 0.5, 0 };
-  track.addToPlotter( testcar );
-  std::cout << "Target-point: " << dynamic_cast<BicycleBaseController*>( base )->computeTarget( testcar ) << std::endl;
-  plt.addPoint( dynamic_cast<BicycleBaseController*>( base )->computeTarget( testcar ) );
-  plt.setFilename( "racetrack_testplot" );
-  plt.plot2d( hypro::PLOTTYPE::png, true );
-  plt.clear();
+  // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match
+  // control output
+  auto        theta_bucket_index = 0;
+  std::string theta_string       = "theta_" + std::to_string( theta_bucket_index );
+  LocPtr      startingLocation   = nullptr;
+  for ( auto* lptr : carModel.getLocations() ) {
+    if ( lptr->getName().find( theta_string ) != std::string::npos ) {
+      startingLocation = lptr;
+      break;
+    }
+  }
+  if ( startingLocation == nullptr ) {
+    throw std::logic_error( "Could not determine correct starting location" );
+  }
+
+  locationConditionMap initialStates;
+  initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+  carModel.setInitialStates( initialStates );
+
+  RoadSegment segment = { 0.0, 0.0, 7.0, 3.0, LeftToRight };
+
+  auto bcAtm = simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.5, M_PI / 12.0,
+                                                                   M_PI / 4.5, { segment } );
+
+  IV initialValuationsBC{ I{ 1.5 }, I{ 1.5 } };
+
+  LocPtr startingLocationBC = nullptr;
+  for ( auto* lptr : bcAtm.getLocations() ) {
+    if ( lptr->getName().find( "segment_0_zone_2" ) != std::string::npos ) {
+      startingLocationBC = lptr;
+      break;
+    }
+  }
+  if ( startingLocationBC == nullptr ) {
+    throw std::logic_error( "Could not determine correct BC starting location" );
+  }
+
+  locationConditionMap initialStatesBC;
+  initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
+  bcAtm.setInitialStates( initialStatesBC );
+
+  // Automata compostion:
+  auto                                                         mainLocations = carModel.getLocations();
+  auto                                                         variables     = carModel.getVariables();
+  std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
+  for ( const auto& var : variables ) {
+    variableMap[var] = mainLocations;
+  }
+
+  // Automata compostion:
+  std::cout << "Env #locations:" << carModel.getLocations().size() << std::endl;
+  std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
+  std::cout << "Start composition" << std::endl;
+  auto                           start     = std::chrono::steady_clock::now();
+  hypro::HybridAutomaton<Number> automaton = hypro::parallelCompose( carModel, bcAtm, variableMap );
+  auto                           end       = std::chrono::steady_clock::now();
+  std::cout << "Composition finished" << std::endl;
+  std::cout << "Elapsed time in milliseconds: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() << " ms" << std::endl;
+  std::cout << "Combined #locations:" << automaton.getLocations().size() << std::endl;
 
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );
@@ -159,56 +206,30 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
-
-  // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match control output
-  auto theta_bucket_index = getThetaBucket(startingpoint.value()[theta], discretization);
-  std::string theta_string = "theta_" + std::to_string(theta_bucket_index);
-  LocPtr startingLocation = nullptr;
-  for(auto* lptr : automaton.getLocations()) {
-    if(lptr->getName().find(theta_string) != std::string::npos) {
-      startingLocation = lptr;
-      break;
-    }
-  }
-  if(startingLocation == nullptr) {
-    throw std::logic_error("Could not determine correct starting location");
-  }
-
-  auto controlLocation = convertCtrlToLocation(base->generateInput(startingpoint.value()), automaton, startingLocation, discretization, delta_ranges);
-  Executor executor{ automaton, controlLocation, startingpoint.value() };
+  assert( automaton.getInitialStates().size() == 1 );
+  Executor executor{ automaton, automaton.getInitialStates().begin()->first, startingpoint.value() };
   executor.mSettings          = settings;
-  executor.mExecutionSettings = ExecutionSettings{ 3, {} };
+  executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
+  executor.mPlot              = false;
 
-  // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
-  // Storagesettings will be overidden if a file with data exists
-  StorageSettings  storageSettings{ interesting_dimensions, Box{ IV{ I{ 0, 10 }, I{ 0, 10 }, I{ 0, 360 }, I{ 0, 1 } } },
-                                   2, 4 };
-  TrainingSettings trainingSettings{
-      1,
-      INITIAL_STATE_HEURISTICS::SINGLE,
-      { 0, 1 },
-      Box{ IV{ I{ 0, 10 }, I{ 0, 10 }, I{ 0, 360 }, I{ 0 }, I{ 1 } } },
-      { 10, 10, 10, 1, 1 },
-      carl::convert<hypro::tNumber, Number>( settings.fixedParameters().localTimeHorizon ),
-      maxJumps,
-      widening,
-      false };
-  Storage storage{ storagefilename, storageSettings };
-  storage.plotCombined( "storage_post_loading_combined" );
-  Trainer trainer{ automaton, trainingSettings, storage };
+  // Storage for trained sets
+  auto storagesettings = StorageSettings{
+      interesting_dimensions,
+      Box{ IV{ I{ segment.x_min, segment.x_max }, I{ segment.y_min, segment.y_max }, I{ 0, 360 }, I{ 0, 1 } } } };
+  auto storage = Storage( storagefilename, storagesettings );
 
   // monitor
   Simulator sim{ automaton, settings, storage };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
-  if ( training && storage.size() == 0 ) {
+  /*if ( training && storage.size() == 0 ) {
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace(
         std::make_pair( executor.mLastLocation,
                         hypro::Condition<Number>( widenSample( startingpoint.value(), widening, { 0, 1 } ) ) ) );
     trainer.run( settings, initialStates );
     storage.plotCombined( "storage_post_initial_training_combined" );
-  }
+  }*/
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
@@ -242,7 +263,7 @@ int main( int argc, char* argv[] ) {
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
       bool allSafe = false;
-      if ( training ) {
+      /*if ( training ) {
         spdlog::info( "Start training for {} locations", sim.unknownSamples.size() );
         allSafe = true;
         for ( const auto& [loc, setVector] : sim.unknownSamples ) {
@@ -263,7 +284,7 @@ int main( int argc, char* argv[] ) {
         std::size_t       l = std::to_string( iterations ).size();
         ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
         storage.plotCombined( "storage_post_training_" + ss.str() + "_combined" );
-      }
+      }*/
       if ( !allSafe ) {
         std::stringstream ss;
         ss << sim.getBaseControllerOutput();
@@ -283,7 +304,7 @@ int main( int argc, char* argv[] ) {
     std::stringstream ss;
     std::size_t       l = std::to_string( iterations ).size();
     ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
-    storage.plotCombined( "storage_post_iteration_" + ss.str() + "_combined", false );
+    /*storage.plotCombined( "storage_post_iteration_" + ss.str() + "_combined", false );*/
     auto fillsettings = hypro::Plotter<Number>::getInstance().settings();
     fillsettings.fill = true;
     if ( advControllerUsed ) {
