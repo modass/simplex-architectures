@@ -22,30 +22,35 @@ namespace simplexArchitectures {
     using Matrix = hypro::matrix_t<Number>;
     using Vector = hypro::vector_t<Number>;
 
+    template <typename Automaton>
     struct Simulator {
+      Simulator( Automaton& automaton, const hypro::Settings& s, const Storage& storage )
+          : mAutomaton( automaton ), mSettings( s ), mStorage( storage ) {}
+      // Assumptions: Hidden state variables of the specification are always clocks, we keep only the minimum and
+      // maximum in case simulation allows several values
 
-        Simulator(hypro::HybridAutomaton<Number>& automaton, const hypro::Settings& s, const Storage& storage) : mAutomaton(automaton), mSettings(s), mStorage(storage) {}
-        // Assumptions: Hidden state variables of the specification are always clocks, we keep only the minimum and maximum in case simulation allows several values
-        
-        Point getBaseControllerOutput();  // extract the base controller output from the current state
+      Point getBaseControllerOutput();  // extract the base controller output from the current state
 
-        hypro::TRIBOOL isSafe(const Point& ctrlInput); // Simulation with output, returns if execution is safe or not.
-        std::map<LocPtr, std::vector<Box>> potentialNextStates();
+      hypro::TRIBOOL isSafe( const Point& ctrlInput );  // Simulation with output, returns if execution is safe or not.
+      std::map<LocPtr, std::vector<Box>> potentialNextStates();
 
-        void update(const Point& ctrlInput, const Point& nextObservation); // Update current state based on input and next observation
+      void update( const Point& ctrlInput,
+                   const Point& nextObservation );  // Update current state based on input and next observation
 
-        hypro::HybridAutomaton<Number> &mAutomaton;
-        hypro::Settings mSettings;
-        double mCycleTime = 1.0;
-        std::vector<ReachTreeNode> roots;
-        std::map<LocPtr, std::set<Point>> mLastStates;
-        std::map<LocPtr, std::vector<Representation>> unknownSamples;
+      Automaton&                                    mAutomaton;
+      hypro::Settings                               mSettings;
+      double                                        mCycleTime = 1.0;
+      std::vector<ReachTreeNode>                    roots;
+      std::map<LocPtr, std::set<Point>>             mLastStates;
+      std::map<LocPtr, std::vector<Representation>> unknownSamples;
 
-    private:
-        static void setCtrlValue(Point &state, const Point &ctrlInput);
-        const Storage& mStorage;
+     private:
+      static void    setCtrlValue( Point& state, const Point& ctrlInput );
+      const Storage& mStorage;
     };
 
-}
+    }  // namespace simplexArchitectures
 
-#endif //SIMPLEXARCHITECTURES_SIMULATOR_H
+#include "Simulator.tpp"
+
+#endif  // SIMPLEXARCHITECTURES_SIMULATOR_H

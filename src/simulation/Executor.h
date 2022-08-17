@@ -27,23 +27,27 @@ struct ExecutionSettings {
 using Matrix = hypro::matrix_t<Number>;
 using Vector = hypro::vector_t<Number>;
 
+template <typename Automaton>
 struct Executor {
-  Executor( hypro::HybridAutomaton<Number>& automaton, LocPtr initialLocation, Point initialValuation )
+  Executor( Automaton& automaton, typename Automaton::LocationType const* initialLocation, Point initialValuation )
       : mAutomaton( automaton ), mLastLocation( initialLocation ), mLastState( initialValuation ) {}
 
-  Point                           execute( const Point& ctrlInput );
-  hypro::HybridAutomaton<Number>& mAutomaton;
-  LocPtr                          mLastLocation;
-  Point mLastState;
-  hypro::Settings                 mSettings;
-  ExecutionSettings               mExecutionSettings;
-  bool mPlot = true;
+  Point                                   execute( const Point& ctrlInput );
+  Automaton&                              mAutomaton;
+  typename Automaton::LocationType const* mLastLocation;
+  Point                                   mLastState;
+  hypro::Settings                         mSettings;
+  ExecutionSettings                       mExecutionSettings;
+  bool                                    mPlot = true;
 
  private:
-        double mCycleTime = 1.0;
-        std::vector<ReachTreeNode> roots;
-        std::mt19937 mGenerator;
-    };
+  double                                                                   mCycleTime = 1.0;
+  std::vector<hypro::ReachTreeNode<Box, typename Automaton::LocationType>> roots;
+  std::mt19937                                                             mGenerator;
+};
 
-}
-#endif //SIMPLEXARCHITECTURES_EXECUTOR_H
+}  // namespace simplexArchitectures
+
+#include "Executor.tpp"
+
+#endif  // SIMPLEXARCHITECTURES_EXECUTOR_H

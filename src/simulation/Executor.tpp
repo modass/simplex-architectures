@@ -1,12 +1,13 @@
 //
 // Created by bmaderbacher on 15.03.22.
 //
-
+#pragma once
 #include "Executor.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
-Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
+template <typename Automaton>
+Point simplexArchitectures::Executor<Automaton>::execute( const Point& ctrlInput ) {
   roots.clear();
 
   hypro::Point<Number> extendedState = mLastState;
