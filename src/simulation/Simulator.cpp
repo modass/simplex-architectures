@@ -34,7 +34,7 @@ namespace simplexArchitectures {
                 auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
                 // add roots for this sample to global reachtree
                 for ( auto&& sr : sampleRoots ) {
-                    roots.emplace_back( std::move( sr ) );
+                  roots.emplace_back( std::move( sr ) );
                 }
                 // std::cout << "[Simulator] Add sample " << sample << " for simulation." << std::endl;
             }
@@ -42,27 +42,29 @@ namespace simplexArchitectures {
 
         // call simulation as reachability analysis for a maximal time duration of 1 (cycle time)
         // copy settings to adjust global time etc.
-        mSettings.rFixedParameters().globalTimeHorizon = mCycleTime*1.5;
-        mSettings.rFixedParameters().localTimeHorizon = carl::convert<double, hypro::tNumber>( mCycleTime );
-        mSettings.rFixedParameters().jumpDepth = 2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
-        mSettings.rStrategy().front().detectJumpFixedPoints = false;
+        mSettings.rFixedParameters().globalTimeHorizon = mCycleTime * 1.5;
+        mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( mCycleTime );
+        mSettings.rFixedParameters().jumpDepth =
+            2 *
+            std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
+        mSettings.rStrategy().front().detectJumpFixedPoints              = false;
         mSettings.rStrategy().front().detectContinuousFixedPointsLocally = false;
-        mSettings.rStrategy().front().detectFixedPointsByCoverage = false;
-        mSettings.rStrategy().front().numberSetsForContinuousCoverage = 0;
-        mSettings.rStrategy().front().detectZenoBehavior = true;
+        mSettings.rStrategy().front().detectFixedPointsByCoverage        = false;
+        mSettings.rStrategy().front().numberSetsForContinuousCoverage    = 0;
+        mSettings.rStrategy().front().detectZenoBehavior                 = true;
         // analysis
-        auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, mSettings.fixedParameters(),
-                                                                   mSettings.strategy().front(), roots );
+        auto reacher =
+            ReachabilityAnalyzer( mAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), roots );
         auto result = reacher.computeForwardReachability();
 
         // std::cout << "[Simulator] simulate safety result: " << result << std::endl;
-        if(result != hypro::REACHABILITY_RESULT::SAFE) {
+        if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
           return hypro::TRIBOOL::FALSE;
         }
 
         // collect unknown samples
         unknownSamples.clear();
-        auto isSafe = hypro::TRIBOOL::TRUE;
+        auto isSafe     = hypro::TRIBOOL::TRUE;
         auto nextStates = potentialNextStates();
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {

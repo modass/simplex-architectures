@@ -114,8 +114,7 @@ bool Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   // create roots for the reachtree from new initial states
   auto roots = hypro::makeRoots<Representation>( mAutomaton );
   // analysis
-  auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, settings.fixedParameters(),
-                                                             settings.strategy().front(), roots );
+  auto reacher = ReachabilityAnalyzer( mAutomaton, settings.fixedParameters(), settings.strategy().front(), roots );
   // set up callbacks which are used by hypro to access the octree
   std::size_t                                                                  shortcuts = 0;
   std::function<bool( const Representation&, const hypro::Location<double>* )> callback =

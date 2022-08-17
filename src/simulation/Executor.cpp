@@ -39,8 +39,7 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     mSettings.rFixedParameters().jumpDepth =
         2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
 
-    auto reacher = hypro::reachability::Reach<Representation>( mAutomaton, mSettings.fixedParameters(),
-                                                               mSettings.strategy().front(), roots );
+    auto reacher = ReachabilityAnalyzer( mAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), roots );
     auto isSafe  = reacher.computeForwardReachability();
 
     if(mPlot) {
