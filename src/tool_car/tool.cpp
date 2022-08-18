@@ -22,6 +22,7 @@
 #include <hypro/datastructures/HybridAutomaton/HybridAutomatonComp.h>
 #include <hypro/datastructures/Hyperoctree.h>
 #include <hypro/parser/antlr4-flowstar/ParserWrapper.h>
+#include <hypro/util/fileHandling.h>
 #include <hypro/util/linearOptimization/Optimizer.h>
 #include <hypro/util/plotting/Plotter.h>
 #include <spdlog/spdlog.h>
@@ -81,6 +82,7 @@ int main( int argc, char* argv[] ) {
   Number                    widening = 0.1;
   bool                      training = true;
   std::string               storagefilename{ "storage_car" };
+  std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
 
   spdlog::set_level( spdlog::level::trace );
@@ -91,6 +93,7 @@ int main( int argc, char* argv[] ) {
   CLI::App app{ "Training application for simplex architectures project." };
   app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" );
   app.add_option( "-i,--iterations", iterations, "Number of iterations/steps" )->check( CLI::PositiveNumber );
+  app.add_option( "-c,--composedAutomaton", composedAutomatonFile, "Path to the file storing the composedAutomaton" );
   app.add_flag( "--learn", training,
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
                 "the analysis terminates?" );
@@ -183,17 +186,29 @@ int main( int argc, char* argv[] ) {
     variableMap[var] = mainLocations;
   }
 
-  // Automata compostion:
-  std::cout << "Env #locations:" << carModel.getLocations().size() << std::endl;
-  std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
-  std::cout << "Start composition" << std::endl;
-  auto                           start     = std::chrono::steady_clock::now();
-  hypro::HybridAutomaton<Number> automaton = hypro::parallelCompose( carModel, bcAtm, variableMap );
-  auto                           end       = std::chrono::steady_clock::now();
-  std::cout << "Composition finished" << std::endl;
-  std::cout << "Elapsed time in milliseconds: "
-            << std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() << " ms" << std::endl;
-  std::cout << "Combined #locations:" << automaton.getLocations().size() << std::endl;
+  hypro::HybridAutomaton<Number> automaton;
+  if ( hypro::file_exists( composedAutomatonFile ) ) {
+    std::cout << "Load composed automaton from file." << std::endl;
+    hypro::ReachabilitySettings s;
+    std::tie( automaton, s ) = hypro::parseFlowstarFile<Number>( composedAutomatonFile );
+  } else {
+    // Automata compostion:
+    std::cout << "Env #locations:" << carModel.getLocations().size() << std::endl;
+    std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
+    std::cout << "Start composition" << std::endl;
+    auto start = std::chrono::steady_clock::now();
+    automaton  = hypro::parallelCompose( carModel, bcAtm, variableMap );
+    auto end   = std::chrono::steady_clock::now();
+    std::cout << "Composition finished" << std::endl;
+    std::cout << "Elapsed time in milliseconds: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() << " ms" << std::endl;
+    std::cout << "Combined #locations:" << automaton.getLocations().size() << std::endl;
+    {
+      std::ofstream fs{ composedAutomatonFile };
+      fs << hypro::toFlowstarFormat( automaton );
+      fs.close();
+    }
+  }
 
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );
@@ -206,8 +221,9 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
-  assert( automaton.getInitialStates().size() == 1 );
-  Executor executor{ automaton, automaton.getInitialStates().begin()->first, startingpoint.value() };
+  // the executor runs on the car model only
+  assert( carModel.getInitialStates().size() == 1 );
+  Executor executor{ carModel, carModel.getInitialStates().begin()->first, startingpoint.value() };
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
@@ -216,47 +232,67 @@ int main( int argc, char* argv[] ) {
   auto storagesettings = StorageSettings{
       interesting_dimensions,
       Box{ IV{ I{ segment.x_min, segment.x_max }, I{ segment.y_min, segment.y_max }, I{ 0, 360 }, I{ 0, 1 } } } };
-  auto storage = Storage( storagefilename, storagesettings );
+  auto             storage = Storage( storagefilename, storagesettings );
+  TrainingSettings trainingSettings{
+      1,                                                                  // iterations
+      INITIAL_STATE_HEURISTICS::SINGLE,                                   // heuristics
+      { 0, 1 },                                                           // widening dimensions
+      Box{ IV{ I{ 0.2, 0.5 }, I{ 0.2, 0.5 }, I{ 0 }, I{ 0 }, I{ 0 } } },  // sampling area
+      { 10, 10, 1, 1, 1 },                                                // subdivisions per dimension
+      carl::convert<hypro::tNumber, Number>( settings.fixedParameters().localTimeHorizon ),  // time horizon
+      maxJumps,                                                                              // jump depth
+      widening,                                                                              // initial set width
+      false };                                                                               // try full coverage?
+  // teh trainer runs on the combined automaton of base controller and car model
+  Trainer trainer{ automaton, trainingSettings, storage };
 
-  // monitor
-  Simulator sim{ automaton, settings, storage };
+  // monitor/simulator, runs on the car model
+  Simulator sim{ carModel, settings, storage };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
-  /*if ( training && storage.size() == 0 ) {
+  if ( training && storage.size() == 0 ) {
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
-    initialStates.emplace(
-        std::make_pair( executor.mLastLocation,
-                        hypro::Condition<Number>( widenSample( startingpoint.value(), widening, { 0, 1 } ) ) ) );
+    initialStates.emplace( std::make_pair(
+        executor.mLastLocation, hypro::Condition<Number>( widenSample( startingpoint.value(), widening,
+                                                                       trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
     storage.plotCombined( "storage_post_initial_training_combined" );
-  }*/
+  }
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
     spdlog::info( "Iteration {}", iteration_count );
-    // get Controller input
+    // get AC Controller input
     Point advControllerInput = advCtrl->generateInput( executor.mLastState );
 
     // 1 simulation advanced controller, starting from initialvalue & location
-    std::stringstream s;
-    s << advControllerInput;
-    spdlog::info( "Start advanced controller simulation with controller output {}", s.str() );
+    {
+      std::stringstream s;
+      s << advControllerInput;
+      spdlog::info( "Start advanced controller simulation with controller output {}", s.str() );
+    }
     hypro::TRIBOOL advControllerSafe = sim.isSafe( advControllerInput );
     bool           advControllerUsed = true;
 
     // if all safe & last point in reach set, pointify resulting set, update initialstate, update monitor (current
     // point)
     if ( advControllerSafe == hypro::TRIBOOL::TRUE ) {
-      std::stringstream ss;
-      ss << advControllerInput;
-      spdlog::debug( "Advanced controller is safe and traces end in known safe area, run with output {}", ss.str() );
+      {
+        std::stringstream ss;
+        ss << advControllerInput;
+        spdlog::debug( "Advanced controller is safe and traces end in known safe area, run with output {}", ss.str() );
+      }
       executor.execute( advControllerInput );
+      // TODO why does the simulator require the last used control input?
       sim.update( advControllerInput, executor.mLastState );
     } else if ( advControllerSafe == hypro::TRIBOOL::FALSE ) {
-      std::stringstream ss;
-      ss << sim.getBaseControllerOutput();
-      spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
+      {
+        std::stringstream ss;
+        ss << sim.getBaseControllerOutput();
+        spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
+      }
+      // TODO why do we call the simulator to get the BC output, should we not call the BC directly?
       executor.execute( sim.getBaseControllerOutput() );
       sim.update( sim.getBaseControllerOutput(), executor.mLastState );
       advControllerUsed = false;
@@ -286,36 +322,44 @@ int main( int argc, char* argv[] ) {
         storage.plotCombined( "storage_post_training_" + ss.str() + "_combined" );
       }*/
       if ( !allSafe ) {
-        std::stringstream ss;
-        ss << sim.getBaseControllerOutput();
-        spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
+        {
+          std::stringstream ss;
+          ss << sim.getBaseControllerOutput();
+          spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
+        }
         executor.execute( sim.getBaseControllerOutput() );
         sim.update( sim.getBaseControllerOutput(), executor.mLastState );
         advControllerUsed = false;
       } else {
-        std::stringstream ss;
-        ss << advControllerInput;
-        spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
+        {
+          std::stringstream ss;
+          ss << advControllerInput;
+          spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
+        }
         executor.execute( advControllerInput );
         sim.update( advControllerInput, executor.mLastState );
       }
     }
 
+    /*
     std::stringstream ss;
     std::size_t       l = std::to_string( iterations ).size();
     ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
-    /*storage.plotCombined( "storage_post_iteration_" + ss.str() + "_combined", false );*/
-    auto fillsettings = hypro::Plotter<Number>::getInstance().settings();
-    fillsettings.fill = true;
-    if ( advControllerUsed ) {
-      hypro::Plotter<Number>::getInstance().addPoint( executor.mLastState.projectOn( { 0, 1 } ),
-                                                      hypro::plotting::colors[hypro::plotting::green], fillsettings );
-    } else {
-      hypro::Plotter<Number>::getInstance().addPoint( executor.mLastState.projectOn( { 0, 1 } ),
-                                                      hypro::plotting::colors[hypro::plotting::orange], fillsettings );
+    storage.plotCombined( "storage_post_iteration_" + ss.str() + "_combined", false );
+     */
+    {
+      auto fillsettings = hypro::Plotter<Number>::getInstance().settings();
+      fillsettings.fill = true;
+      if ( advControllerUsed ) {
+        hypro::Plotter<Number>::getInstance().addPoint( executor.mLastState.projectOn( { 0, 1 } ),
+                                                        hypro::plotting::colors[hypro::plotting::green], fillsettings );
+      } else {
+        hypro::Plotter<Number>::getInstance().addPoint(
+            executor.mLastState.projectOn( { 0, 1 } ), hypro::plotting::colors[hypro::plotting::orange], fillsettings );
+      }
+      hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
+      hypro::Plotter<Number>::getInstance().clear();
     }
-    hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
-    hypro::Plotter<Number>::getInstance().clear();
   }
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
