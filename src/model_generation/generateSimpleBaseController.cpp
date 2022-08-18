@@ -214,38 +214,38 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateSimpleBaseControlle
         angle = normalizeAngle(segmentAngle - centerAngle);
       }
       if ( zone == 3 ) {
-        angle = normalizeAngle(segmentAngle + centerAngle);
+        angle = normalizeAngle( segmentAngle + centerAngle );
+      }
+      if ( zone == 0 ) {
+        angle = normalizeAngle( segmentAngle - borderAngle );
       }
       if ( zone == 4 ) {
-        angle = normalizeAngle(segmentAngle - borderAngle);
-      }
-      if ( zone == 5 ) {
-        angle = normalizeAngle(segmentAngle + borderAngle);
+        angle = normalizeAngle( segmentAngle + borderAngle );
       }
       auto newThetaBucket = getThetaBucket( angle, theta_discretization );
       auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
       thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
     }
-
-
   }
 
-  //segment changes
-  for(auto segmentId=0; segmentId<numberOfSegments; segmentId++ ){
-    auto nextSegmentId = segmentId < numberOfSegments-1 ? segmentId + 1 : 0;
-    auto previousSegmentId = segmentId > 0 ? segmentId - 1 : numberOfSegments-1;
+  // segment changes
+  if ( numberOfSegments > 1 ) {
+    for ( auto segmentId = 0; segmentId < numberOfSegments; segmentId++ ) {
+      auto nextSegmentId     = segmentId < numberOfSegments - 1 ? segmentId + 1 : 0;
+      auto previousSegmentId = segmentId > 0 ? segmentId - 1 : numberOfSegments - 1;
 
-    for(auto thisZoneId=0; thisZoneId<5; thisZoneId++) {
-      for(auto targetZoneId=0; targetZoneId<5; targetZoneId++) {
-        auto thisLocation = buckets[std::tuple(segmentId, thisZoneId)];
+      for ( auto thisZoneId = 0; thisZoneId < 5; thisZoneId++ ) {
+        for ( auto targetZoneId = 0; targetZoneId < 5; targetZoneId++ ) {
+          auto thisLocation = buckets[std::tuple( segmentId, thisZoneId )];
 
-        auto nextLocation = buckets[std::tuple(nextSegmentId, targetZoneId)];
-        auto transNext = thisLocation->createTransition( nextLocation );
-        transNext->setGuard(nextLocation->getInvariant());
+          auto nextLocation = buckets[std::tuple( nextSegmentId, targetZoneId )];
+          auto transNext    = thisLocation->createTransition( nextLocation );
+          transNext->setGuard( nextLocation->getInvariant() );
 
-        auto previousLocation = buckets[std::tuple(previousSegmentId, targetZoneId)];
-        auto transPrevious = thisLocation->createTransition( previousLocation );
-        transPrevious->setGuard(previousLocation->getInvariant());
+          auto previousLocation = buckets[std::tuple( previousSegmentId, targetZoneId )];
+          auto transPrevious    = thisLocation->createTransition( previousLocation );
+          transPrevious->setGuard( previousLocation->getInvariant() );
+        }
       }
     }
   }

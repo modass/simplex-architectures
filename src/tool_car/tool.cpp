@@ -178,6 +178,13 @@ int main( int argc, char* argv[] ) {
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
   bcAtm.setInitialStates( initialStatesBC );
 
+  {
+    std::cout << "BC automaton:\n" << bcAtm << std::endl;
+    // std::ofstream fs{ "bcAutomaton.model" };
+    // fs << hypro::toFlowstarFormat( bcAtm );
+    // fs.close();
+  }
+
   // Automata compostion:
   auto                                                         mainLocations = carModel.getLocations();
   auto                                                         variables     = carModel.getVariables();
@@ -215,7 +222,7 @@ int main( int argc, char* argv[] ) {
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
-  settings.rStrategy().front().detectFixedPointsByCoverage        = true;
+  settings.rStrategy().front().detectFixedPointsByCoverage        = false;
   settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
   settings.rStrategy().front().detectZenoBehavior                 = true;
   settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
