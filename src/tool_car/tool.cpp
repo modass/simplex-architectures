@@ -76,7 +76,7 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 200;
+  std::size_t               maxJumps             = 1;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening = 0.1;
@@ -94,7 +94,7 @@ int main( int argc, char* argv[] ) {
   app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" );
   app.add_option( "-i,--iterations", iterations, "Number of iterations/steps" )->check( CLI::PositiveNumber );
   app.add_option( "-c,--composedAutomaton", composedAutomatonFile, "Path to the file storing the composedAutomaton" );
-  app.add_flag( "--learn", training,
+  app.add_flag( "--training", training,
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
                 "the analysis terminates?" );
   CLI11_PARSE( app, argc, argv );
@@ -187,7 +187,9 @@ int main( int argc, char* argv[] ) {
   }
 
   hypro::HybridAutomaton<Number> automaton;
-  if ( hypro::file_exists( composedAutomatonFile ) ) {
+  // TODO currently disabled loading from file, since it takes longer than composing. We should serialize automata in
+  // the future
+  if ( false && hypro::file_exists( composedAutomatonFile ) ) {
     std::cout << "Load composed automaton from file." << std::endl;
     hypro::ReachabilitySettings s;
     std::tie( automaton, s ) = hypro::parseFlowstarFile<Number>( composedAutomatonFile );
@@ -243,7 +245,7 @@ int main( int argc, char* argv[] ) {
       maxJumps,                                                                              // jump depth
       widening,                                                                              // initial set width
       false };                                                                               // try full coverage?
-  // teh trainer runs on the combined automaton of base controller and car model
+  // the trainer runs on the combined automaton of base controller and car model
   Trainer trainer{ automaton, trainingSettings, storage };
 
   // monitor/simulator, runs on the car model
