@@ -76,16 +76,16 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateSimpleBaseControlle
         if(iz == 2) {
           x_low  = mid - stopZoneWidth/2;
           x_high = mid + stopZoneWidth/2;
-        } else if ((iz == 1 && segment.orientation == BottomToTop) || (iz == 3 && segment.orientation == TopToBottom)) {
+        } else if ((iz == 3 && segment.orientation == BottomToTop) || (iz == 1 && segment.orientation == TopToBottom)) {
           x_low  = mid + stopZoneWidth/2;
           x_high = mid + stopZoneWidth/2 + centerZoneWidth;
-        } else if ((iz == 1 && segment.orientation == TopToBottom) || (iz == 3 && segment.orientation == BottomToTop)) {
+        } else if ((iz == 3 && segment.orientation == TopToBottom) || (iz == 1 && segment.orientation == BottomToTop)) {
           x_high  = mid - stopZoneWidth/2;
           x_low   = mid - stopZoneWidth/2 - centerZoneWidth;
-        }  else if ((iz == 0 && segment.orientation == BottomToTop) || (iz == 4 && segment.orientation == TopToBottom)) {
+        }  else if ((iz == 4 && segment.orientation == BottomToTop) || (iz == 0 && segment.orientation == TopToBottom)) {
           x_low  = mid + stopZoneWidth/2 + centerZoneWidth;
           x_high = segment.x_max;
-        } else if ((iz == 0 && segment.orientation == TopToBottom) || (iz == 4 && segment.orientation == BottomToTop)) {
+        } else if ((iz == 4 && segment.orientation == TopToBottom) || (iz == 0 && segment.orientation == BottomToTop)) {
           x_high  =  mid - stopZoneWidth/2 - centerZoneWidth;
           x_low   = segment.x_min;
         }
@@ -114,81 +114,22 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateSimpleBaseControlle
     auto& [segmentId, zone] = key;
     auto segment = segments[segmentId];
 
+    size_t leftZone  = zone - 1;
+    bool leftExists  = zone > 0;
+    size_t rightZone = zone + 1;
+    bool rightExists = zone < 4;
+
     // connections in the same segment
-    if(segment.orientation == LeftToRight || segment.orientation == RightToLeft){
-      size_t leftZone;
-      bool leftExists;
-      size_t rightZone;
-      bool rightExists;
-      if(segment.orientation == RightToLeft) {
-        leftZone    = zone - 1;
-        leftExists  = zone > 0;
-        rightZone   = zone + 1;
-        rightExists = zone < 4;
-      } else {
-        leftZone    = zone + 1;
-        leftExists  = zone < 4;
-        rightZone   = zone - 1;
-        rightExists = zone > 0;
-      }
-
-      if(leftExists) {
-        auto left = source->createTransition( buckets[std::make_tuple( segmentId, leftZone )] );
-        Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
-        guard_constraints( 0, x ) = 1;
-        guard_constraints( 1, x ) = -1;
-        Vector guard_constants = Vector::Zero( 2 );
-        guard_constants << -source->getInvariant().getVector()( 0 ), source->getInvariant().getVector()( 0 );
-        left->setGuard( { guard_constraints, guard_constants } );
-      }
-
-      if(rightExists) {
-        auto right = source->createTransition( buckets[std::make_tuple( segmentId, rightZone )] );
-        Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
-        guard_constraints( 0, x ) = 1;
-        guard_constraints( 1, x ) = -1;
-        Vector guard_constants  = Vector::Zero( 2 );
-        guard_constants << -source->getInvariant().getVector()( 1 ), source->getInvariant().getVector()( 1 );
-        right->setGuard( { guard_constraints, guard_constants } );
-      }
+    if(leftExists) {
+      auto leftLocation = buckets[std::make_tuple( segmentId, leftZone )];
+      auto leftTransition = source->createTransition( leftLocation );
+      leftTransition->setGuard( leftLocation->getInvariant() );
     }
 
-    if(segment.orientation == BottomToTop || segment.orientation == TopToBottom){
-      size_t leftZone;
-      bool leftExists;
-      size_t rightZone;
-      bool rightExists;
-      if(segment.orientation == BottomToTop) {
-        leftZone    = zone - 1;
-        leftExists  = leftZone >= 0;
-        rightZone   = zone + 1;
-        rightExists = rightZone <= 4;
-      } else {
-        leftZone    = zone + 1;
-        leftExists  = leftZone <= 4;
-        rightZone   = zone - 1;
-        rightExists = rightZone >= 0;
-      }
-
-      if(leftExists) {
-        auto left = source->createTransition( buckets[std::make_tuple( segmentId, leftZone )] );
-        Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
-        guard_constraints( 0, y ) = 1;
-        guard_constraints( 1, y ) = -1;
-        Vector guard_constants = Vector::Zero( 2 );
-        guard_constants << -source->getInvariant().getVector()( 2 ), source->getInvariant().getVector()( 2 );
-        left->setGuard( { guard_constraints, guard_constants } );
-      }
-
-      if(rightExists) {
-        auto right = source->createTransition( buckets[std::make_tuple( segmentId, rightZone )] );
-        Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
-        guard_constraints( 0, y ) = 1;
-        guard_constraints( 1, y ) = -1;
-        Vector guard_constants  = Vector::Zero( 2 );
-        guard_constants << -source->getInvariant().getVector()( 3 ), source->getInvariant().getVector()( 3 );
-        right->setGuard( { guard_constraints, guard_constants } );
-      }
+    if(rightExists) {
+      auto rightLocation = buckets[std::make_tuple( segmentId, rightZone )];
+      auto rightTransition = source->createTransition( rightLocation );
+      rightTransition->setGuard( rightLocation->getInvariant() );
     }
 
     //outputs
@@ -238,15 +179,15 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateSimpleBaseControlle
 
       for ( auto thisZoneId = 0; thisZoneId < 5; thisZoneId++ ) {
         for ( auto targetZoneId = 0; targetZoneId < 5; targetZoneId++ ) {
-          auto thisLocation = buckets[std::tuple( segmentId, thisZoneId )];
+            auto thisLocation = buckets[std::tuple( segmentId, thisZoneId )];
 
-          auto nextLocation = buckets[std::tuple( nextSegmentId, targetZoneId )];
-          auto transNext    = thisLocation->createTransition( nextLocation );
-          transNext->setGuard( nextLocation->getInvariant() );
+            auto nextLocation = buckets[std::tuple( nextSegmentId, targetZoneId )];
+            auto transNext    = thisLocation->createTransition( nextLocation );
+            transNext->setGuard( nextLocation->getInvariant() );
 
-          auto previousLocation = buckets[std::tuple( previousSegmentId, targetZoneId )];
-          auto transPrevious    = thisLocation->createTransition( previousLocation );
-          transPrevious->setGuard( previousLocation->getInvariant() );
+            auto previousLocation = buckets[std::tuple( previousSegmentId, targetZoneId )];
+            auto transPrevious    = thisLocation->createTransition( previousLocation );
+            transPrevious->setGuard( previousLocation->getInvariant() );
         }
       }
     }
