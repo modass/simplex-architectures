@@ -41,6 +41,8 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateSimpleBaseControlle
     auto segment = segments[is];
     bool horizontal = segment.orientation == LeftToRight || segment.orientation == RightToLeft;
 
+    // TODO add assertions to check that the arithmetic used to calculate the boundaries produces valid intervals
+
     for(std::size_t iz  = 0; iz < 5; ++iz) {
       double x_low;
       double y_low;
@@ -48,44 +50,44 @@ hypro::HybridAutomaton<double> simplexArchitectures::generateSimpleBaseControlle
       double y_high;
 
       if(horizontal){
-        y_low  = segment.y_min;
-        y_high = segment.y_max;
-        auto mid = segment.x_min + (segment.x_max - segment.x_min)/2.0;
-        if(iz == 2) {
-          x_low  = mid - stopZoneWidth/2;
-          x_high = mid + stopZoneWidth/2;
-        } else if ((iz == 1 && segment.orientation == LeftToRight) || (iz == 3 && segment.orientation == RightToLeft)) {
-          x_low  = mid + stopZoneWidth/2;
-          x_high = mid + stopZoneWidth/2 + centerZoneWidth;
-        } else if ((iz == 1 && segment.orientation == RightToLeft) || (iz == 3 && segment.orientation == LeftToRight)) {
-          x_high  = mid - stopZoneWidth/2;
-          x_low   = mid - stopZoneWidth/2 - centerZoneWidth;
-        }  else if ((iz == 0 && segment.orientation == LeftToRight) || (iz == 4 && segment.orientation == RightToLeft)) {
-          x_low  = mid + stopZoneWidth/2 + centerZoneWidth;
-          x_high = segment.x_max;
-        } else if ((iz == 3 && segment.orientation == RightToLeft) || (iz == 4 && segment.orientation == LeftToRight)) {
-          x_high  =  mid - stopZoneWidth/2 - centerZoneWidth;
-          x_low   = segment.x_min;
-        }
-      } else { //vertical
         x_low  = segment.x_min;
         x_high = segment.x_max;
         auto mid = segment.y_min + (segment.y_max - segment.y_min)/2.0;
         if(iz == 2) {
           y_low  = mid - stopZoneWidth/2;
           y_high = mid + stopZoneWidth/2;
-        } else if ((iz == 1 && segment.orientation == BottomToTop) || (iz == 3 && segment.orientation == TopToBottom)) {
+        } else if ((iz == 1 && segment.orientation == LeftToRight) || (iz == 3 && segment.orientation == RightToLeft)) {
           y_low  = mid + stopZoneWidth/2;
           y_high = mid + stopZoneWidth/2 + centerZoneWidth;
-        } else if ((iz == 1 && segment.orientation == TopToBottom) || (iz == 3 && segment.orientation == BottomToTop)) {
+        } else if ((iz == 1 && segment.orientation == RightToLeft) || (iz == 3 && segment.orientation == LeftToRight)) {
           y_high  = mid - stopZoneWidth/2;
           y_low   = mid - stopZoneWidth/2 - centerZoneWidth;
-        }  else if ((iz == 0 && segment.orientation == BottomToTop) || (iz == 4 && segment.orientation == TopToBottom)) {
+        }  else if ((iz == 0 && segment.orientation == LeftToRight) || (iz == 4 && segment.orientation == RightToLeft)) {
           y_low  = mid + stopZoneWidth/2 + centerZoneWidth;
           y_high = segment.y_max;
-        } else if ((iz == 0 && segment.orientation == TopToBottom) || (iz == 4 && segment.orientation == BottomToTop)) {
+        } else if ((iz == 0 && segment.orientation == RightToLeft) || (iz == 4 && segment.orientation == LeftToRight)) {
           y_high  =  mid - stopZoneWidth/2 - centerZoneWidth;
           y_low   = segment.y_min;
+        }
+      } else { //vertical
+        y_low  = segment.y_min;
+        y_high = segment.y_max;
+        auto mid = segment.x_min + (segment.x_max - segment.x_min)/2.0;
+        if(iz == 2) {
+          x_low  = mid - stopZoneWidth/2;
+          x_high = mid + stopZoneWidth/2;
+        } else if ((iz == 1 && segment.orientation == BottomToTop) || (iz == 3 && segment.orientation == TopToBottom)) {
+          x_low  = mid + stopZoneWidth/2;
+          x_high = mid + stopZoneWidth/2 + centerZoneWidth;
+        } else if ((iz == 1 && segment.orientation == TopToBottom) || (iz == 3 && segment.orientation == BottomToTop)) {
+          x_high  = mid - stopZoneWidth/2;
+          x_low   = mid - stopZoneWidth/2 - centerZoneWidth;
+        }  else if ((iz == 0 && segment.orientation == BottomToTop) || (iz == 4 && segment.orientation == TopToBottom)) {
+          x_low  = mid + stopZoneWidth/2 + centerZoneWidth;
+          x_high = segment.x_max;
+        } else if ((iz == 0 && segment.orientation == TopToBottom) || (iz == 4 && segment.orientation == BottomToTop)) {
+          x_high  =  mid - stopZoneWidth/2 - centerZoneWidth;
+          x_low   = segment.x_min;
         }
       }
 

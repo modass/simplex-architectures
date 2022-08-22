@@ -76,14 +76,14 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 1;
+  std::size_t               maxJumps             = 200;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening = 0.1;
   bool                      training = true;
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
-  Number                    timeStepSize{ 0.01 };
+  Number                    timeStepSize{ 0.1 };
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -116,10 +116,14 @@ int main( int argc, char* argv[] ) {
 
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
+  Number initialTheta = 0.01;
+  Number initialVelocity = 1;
+  Point initialPosition = Point({1.5,0.5});
+  Point initialCarState = Point({initialPosition[0], initialPosition[1], initialTheta});
   double bloating        = 0.0;
   double angularBloating = 0.0;  // 1.0472 approx. 60 degrees
-  IV     initialValuations{ I{ 1.5 - bloating, 1.5 + bloating }, I{ 1.5 - bloating, 1.5 + bloating }, I{ 0 }, I{ 0 },
-                        I{ 1 } };
+  IV     initialValuations{ I{ initialPosition[0] - bloating, initialPosition[0] + bloating }, I{ initialPosition[1] - bloating, initialPosition[1] + bloating }, I{ initialTheta }, I{ 0 },
+                        I{ initialVelocity } };
 
   auto tmpCtrl             = new PurePursuitController();
   tmpCtrl->track           = track;
@@ -129,50 +133,36 @@ int main( int argc, char* argv[] ) {
   AbstractController<Point, Point>* advCtrl = tmpCtrl;
 
   // use first controller output to determine the starting location
-  auto  startingpoint = hypro::conditionFromIntervals( initialValuations ).getInternalPoint();
-  Point ctrlInput;
-  if ( startingpoint ) {
-    ctrlInput = advCtrl->generateInput( startingpoint.value() );
-  } else {
-    throw std::logic_error( "Initial valuations are empty, cannot compute internal point." );
-  }
+  Point ctrlInput = advCtrl->generateInput( initialCarState );
 
   // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match
   // control output
-  auto        theta_bucket_index = 0;
-  std::string theta_string       = "theta_" + std::to_string( theta_bucket_index );
-  LocPtr      startingLocation   = nullptr;
-  for ( auto* lptr : carModel.getLocations() ) {
-    if ( lptr->getName().find( theta_string ) != std::string::npos ) {
-      startingLocation = lptr;
-      break;
+  {
+    auto                carLocations = carModel.getLocations();
+    std::vector<LocPtr> constInitialLocations{ std::begin( carLocations ), std::end( carLocations ) };
+    auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, constInitialLocations );
+    if ( startingLocationCandidates.size() != 1 ) {
+      throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
     }
-  }
-  if ( startingLocation == nullptr ) {
-    throw std::logic_error( "Could not determine correct starting location" );
-  }
+    LocPtr startingLocation = startingLocationCandidates.front();
 
-  locationConditionMap initialStates;
-  initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
-  carModel.setInitialStates( initialStates );
+    locationConditionMap initialStates;
+    initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+    carModel.setInitialStates( initialStates );
+  }
 
   RoadSegment segment = { 0.0, 0.0, 7.0, 3.0, LeftToRight };
 
   auto bcAtm = simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.5, M_PI / 12.0,
                                                                    M_PI / 4.5, { segment } );
 
-  IV initialValuationsBC{ I{ 1.5 }, I{ 1.5 } };
+  IV initialValuationsBC{ std::begin(initialValuations), std::next(std::begin(initialValuations),2) };
 
-  LocPtr startingLocationBC = nullptr;
-  for ( auto* lptr : bcAtm.getLocations() ) {
-    if ( lptr->getName().find( "segment_0_zone_2" ) != std::string::npos ) {
-      startingLocationBC = lptr;
-      break;
-    }
+  auto locCandidates = getLocationsForState(initialPosition,bcAtm);
+  if(locCandidates.size() != 1) {
+    throw std::logic_error("Something went wrong in the design of the BC.");
   }
-  if ( startingLocationBC == nullptr ) {
-    throw std::logic_error( "Could not determine correct BC starting location" );
-  }
+  LocPtr startingLocationBC = locCandidates.front();
 
   locationConditionMap initialStatesBC;
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
@@ -232,7 +222,7 @@ int main( int argc, char* argv[] ) {
 
   // the executor runs on the car model only
   assert( carModel.getInitialStates().size() == 1 );
-  Executor executor{ carModel, carModel.getInitialStates().begin()->first, startingpoint.value() };
+  Executor executor{ carModel, carModel.getInitialStates().begin()->first, initialPosition };
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
@@ -259,13 +249,14 @@ int main( int argc, char* argv[] ) {
   Simulator sim{ carModel, settings, storage };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
-  if ( training && storage.size() == 0 ) {
+  if ( training  ) {
+    assert(automaton.getInitialStates().size() == 1);
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace( std::make_pair(
-        executor.mLastLocation, hypro::Condition<Number>( widenSample( startingpoint.value(), widening,
+        automaton.getInitialStates().begin()->first, hypro::Condition<Number>( widenSample( initialPosition, widening,
                                                                        trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-    storage.plotCombined( "storage_post_initial_training_combined" );
+    storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
