@@ -83,7 +83,7 @@ int main( int argc, char* argv[] ) {
   bool                      training = true;
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
-  Number                    timeStepSize{ 0.1 };
+  Number                    timeStepSize{ 0.01 };
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -120,6 +120,7 @@ int main( int argc, char* argv[] ) {
   Number initialVelocity = 1;
   Point initialPosition = Point({1.5,0.5});
   Point initialCarState = Point({initialPosition[0], initialPosition[1], initialTheta});
+  Point initialState = Point({initialPosition[0], initialPosition[1], initialTheta, 0, initialVelocity});
   double bloating        = 0.0;
   double angularBloating = 0.0;  // 1.0472 approx. 60 degrees
   IV     initialValuations{ I{ initialPosition[0] - bloating, initialPosition[0] + bloating }, I{ initialPosition[1] - bloating, initialPosition[1] + bloating }, I{ initialTheta }, I{ 0 },
@@ -222,7 +223,7 @@ int main( int argc, char* argv[] ) {
 
   // the executor runs on the car model only
   assert( carModel.getInitialStates().size() == 1 );
-  Executor executor{ carModel, carModel.getInitialStates().begin()->first, initialPosition };
+  Executor executor{ carModel, carModel.getInitialStates().begin()->first, initialState };
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
@@ -253,7 +254,7 @@ int main( int argc, char* argv[] ) {
     assert(automaton.getInitialStates().size() == 1);
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace( std::make_pair(
-        automaton.getInitialStates().begin()->first, hypro::Condition<Number>( widenSample( initialPosition, widening,
+        automaton.getInitialStates().begin()->first, hypro::Condition<Number>( widenSample( initialState, widening,
                                                                        trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
     storage.plotCombined( "storage_post_initial_training_combined", true );
