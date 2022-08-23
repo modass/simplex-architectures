@@ -7,6 +7,7 @@
 
 #include <map>
 #include <hypro/datastructures/Hyperoctree.h>
+#include <hypro/util/serialization/serialization.h>
 #include "../types.h"
 #include "StorageSettings.h"
 #include "fileExists.h"

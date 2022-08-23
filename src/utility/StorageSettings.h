@@ -12,14 +12,15 @@
 namespace simplexArchitectures {
 
 struct StorageSettings {
-  std::vector<std::size_t> projectionDimensions;
-  hypro::Box<Number>       treeContainer;
-  std::size_t              treeSplits = 2;
-  std::size_t              treeDepth  = 4;
+  std::vector<std::size_t> projectionDimensions; ///< dimensions to project on for storing *after* applying the filter
+  hypro::Box<Number>       treeContainer; ///< describes the bounds on the state space considered
+  std::size_t              treeSplits = 2; ///< number of children that are created during a split
+  std::size_t              treeDepth  = 4; ///< maximal number of splits
+  hypro::Condition<Number> filter = {}; ///< constraints used to filter sets before adding them
 
   template <typename Archive>
   void serialize( Archive& ar ) {
-    ar( projectionDimensions, treeContainer, treeSplits, treeDepth );
+    ar( projectionDimensions, treeContainer, treeSplits, treeDepth, filter );
   }
 };
 
