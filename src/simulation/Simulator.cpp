@@ -19,9 +19,13 @@ namespace simplexArchitectures {
     hypro::TRIBOOL Simulator::isSafe(const Point& ctrlInput) {
         roots.clear();
 
-        for ( const auto& [LocPtr, samples] : mLastStates ) {
+        for ( const auto& [l, samples] : mLastStates ) {
             for ( auto sample : samples ) {
                 setCtrlValue(sample, ctrlInput);
+                LocPtr newLocation = l;
+                if(mLocationUpdate) {
+                  newLocation = mLocationUpdate(ctrlInput,l);
+                }
                 // create intervals representing the initial state
                 std::vector<carl::Interval<Number>> intervals;
                 for ( Eigen::Index i = 0; i < sample.dimension(); ++i ) {
@@ -29,7 +33,7 @@ namespace simplexArchitectures {
                 }
                 auto initialBox = hypro::Condition<Number>{ intervals };
                 typename hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
-                initialStates[LocPtr] = initialBox;
+                initialStates[newLocation] = initialBox;
                 mAutomaton.setInitialStates( initialStates );
                 auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
                 // add roots for this sample to global reachtree
@@ -62,7 +66,8 @@ namespace simplexArchitectures {
           return hypro::TRIBOOL::FALSE;
         }
 
-        // collect unknown samples
+        // collect unknown samples, i.e., new samples which have not yet been stored in the storage
+        // For those samples we do not know whether they are safe for the base controller.
         unknownSamples.clear();
         auto isSafe     = hypro::TRIBOOL::TRUE;
         auto nextStates = potentialNextStates();
@@ -165,7 +170,10 @@ namespace simplexArchitectures {
 
     void Simulator::setCtrlValue(Point &sample, const Point &ctrlInput) {
         // augment state with controller input
-        sample.at( 2 ) = ctrlInput.at( 0 );
+        // sample.at( 2 ) = ctrlInput.at( 0 );
+        for(Eigen::Index i = 0; i < mControlDimensions.size(); ++i) {
+          sample[mControlDimensions[i]] = ctrlInput[i];
+        }
     }
 
     std::map<LocPtr, std::vector<Box>> Simulator::potentialNextStates() {

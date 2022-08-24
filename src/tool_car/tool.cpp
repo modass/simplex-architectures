@@ -70,7 +70,7 @@ constexpr Eigen::Index                v     = 4;
 constexpr Eigen::Index                C     = 5;
 static const std::vector<std::size_t> interesting_dimensions{ x, y, theta };
 // TODO
-static const std::vector<std::size_t> controller_dimensions{ 2, 4 };
+static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
 int main( int argc, char* argv[] ) {
   // settings
@@ -147,9 +147,7 @@ int main( int argc, char* argv[] ) {
   // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match
   // control output
   {
-    auto                carLocations = carModel.getLocations();
-    std::vector<LocPtr> constInitialLocations{ std::begin( carLocations ), std::end( carLocations ) };
-    auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, constInitialLocations );
+    auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, carModel.getLocations() );
     if ( startingLocationCandidates.size() != 1 ) {
       throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
     }
@@ -190,7 +188,8 @@ int main( int argc, char* argv[] ) {
     variableMap[var] = mainLocations;
   }
 
-  hypro::HybridAutomaton<Number> automaton;
+  Automaton automaton;
+  Automaton simulationAutomaton;
   // TODO currently disabled loading from file, since it takes longer than composing. We should serialize automata in
   // the future
   if ( false && hypro::file_exists( composedAutomatonFile ) ) {
@@ -214,6 +213,15 @@ int main( int argc, char* argv[] ) {
       fs << hypro::toFlowstarFormat( automaton );
       fs.close();
     }
+
+    // create model for simulation: parallel-compose with an automaton that synchronizes on a label that does not change theta but only reduces the speed to zero.
+    // This should terminate the simulation after the first jump with finding a fixed point.
+    auto stoppingAutomaton = hypro::HybridAutomaton<Number>();
+    auto* l = stoppingAutomaton.createLocation("stop");
+    auto* t = l->createTransition(l);
+    t->addLabel(hypro::Label{"stop"});
+    stoppingAutomaton.setInitialStates({{l,hypro::Condition<Number>{}}});
+    simulationAutomaton = hypro::parallelCompose(carModel,stoppingAutomaton);
   }
 
   // reachability analysis settings, here only used for simulation
@@ -228,8 +236,8 @@ int main( int argc, char* argv[] ) {
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
   // the executor runs on the car model only
-  assert( carModel.getInitialStates().size() == 1 );
-  Executor executor{ carModel, carModel.getInitialStates().begin()->first, initialState };
+  assert( simulationAutomaton.getInitialStates().size() == 1 );
+  Executor executor{ simulationAutomaton, simulationAutomaton.getInitialStates().begin()->first, initialState };
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
@@ -253,7 +261,17 @@ int main( int argc, char* argv[] ) {
   Trainer trainer{ automaton, trainingSettings, storage };
 
   // monitor/simulator, runs on the car model
-  Simulator sim{ carModel, settings, storage };
+  Simulator sim{ simulationAutomaton, settings, storage, controller_dimensions };
+  // set location-update function
+  sim.mLocationUpdate = [&theta_discretization, &simulationAutomaton](Point p, LocPtr l) -> LocPtr{
+    // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions, for now hardcode 0 (theta in ctrl-output)
+    auto candidates = getLocationForTheta(p[0], theta_discretization, simulationAutomaton.getLocations());
+    if(candidates.size() > 2 || candidates.size() < 1) {
+      throw std::logic_error("Cannot have more than one control locations.");
+    }
+    return candidates.front();
+  };
+  // initialize simulator
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
   if ( training  ) {
@@ -334,6 +352,7 @@ int main( int argc, char* argv[] ) {
           ss << sim.getBaseControllerOutput();
           spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         }
+        // TODO get rid of the method "getBaseControllerOutput", continue working here.
         executor.execute( sim.getBaseControllerOutput() );
         sim.update( sim.getBaseControllerOutput(), executor.mLastState );
         advControllerUsed = false;

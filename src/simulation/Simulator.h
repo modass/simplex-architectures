@@ -24,7 +24,7 @@ namespace simplexArchitectures {
 
     struct Simulator {
 
-        Simulator(hypro::HybridAutomaton<Number>& automaton, const hypro::Settings& s, const Storage& storage) : mAutomaton(automaton), mSettings(s), mStorage(storage) {}
+        Simulator(hypro::HybridAutomaton<Number>& automaton, const hypro::Settings& s, const Storage& storage, std::vector<std::size_t> ctrlDimensions) : mAutomaton(automaton), mSettings(s), mStorage(storage), mControlDimensions(ctrlDimensions) {}
         // Assumptions: Hidden state variables of the specification are always clocks, we keep only the minimum and maximum in case simulation allows several values
         
         Point getBaseControllerOutput();  // extract the base controller output from the current state
@@ -34,15 +34,17 @@ namespace simplexArchitectures {
 
         void update(const Point& ctrlInput, const Point& nextObservation); // Update current state based on input and next observation
 
-        hypro::HybridAutomaton<Number> &mAutomaton;
+        hypro::HybridAutomaton<Number> &mAutomaton; ///< environment + specification model
         hypro::Settings mSettings;
         double mCycleTime = 1.0;
         std::vector<ReachTreeNode> roots;
         std::map<LocPtr, std::set<Point>> mLastStates;
-        std::map<LocPtr, std::vector<Representation>> unknownSamples;
+        std::map<LocPtr, std::vector<Representation>> unknownSamples; ///< samples which are not known to be safe for the base controller
+        std::vector<std::size_t> mControlDimensions; ///< ordered sequence of dimensions that the controller may modify during an update
+        std::function<LocPtr(Point, LocPtr)> mLocationUpdate; ///< lambda-function that is used to update a location based on a ctrl-input
 
     private:
-        static void setCtrlValue(Point &state, const Point &ctrlInput);
+        void setCtrlValue(Point &state, const Point &ctrlInput);
         const Storage& mStorage;
     };
 

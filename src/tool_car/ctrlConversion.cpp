@@ -137,7 +137,7 @@ std::size_t getYBucket( Number y, double y_min, double y_max, double y_interval_
   }
   throw std::logic_error("Value out of range");}
 
-std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<LocPtr>& in) {
+std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<typename Automaton::LocationType*>& in) {
   std::vector<LocPtr> res;
   std::size_t thetaBucket = getThetaBucket(theta, discretization);
   std::string searchstring = "theta_" + std::to_string(thetaBucket);

@@ -36,7 +36,7 @@ std::size_t getYBucket(Number y, double y_min, double y_max, double y_interval_s
 template<typename Automaton>
 std::vector<LocPtr> getLocationsForState(const Point& in, const Automaton& automaton);
 
-std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<LocPtr>& in);
+std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<typename Automaton::LocationType*>& in);
 
 } // namespace
 
