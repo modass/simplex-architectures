@@ -3,7 +3,10 @@
  */
 
 #include "PurePursuitController.h"
+
 #include <spdlog/spdlog.h>
+
+#include "tool_car/ctrlConversion.h"
 
 namespace simplexArchitectures {
 
@@ -43,9 +46,11 @@ Point PurePursuitController::generateInput( Point state ) {
     }
   }
 
-  std::cout << "Pure pursuit controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
+//  std::cout << "Pure pursuit controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
 
-  return Point( { delta, velocity } );
+  auto theta = convertDeltaToTheta(delta, state.at(2), thetaDiscretization);
+
+  return Point( { theta, velocity } );
 }
 
 }  // namespace simplexArchitectures

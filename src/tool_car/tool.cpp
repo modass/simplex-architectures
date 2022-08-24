@@ -68,7 +68,7 @@ constexpr Eigen::Index                theta = 2;
 constexpr Eigen::Index                tick  = 3;
 constexpr Eigen::Index                v     = 4;
 constexpr Eigen::Index                C     = 5;
-static const std::vector<std::size_t> interesting_dimensions{ x, y, theta, tick };
+static const std::vector<std::size_t> interesting_dimensions{ x, y, theta };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ 2, 4 };
 
@@ -114,6 +114,13 @@ int main( int argc, char* argv[] ) {
   track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
   track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
 
+  std::vector<RoadSegment> segments = {
+      { 0.0, 0.0, 7.0,  3.0,  LeftToRight },
+      { 7.0, 0.0, 10.0, 7.0,  BottomToTop },
+      { 3.0, 7.0, 10.0, 10.0, RightToLeft },
+      { 0.0, 3.0, 3.0,  10.0, TopToBottom }
+  };
+
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
   Number initialTheta = 0.01;
@@ -128,6 +135,7 @@ int main( int argc, char* argv[] ) {
 
   auto tmpCtrl             = new PurePursuitController();
   tmpCtrl->track           = track;
+  tmpCtrl->thetaDiscretization = theta_discretization;
   tmpCtrl->lastWaypoint    = tmpCtrl->track.waypoints.begin();
   tmpCtrl->currentWaypoint = std::next( tmpCtrl->lastWaypoint );
 
@@ -152,10 +160,8 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  RoadSegment segment = { 0.0, 0.0, 7.0, 3.0, LeftToRight };
-
-  auto bcAtm = simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.5, M_PI / 12.0,
-                                                                   M_PI / 4.5, { segment } );
+  auto bcAtm = simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.15, M_PI / 12.0 /* 15° */,
+                                                                   0.87 /* 50° */, segments );
 
   IV initialValuationsBC{ std::begin(initialValuations), std::next(std::begin(initialValuations),2) };
 
@@ -231,7 +237,7 @@ int main( int argc, char* argv[] ) {
   // Storage for trained sets
   auto storagesettings = StorageSettings{
       interesting_dimensions,
-      Box{ IV{ I{ segment.x_min, segment.x_max }, I{ segment.y_min, segment.y_max }, I{ 0, 360 }, I{ 0, 1 } } } };
+      Box{ IV{ track.playground.intervals()[0], track.playground.intervals()[1], I{ 0.0, 2*M_PI } } } };
   auto             storage = Storage( storagefilename, storagesettings );
   TrainingSettings trainingSettings{
       1,                                                                  // iterations
