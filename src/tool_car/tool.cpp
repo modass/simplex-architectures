@@ -215,14 +215,22 @@ int main( int argc, char* argv[] ) {
       fs.close();
     }
 
-    // create model for simulation: parallel-compose with an automaton that synchronizes on a label that does not change theta but only reduces the speed to zero.
+    // create model for simulation: includes locations for all theta buckets, but only stop transitions
+    // that do not change theta and reduce the speed to zero.
     // This should terminate the simulation after the first jump with finding a fixed point.
-    auto stoppingAutomaton = hypro::HybridAutomaton<Number>();
-    auto* l = stoppingAutomaton.createLocation("stop");
-    auto* t = l->createTransition(l);
-    t->addLabel(hypro::Label{"stop"});
-    stoppingAutomaton.setInitialStates({{l,hypro::Condition<Number>{}}});
-    simulationAutomaton = hypro::parallelCompose(carModel,stoppingAutomaton);
+    simulationAutomaton = modelGenerator::generateCarModel(theta_discretization, false);
+    {
+      auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, simulationAutomaton.getLocations() );
+      if ( startingLocationCandidates.size() != 1 ) {
+        throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
+      }
+      LocPtr startingLocation = startingLocationCandidates.front();
+
+      locationConditionMap initialStates;
+      initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+      simulationAutomaton.setInitialStates( initialStates );
+    }
+
   }
 
   // reachability analysis settings, here only used for simulation
