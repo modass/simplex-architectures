@@ -3,6 +3,7 @@
 //
 
 #include "Simulator.h"
+#include <spdlog/fmt/bundled/ostream.h>
 
 namespace simplexArchitectures {
 
@@ -19,8 +20,10 @@ namespace simplexArchitectures {
     hypro::TRIBOOL Simulator::isSafe(const Point& ctrlInput) {
         roots.clear();
 
+        spdlog::trace("Simulate for samples in {} locations",mLastStates.size());
         for ( const auto& [l, samples] : mLastStates ) {
             for ( auto sample : samples ) {
+                spdlog::trace("Simulate from {} starting in location {}", sample, l->getName());
                 setCtrlValue(sample, ctrlInput);
                 LocPtr newLocation = l;
                 if(mLocationUpdate) {
@@ -71,6 +74,7 @@ namespace simplexArchitectures {
         unknownSamples.clear();
         auto isSafe     = hypro::TRIBOOL::TRUE;
         auto nextStates = potentialNextStates();
+        spdlog::trace("Have {} potential next states after cutoff.", nextStates.size());
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {
             if(!mStorage.isContained(loc->getName(),set)) {
@@ -96,6 +100,7 @@ namespace simplexArchitectures {
         Matrix constraints = Matrix::Zero( 2, 5 );
         Vector constants = Vector::Zero( 2 );
         // assign constraints:  tick = 0
+        // TODO this is highly sketchy, these constraints should not be hardcoded in the simulator but be provided from external sources
         // tick
         constraints( 0, 4 ) = 1;
         constraints( 1, 4 ) = -1;
@@ -164,6 +169,10 @@ namespace simplexArchitectures {
                 // LocPtr->getName() << ")" << std::endl;
                 assert( mLastStates[LocPtr].size() <= 2 );
             }
+        }
+        // TODO continue here
+        if(mLastStates.empty()) {
+          spdlog::warn("None of the simulated traces agrees with the actual real-world observation passed to the simulator.");
         }
         spdlog::debug("Update simulator done.");
     }

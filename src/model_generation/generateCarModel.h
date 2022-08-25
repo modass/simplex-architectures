@@ -17,11 +17,11 @@ namespace modelGenerator {
  * @param discretization
  * @return
  */
-hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization = 12, bool includeThetaTransitions = true);
+hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization = 12, double cycleTime = 0.1, bool includeThetaTransitions = true);
 
-inline void generateCarModelFile( std::string filename, std::size_t theta_discretization = 12 ) {
+inline void generateCarModelFile( std::string filename, std::size_t theta_discretization = 12, double cycleTime = 0.1 ) {
   std::ofstream fs{ filename };
-  fs << hypro::toFlowstarFormat( generateCarModel( theta_discretization ) );
+  fs << hypro::toFlowstarFormat( generateCarModel( theta_discretization, cycleTime ) );
   fs.close();
 }
 }  // namespace modelGenerator

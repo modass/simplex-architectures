@@ -13,6 +13,7 @@ template <typename Node>
 void cutoffControllerJumps( Node* node ) {
   auto children = node->getChildren();
   for ( auto childIt = children.begin(); childIt != children.end(); ++childIt ) {
+    // TODO we should not hardcode the tick dimension (3) here!
     if ( !( *childIt )->getTransition()->getReset().isIdentity( 3 ) ) {
       (*childIt)->eraseChildren();
       ( *childIt )->getFlowpipe().clear();

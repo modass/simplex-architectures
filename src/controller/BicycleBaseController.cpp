@@ -4,10 +4,12 @@
 
 #include "BicycleBaseController.h"
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/bundled/ostream.h>
 
 namespace simplexArchitectures {
 
 Point BicycleBaseController::generateInput( Point state ) {
+  spdlog::trace("Get Base Controller output for state {}",state);
   auto numberOfSegments = segments.size();
   // zones: borderLeft, centerLeft, stop, centerRight, borderRight
   // bucket indices: (segment, zone)
@@ -21,6 +23,7 @@ Point BicycleBaseController::generateInput( Point state ) {
   std::size_t is = 0;
   std::size_t iz = 0;
   auto        segment = segments[0];
+  bool foundZoneAndSegment = false;
   for ( ; is < numberOfSegments; ++is ) {
     segment         = segments[is];
     bool horizontal = segment.orientation == LeftToRight || segment.orientation == RightToLeft;
@@ -75,8 +78,12 @@ Point BicycleBaseController::generateInput( Point state ) {
 
       // check whether current combination matches the input point - if so, we have found the correct segment and zone
       if(state[0] >= x_low && state[0] <= x_high && state[1] >= y_low && state[1] <= y_high) {
+        foundZoneAndSegment = true;
         break;
       }
+    }
+    if(foundZoneAndSegment) {
+      break;
     }
   }
 

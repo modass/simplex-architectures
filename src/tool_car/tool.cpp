@@ -84,6 +84,9 @@ int main( int argc, char* argv[] ) {
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
+  Number cycleTime{ 0.1};
+  bool plotSets = false;
+  bool plotPosition = true;
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -100,7 +103,7 @@ int main( int argc, char* argv[] ) {
   CLI11_PARSE( app, argc, argv );
   // parse model
   hypro::ReachabilitySettings reachSettings;
-  auto                        carModel = modelGenerator::generateCarModel( theta_discretization );
+  auto                        carModel = modelGenerator::generateCarModel( theta_discretization, cycleTime );
   reachSettings.timeStep               = timeStepSize;
   {
     std::ofstream fs{ "car.model" };
@@ -218,7 +221,7 @@ int main( int argc, char* argv[] ) {
     // create model for simulation: includes locations for all theta buckets, but only stop transitions
     // that do not change theta and reduce the speed to zero.
     // This should terminate the simulation after the first jump with finding a fixed point.
-    simulationAutomaton = modelGenerator::generateCarModel(theta_discretization, false);
+    simulationAutomaton = modelGenerator::generateCarModel(theta_discretization, cycleTime, false);
     {
       auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, simulationAutomaton.getLocations() );
       if ( startingLocationCandidates.size() != 1 ) {
@@ -244,17 +247,20 @@ int main( int argc, char* argv[] ) {
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
-  // the executor runs on the car model only
-  assert( simulationAutomaton.getInitialStates().size() == 1 );
-  Executor executor{ simulationAutomaton, simulationAutomaton.getInitialStates().begin()->first, initialState };
-  executor.mSettings          = settings;
-  executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
-  executor.mPlot              = false;
-
   // Storage for trained sets
   auto storagesettings = StorageSettings{
       interesting_dimensions,
       Box{ IV{ track.playground.intervals()[0], track.playground.intervals()[1], I{ 0.0, 2*M_PI } } } };
+  // filter only sets wherer the time is the tick-time
+  // TODO get dimensions from some variables defined before
+  Matrix constraints = Matrix::Zero(2,5);
+  constraints(0,tick) = 1;
+  constraints(1,tick) = -1;
+  Vector constants = Vector::Zero(2);
+  constants << cycleTime,-cycleTime;
+  storagesettings.filter = hypro::Condition<Number>(constraints,constants);
+
+
   auto             storage = Storage( storagefilename, storagesettings );
   TrainingSettings trainingSettings{
       1,                                                                  // iterations
@@ -269,12 +275,9 @@ int main( int argc, char* argv[] ) {
   // the trainer runs on the combined automaton of base controller and car model
   Trainer trainer{ automaton, trainingSettings, storage };
 
-  // monitor/simulator, runs on the car model
-  Simulator sim{ simulationAutomaton, settings, storage, controller_dimensions };
   // set location-update function
-  sim.mLocationUpdate = [&theta_discretization, &simulationAutomaton](Point p, LocPtr l) -> LocPtr{
+  auto updateFunction = [&theta_discretization, &simulationAutomaton](Point p, LocPtr l) -> LocPtr{
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions, for now hardcode 0 (theta in ctrl-output)
-    // TODO continue here: the simulationAutomaton currently has only one location, I think the parallel composition is messed up.
     auto candidates = getLocationForTheta(p[0], theta_discretization, simulationAutomaton.getLocations());
     if(candidates.size() > 2 || candidates.size() < 1) {
       std::cout << "Candidates:\n";
@@ -286,6 +289,18 @@ int main( int argc, char* argv[] ) {
     }
     return candidates.front();
   };
+
+  // the executor runs on the car model only
+  assert( simulationAutomaton.getInitialStates().size() == 1 );
+  Executor executor{ simulationAutomaton, simulationAutomaton.getInitialStates().begin()->first, initialState };
+  executor.mSettings          = settings;
+  executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
+  executor.mPlot              = false;
+  executor.mLocationUpdate = updateFunction;
+
+  // monitor/simulator, runs on the car model
+  Simulator sim{ simulationAutomaton, settings, storage, controller_dimensions };
+  sim.mLocationUpdate = updateFunction;
   // initialize simulator
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
@@ -380,22 +395,31 @@ int main( int argc, char* argv[] ) {
       }
     }
 
-    /*
+
     std::stringstream ss;
     std::size_t       l = std::to_string( iterations ).size();
     ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
-    storage.plotCombined( "storage_post_iteration_" + ss.str() + "_combined", false );
-     */
-    {
-      auto fillsettings = hypro::Plotter<Number>::getInstance().settings();
-      fillsettings.fill = true;
-      if ( advControllerUsed ) {
-        hypro::Plotter<Number>::getInstance().addPoint( executor.mLastState.projectOn( { 0, 1 } ),
-                                                        hypro::plotting::colors[hypro::plotting::green], fillsettings );
-      } else {
-        hypro::Plotter<Number>::getInstance().addPoint(
-            executor.mLastState.projectOn( { 0, 1 } ), hypro::plotting::colors[hypro::plotting::orange], fillsettings );
+    if(plotSets) {
+      storage.plotCombined( "car_storage_post_iteration_" + ss.str() + "_combined", false );
+    } else {
+      hypro::Plotter<Number>::getInstance().setFilename("car_storage_post_iteration_" + ss.str() + "_combined");
+    }
+
+
+      if(plotPosition) {
+        auto fillsettings = hypro::Plotter<Number>::getInstance().settings();
+        fillsettings.fill = true;
+        if ( advControllerUsed ) {
+          hypro::Plotter<Number>::getInstance().addPoint( executor.mLastState.projectOn( { 0, 1 } ),
+                                                          hypro::plotting::colors[hypro::plotting::green],
+                                                          fillsettings );
+        } else {
+          hypro::Plotter<Number>::getInstance().addPoint( executor.mLastState.projectOn( { 0, 1 } ),
+                                                          hypro::plotting::colors[hypro::plotting::orange],
+                                                          fillsettings );
+        }
       }
+    if(plotSets || plotPosition) {
       hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
       hypro::Plotter<Number>::getInstance().clear();
     }
