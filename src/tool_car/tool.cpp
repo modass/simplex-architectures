@@ -342,13 +342,14 @@ int main( int argc, char* argv[] ) {
       // TODO why does the simulator require the last used control input?
       sim.update( advControllerInput, executor.mLastState );
     } else if ( advControllerSafe == hypro::TRIBOOL::FALSE ) {
+      Point bcInput = bc.generateInput(executor.mLastState);
       {
         std::stringstream ss;
-        ss << bc.generateInput(executor.mLastState);
+        ss << bcInput;
         spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
       }
-      executor.execute( bc.generateInput(executor.mLastState) );
-      sim.update( bc.generateInput(executor.mLastState), executor.mLastState );
+      executor.execute( bcInput );
+      sim.update( bcInput, executor.mLastState );
       advControllerUsed = false;
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
@@ -376,13 +377,14 @@ int main( int argc, char* argv[] ) {
         storage.plotCombined( "storage_post_training_" + ss.str() + "_combined" );
       }*/
       if ( !allSafe ) {
+        Point bcInput = bc.generateInput(executor.mLastState);
         {
           std::stringstream ss;
-          ss << bc.generateInput(executor.mLastState);
+          ss << bcInput;
           spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         }
-        executor.execute( bc.generateInput(executor.mLastState) );
-        sim.update( bc.generateInput(executor.mLastState), executor.mLastState );
+        executor.execute( bcInput );
+        sim.update( bcInput, executor.mLastState );
         advControllerUsed = false;
       } else {
         {

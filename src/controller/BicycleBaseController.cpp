@@ -28,7 +28,7 @@ Point BicycleBaseController::generateInput( Point state ) {
     segment         = segments[is];
     bool horizontal = segment.orientation == LeftToRight || segment.orientation == RightToLeft;
 
-    for ( ; iz < 5; ++iz ) {
+    for ( iz = 0 ; iz < 5; ++iz ) {
       double x_low;
       double y_low;
       double x_high;
@@ -85,6 +85,10 @@ Point BicycleBaseController::generateInput( Point state ) {
     if(foundZoneAndSegment) {
       break;
     }
+  }
+
+  if(!foundZoneAndSegment){
+    spdlog::warn("No base controller output available for state {}.", state);
   }
 
     //deduce correct theta bucket

@@ -20,10 +20,10 @@ namespace simplexArchitectures {
     hypro::TRIBOOL Simulator::isSafe(const Point& ctrlInput) {
         roots.clear();
 
-        spdlog::trace("Simulate for samples in {} locations",mLastStates.size());
+//        spdlog::trace("Simulate for samples in {} locations",mLastStates.size());
         for ( const auto& [l, samples] : mLastStates ) {
             for ( auto sample : samples ) {
-                spdlog::trace("Simulate from {} starting in location {}", sample, l->getName());
+//                spdlog::trace("Simulate from {} starting in location {}", sample, l->getName());
                 setCtrlValue(sample, ctrlInput);
                 LocPtr newLocation = l;
                 if(mLocationUpdate) {
@@ -74,7 +74,7 @@ namespace simplexArchitectures {
         unknownSamples.clear();
         auto isSafe     = hypro::TRIBOOL::TRUE;
         auto nextStates = potentialNextStates();
-        spdlog::trace("Have {} potential next states after cutoff.", nextStates.size());
+//        spdlog::trace("Have {} potential next states after cutoff.", nextStates.size());
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {
             if(!mStorage.isContained(loc->getName(),set)) {
