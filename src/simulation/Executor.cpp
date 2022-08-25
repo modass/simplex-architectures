@@ -16,9 +16,14 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     extendedState[d] = ctrlInput[i];
     i++;
   }
-  std::stringstream ss;
-  ss << extendedState;
-  spdlog::debug( "Run executor with initial state {} in location {}", ss.str(), mLastLocation->getName() );
+  if(mLocationUpdate) {
+    mLastLocation = mLocationUpdate(ctrlInput,mLastLocation);
+  }
+  {
+    std::stringstream ss;
+    ss << extendedState;
+    spdlog::debug( "Run executor with initial state {} in location {}", ss.str(), mLastLocation->getName() );
+  }
   // create intervals representing the initial state
   std::vector<carl::Interval<Number>> intervals;
   for ( Eigen::Index i = 0; i < extendedState.dimension(); ++i ) {
@@ -107,9 +112,12 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
 
     mLastLocation = location;
     mLastState    = observation;
-    ss.str( std::string() );
-    ss << observation;
-    spdlog::debug( "Executor has new state: {} in location {}", ss.str(), mLastLocation->getName() );
+    {
+      std::stringstream ss;
+      ss.str( std::string() );
+      ss << observation;
+      spdlog::debug( "Executor has new state: {} in location {}", ss.str(), mLastLocation->getName() );
+    }
 
     return observation;
 }

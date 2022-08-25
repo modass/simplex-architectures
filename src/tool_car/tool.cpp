@@ -125,7 +125,7 @@ int main( int argc, char* argv[] ) {
   // x, y, theta, tick, v
   Number initialTheta = 0.01;
   Number initialVelocity = 1;
-  Point initialPosition = Point({1.5,0.5});
+  Point initialPosition = Point({6.0,0.5});
   Point initialCarState = Point({initialPosition[0], initialPosition[1], initialTheta});
   Point initialState = Point({initialPosition[0], initialPosition[1], initialTheta, 0, initialVelocity});
   double bloating        = 0.0;
@@ -158,8 +158,9 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bcAtm = simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.15, M_PI / 12.0 /* 15° */,
-                                                                   0.87 /* 50° */, segments );
+  auto bc =    simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.15, M_PI / 12.0 /* 15° */,0.87 /* 50° */, segments );
+  auto& bcAtm = bc.mAutomaton;
+
 
   IV initialValuationsBC{ std::begin(initialValuations), std::next(std::begin(initialValuations),2) };
 
@@ -267,7 +268,12 @@ int main( int argc, char* argv[] ) {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions, for now hardcode 0 (theta in ctrl-output)
     auto candidates = getLocationForTheta(p[0], theta_discretization, simulationAutomaton.getLocations());
     if(candidates.size() > 2 || candidates.size() < 1) {
-      throw std::logic_error("Cannot have more than one control locations.");
+      std::cout << "Candidates:\n";
+      for(const auto* l : candidates) {
+        std::cout << l->getName() << "\n";
+      }
+      std::cout << std::flush;
+      throw std::logic_error("Number of control-location candidates (" + std::to_string(candidates.size()) + ") is invalid.");
     }
     return candidates.front();
   };
@@ -314,12 +320,12 @@ int main( int argc, char* argv[] ) {
     } else if ( advControllerSafe == hypro::TRIBOOL::FALSE ) {
       {
         std::stringstream ss;
-        ss << sim.getBaseControllerOutput();
+        ss << bc.generateInput(executor.mLastState);
         spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
       }
       // TODO why do we call the simulator to get the BC output, should we not call the BC directly?
-      executor.execute( sim.getBaseControllerOutput() );
-      sim.update( sim.getBaseControllerOutput(), executor.mLastState );
+      executor.execute( bc.generateInput(executor.mLastState) );
+      sim.update( bc.generateInput(executor.mLastState), executor.mLastState );
       advControllerUsed = false;
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
@@ -349,12 +355,12 @@ int main( int argc, char* argv[] ) {
       if ( !allSafe ) {
         {
           std::stringstream ss;
-          ss << sim.getBaseControllerOutput();
+          ss << bc.generateInput(executor.mLastState);
           spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         }
         // TODO get rid of the method "getBaseControllerOutput", continue working here.
-        executor.execute( sim.getBaseControllerOutput() );
-        sim.update( sim.getBaseControllerOutput(), executor.mLastState );
+        executor.execute( bc.generateInput(executor.mLastState) );
+        sim.update( bc.generateInput(executor.mLastState), executor.mLastState );
         advControllerUsed = false;
       } else {
         {

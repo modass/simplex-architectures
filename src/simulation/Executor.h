@@ -38,6 +38,7 @@ struct Executor {
   hypro::Settings                 mSettings;
   ExecutionSettings               mExecutionSettings;
   bool mPlot = true;
+  std::function<LocPtr(Point, LocPtr)> mLocationUpdate; ///< lambda-function that is used to update a location based on a ctrl-input
 
  private:
         double mCycleTime = 1.0;

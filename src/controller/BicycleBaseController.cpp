@@ -8,57 +8,121 @@
 namespace simplexArchitectures {
 
 Point BicycleBaseController::generateInput( Point state ) {
-  double delta    = 0;
-  double velocity = 1.0;
+  auto numberOfSegments = segments.size();
+  // zones: borderLeft, centerLeft, stop, centerRight, borderRight
+  // bucket indices: (segment, zone)
+  std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*> buckets;
+  std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double,double>> outputs;
 
-  Point target = computeTarget( state );
+  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
+  double theta_representative  = theta_increment / 2.0;
 
-  // lookahead-distance l = sqrt(x^2 + y^2)
-  double distanceToTarget = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
-  double l = distanceToTarget; //std::min(2.0,distanceToTarget);
-  // Stop the car in case the safe spot has been found
+  // find the correct segment and zone
+  std::size_t is = 0;
+  std::size_t iz = 0;
+  auto        segment = segments[0];
+  for ( ; is < numberOfSegments; ++is ) {
+    segment         = segments[is];
+    bool horizontal = segment.orientation == LeftToRight || segment.orientation == RightToLeft;
 
-//  std::cout << "Target in car coordinates: ( " << target.at(0) << "; " << target.at(1) << ") ; distance to target = " << distanceToTarget << std::endl;
+    for ( ; iz < 5; ++iz ) {
+      double x_low;
+      double y_low;
+      double x_high;
+      double y_high;
 
-  auto currentPosition = state.projectOn({0,1});
-  auto waypointVector = *currentWaypoint - currentPosition;
-  auto angleToWaypoint = atan2(waypointVector.at(1), waypointVector.at(0));
+      if (horizontal){
+        x_low  = segment.x_min;
+        x_high = segment.x_max;
+        auto mid = segment.y_min + (segment.y_max - segment.y_min)/2.0;
+        if(iz == 2) {
+          y_low  = mid - stopZoneWidth/2;
+          y_high = mid + stopZoneWidth/2;
+        } else if ((iz == 1 && segment.orientation == LeftToRight) || (iz == 3 && segment.orientation == RightToLeft)) {
+          y_low  = mid + stopZoneWidth/2;
+          y_high = mid + stopZoneWidth/2 + centerZoneWidth;
+        } else if ((iz == 1 && segment.orientation == RightToLeft) || (iz == 3 && segment.orientation == LeftToRight)) {
+          y_high  = mid - stopZoneWidth/2;
+          y_low   = mid - stopZoneWidth/2 - centerZoneWidth;
+        }  else if ((iz == 0 && segment.orientation == LeftToRight) || (iz == 4 && segment.orientation == RightToLeft)) {
+          y_low  = mid + stopZoneWidth/2 + centerZoneWidth;
+          y_high = segment.y_max;
+        } else if ((iz == 0 && segment.orientation == RightToLeft) || (iz == 4 && segment.orientation == LeftToRight)) {
+          y_high  =  mid - stopZoneWidth/2 - centerZoneWidth;
+          y_low   = segment.y_min;
+        }
+      } else { //vertical
+        y_low  = segment.y_min;
+        y_high = segment.y_max;
+        auto mid = segment.x_min + (segment.x_max - segment.x_min)/2.0;
+        if(iz == 2) {
+          x_low  = mid - stopZoneWidth/2;
+          x_high = mid + stopZoneWidth/2;
+        } else if ((iz == 3 && segment.orientation == BottomToTop) || (iz == 1 && segment.orientation == TopToBottom)) {
+          x_low  = mid + stopZoneWidth/2;
+          x_high = mid + stopZoneWidth/2 + centerZoneWidth;
+        } else if ((iz == 3 && segment.orientation == TopToBottom) || (iz == 1 && segment.orientation == BottomToTop)) {
+          x_high  = mid - stopZoneWidth/2;
+          x_low   = mid - stopZoneWidth/2 - centerZoneWidth;
+        }  else if ((iz == 4 && segment.orientation == BottomToTop) || (iz == 0 && segment.orientation == TopToBottom)) {
+          x_low  = mid + stopZoneWidth/2 + centerZoneWidth;
+          x_high = segment.x_max;
+        } else if ((iz == 4 && segment.orientation == TopToBottom) || (iz == 0 && segment.orientation == BottomToTop)) {
+          x_high  =  mid - stopZoneWidth/2 - centerZoneWidth;
+          x_low   = segment.x_min;
+        }
+      }
 
-//  std::cout << "target y distance: " <<  abs(target.at(1)) <<" ; angle to waypoint = " << angleToWaypoint-state.at(2) << std::endl;
-  if ( abs(target.at(1)) < 0.15 && abs(angleToWaypoint - state.at(2)) < 0.2 ) {
-    velocity = 0.0;
-  }
-
-  // compute controll according to https://arxiv.org/pdf/2107.05815.pdf Eq. 1
-  // if the point lies ahead
-  if ( target.at( 0 ) > 0 ) {
-    delta = atan( ( 2 * wheelbase * target.at( 1 ) ) / pow( l, 2 ) );
-  } else {
-    spdlog::debug("The target lies behind the car - turning around.");
-    if (target.at(1) > 0) {
-      delta = M_PI/2;
-    } else {
-      delta = -M_PI/2;
+      // check whether current combination matches the input point - if so, we have found the correct segment and zone
+      if(state[0] >= x_low && state[0] <= x_high && state[1] >= y_low && state[1] <= y_high) {
+        break;
+      }
     }
   }
-//  std::cout << "Base controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
 
-  return Point( { delta, velocity } );
+    //deduce correct theta bucket
+    double segmentAngle;
+    switch (segment.orientation) {
+      case LeftToRight:
+        segmentAngle = 0.0;
+        break;
+      case RightToLeft:
+        segmentAngle = M_PI;
+        break;
+      case BottomToTop:
+        segmentAngle = 0.5*M_PI;
+        break;
+      case TopToBottom:
+        segmentAngle = 1.5*M_PI;
+        break;
+    }
+    double theta = segmentAngle;
+    double velocity = 1;
+    switch ( iz ) {
+      case 0: {
+        theta = normalizeAngle( segmentAngle - borderAngle );
+        break;
+      }
+      case 1: {
+        theta = normalizeAngle(segmentAngle - centerAngle);
+        break;
+      }
+      case 2: {
+        velocity = 0;
+        break;
+      }
+      case 3: {
+        theta = normalizeAngle( segmentAngle + centerAngle );
+        break;
+      }
+      case 4: {
+        theta = normalizeAngle( segmentAngle + borderAngle );
+        break;
+      }
+
+    }
+    return Point{theta,velocity};
 }
 
-Point BicycleBaseController::computeTarget( Point state ) {
-  // project position on track
-  auto projectedPoint = projectPointForwardsOnLine( state.projectOn( { 0, 1 } ), *lastWaypoint, *currentWaypoint );
-//  std::cout << "Projected point: " << projectedPoint << std::endl;
-  return translateToCarCoordinates(projectedPoint, Point{state.at(0), state.at(1)}, state.at(2));;
-//  // transform point into car coordinate-system
-//  // 1 translation
-//  Point translatedCoordinates = projectedPoint - state.projectOn( { 0, 1 } );
-//  // 2 rotate by heading
-//  double                  negHeading        = -state.at( 2 );
-//  hypro::matrix_t<double> rotationClockwise = hypro::matrix_t<double>::Zero( 2, 2 );
-//  rotationClockwise << cos( negHeading ), sin( negHeading ), -sin( negHeading ), cos( negHeading );
-//  return translatedCoordinates.linearTransformation( rotationClockwise );
-}
 
 }  // namespace simplexArchitectures
