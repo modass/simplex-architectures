@@ -78,7 +78,6 @@ locationConditionMap Trainer::generateInitialStates() const {
 }
 
 void Trainer::updateOctree( const std::vector<ReachTreeNode>& roots ) {
-  // TODO: add this as a setting to the storage, the trainer does not need to know about this
   // // constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
   // hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
   // hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );

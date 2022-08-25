@@ -266,6 +266,7 @@ int main( int argc, char* argv[] ) {
   // set location-update function
   sim.mLocationUpdate = [&theta_discretization, &simulationAutomaton](Point p, LocPtr l) -> LocPtr{
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions, for now hardcode 0 (theta in ctrl-output)
+    // TODO continue here: the simulationAutomaton currently has only one location, I think the parallel composition is messed up.
     auto candidates = getLocationForTheta(p[0], theta_discretization, simulationAutomaton.getLocations());
     if(candidates.size() > 2 || candidates.size() < 1) {
       std::cout << "Candidates:\n";
@@ -323,7 +324,6 @@ int main( int argc, char* argv[] ) {
         ss << bc.generateInput(executor.mLastState);
         spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
       }
-      // TODO why do we call the simulator to get the BC output, should we not call the BC directly?
       executor.execute( bc.generateInput(executor.mLastState) );
       sim.update( bc.generateInput(executor.mLastState), executor.mLastState );
       advControllerUsed = false;
@@ -358,7 +358,6 @@ int main( int argc, char* argv[] ) {
           ss << bc.generateInput(executor.mLastState);
           spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         }
-        // TODO get rid of the method "getBaseControllerOutput", continue working here.
         executor.execute( bc.generateInput(executor.mLastState) );
         sim.update( bc.generateInput(executor.mLastState), executor.mLastState );
         advControllerUsed = false;
