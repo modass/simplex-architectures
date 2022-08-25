@@ -68,7 +68,7 @@ constexpr Eigen::Index                theta = 2;
 constexpr Eigen::Index                tick  = 3;
 constexpr Eigen::Index                v     = 4;
 constexpr Eigen::Index                C     = 5;
-static const std::vector<std::size_t> interesting_dimensions{ x, y, theta };
+static const std::vector<std::size_t> interesting_dimensions{ x, y };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
@@ -250,7 +250,7 @@ int main( int argc, char* argv[] ) {
   // Storage for trained sets
   auto storagesettings = StorageSettings{
       interesting_dimensions,
-      Box{ IV{ track.playground.intervals()[0], track.playground.intervals()[1], I{ 0.0, 2*M_PI } } } };
+      Box{ track.playground.intervals() }};
   // filter only sets wherer the time is the tick-time
   // TODO get dimensions from some variables defined before
   Matrix constraints = Matrix::Zero(2,5);
