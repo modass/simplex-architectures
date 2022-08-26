@@ -207,7 +207,8 @@ int main( int argc, char* argv[] ) {
     std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
     std::cout << "Start composition" << std::endl;
     auto start = std::chrono::steady_clock::now();
-    automaton  = hypro::parallelCompose( carModel, bcAtm, variableMap );
+    bool reduceAutomaton = false;
+    automaton  = hypro::parallelCompose( carModel, bcAtm, variableMap, reduceAutomaton );
     auto end   = std::chrono::steady_clock::now();
     std::cout << "Composition finished" << std::endl;
     std::cout << "Elapsed time in milliseconds: "
@@ -297,12 +298,12 @@ int main( int argc, char* argv[] ) {
     const std::string tmp(l->getName());
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
     std::string oldSegmentZoneSubstring = matches[0];
-    spdlog::trace("Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring);
+    //spdlog::trace("Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring);
 
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {
       if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
-        spdlog::trace("Found new location candidate: {}", candidate->getName());
+        //spdlog::trace("Found new location candidate: {}", candidate->getName());
         newLocation = candidate;
         break;
       }
@@ -325,6 +326,7 @@ int main( int argc, char* argv[] ) {
   Simulator sim{ automaton, settings, storage, controller_dimensions };
   sim.mLocationUpdate = updateFunctionSimulator;
   sim.mCycleTimeDimension = tick;
+  sim.mCycleTime = cycleTime;
   sim.mObservationDimensions = std::vector<Eigen::Index>({x,y});
   // initialize simulator
   sim.mLastStates.emplace( std::make_pair( automaton.getInitialStates().begin()->first, std::set<Point>{ initialState } ) );
@@ -398,12 +400,12 @@ int main( int argc, char* argv[] ) {
             allSafe = allSafe && safe;
           }
         }
-        {
-          std::stringstream ss;
-          std::size_t       l = std::to_string( iterations ).size();
-          ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
-          storage.plotCombined( "storage_post_training_" + ss.str() + "_combined" );
-        }
+        //{
+        //  std::stringstream ss;
+        //  std::size_t       l = std::to_string( iterations ).size();
+        //  ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
+        //  storage.plotCombined( "storage_post_training_" + ss.str() + "_combined" );
+        //}
       }
       if ( !allSafe ) {
         Point bcInput = bc.generateInput( executor.mLastState );

@@ -26,11 +26,11 @@ namespace simplexArchitectures {
 //                spdlog::trace("Simulate from {} starting in location {}", sample, l->getName());
                 setCtrlValue(sample, ctrlInput);
                 LocPtr newLocation = l;
-                spdlog::trace("Location before update: {}", l->getName());
+                //spdlog::trace("Location before update: {}", l->getName());
                 if(mLocationUpdate) {
                   newLocation = mLocationUpdate(ctrlInput,l);
                 }
-                spdlog::trace("Updated sample: {} in location {}",sample,newLocation->getName());
+                //spdlog::trace("Updated sample: {} in location {}",sample,newLocation->getName());
                 // create intervals representing the initial state
                 std::vector<carl::Interval<Number>> intervals;
                 for ( Eigen::Index i = 0; i < sample.dimension(); ++i ) {
@@ -76,7 +76,7 @@ namespace simplexArchitectures {
         unknownSamples.clear();
         auto isSafe     = hypro::TRIBOOL::TRUE;
         auto nextStates = potentialNextStates();
-        spdlog::trace("Have {} potential next states after cutoff.", nextStates.size());
+        //spdlog::trace("Have {} potential next states after cutoff.", nextStates.size());
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {
             if(!mStorage.isContained(loc->getName(),set)) {
@@ -110,7 +110,7 @@ namespace simplexArchitectures {
         // collect all leaf nodes that agree with the cycle time
         for ( auto& r : roots ) {
             for ( auto& n : hypro::preorder( r ) ) {
-              spdlog::trace("Process node with location {}",n.getLocation()->getName());
+              //spdlog::trace("Process node with location {}",n.getLocation()->getName());
                 if ( n.isLeaf() ) {
                     // I don't think we really need this check. We only consider initial sets of nodes that where reached by resetting the cLocPtrk to zero.
                     auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
@@ -152,10 +152,10 @@ namespace simplexArchitectures {
           constants( 2*i ) = nextObservation[i];
           constants( (2*i)+1 ) = -nextObservation[i];
         }
-        spdlog::trace("Constraints representing the observation: \n{}\n<=\n{}",constraints, constants);
+        //spdlog::trace("Constraints representing the observation: \n{}\n<=\n{}",constraints, constants);
         // filter sample boxes for observation
         for ( auto& [_, box] : samplesBoxes ) {
-            spdlog::trace("Reduce box {} to observation", box);
+            //spdlog::trace("Reduce box {} to observation", box);
             box = box.intersectHalfspaces( constraints, constants );
         }
 
