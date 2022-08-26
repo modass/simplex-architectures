@@ -32,6 +32,7 @@
 #include <CLI/Formatter.hpp>
 #include <random>
 #include <string>
+#include <regex>
 
 #include "controller/AbstractController.h"
 #include "controller/BicycleBaseController.h"
@@ -272,8 +273,8 @@ int main( int argc, char* argv[] ) {
   // the trainer runs on the combined automaton of base controller and car model
   Trainer trainer{ automaton, trainingSettings, storage };
 
-  // set location-update function
-  auto updateFunction = [&theta_discretization, &simulationAutomaton]( Point p, LocPtr l ) -> LocPtr {
+  // set location-update functions
+  auto updateFunctionExecutor = [&theta_discretization, &simulationAutomaton]( Point p, LocPtr l ) -> LocPtr {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     // for now hardcode 0 (theta in ctrl-output)
     auto candidates = getLocationForTheta( p[0], theta_discretization, simulationAutomaton.getLocations() );
@@ -288,6 +289,29 @@ int main( int argc, char* argv[] ) {
     }
     return candidates.front();
   };
+  auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
+    // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
+    auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
+    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)$");
+    std::smatch matches;
+    const std::string tmp(l->getName());
+    std::regex_search(tmp,matches,oldSegmentZoneRegex);
+    std::string oldSegmentZoneSubstring = matches[0];
+    spdlog::trace("Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring);
+
+    LocPtr newLocation = nullptr;
+    for(const auto* candidate : candidates) {
+      if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
+        spdlog::trace("Found new location candidate: {}", candidate->getName());
+        newLocation = candidate;
+        break;
+      }
+    }
+    if(newLocation == nullptr) {
+      throw std::logic_error("New location not found");
+    }
+    return newLocation;
+  };
 
   // the executor runs on the car model only
   assert( simulationAutomaton.getInitialStates().size() == 1 );
@@ -295,15 +319,15 @@ int main( int argc, char* argv[] ) {
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
-  executor.mLocationUpdate    = updateFunction;
+  executor.mLocationUpdate    = updateFunctionExecutor;
 
   // monitor/simulator, runs on the car model
-  Simulator sim{ simulationAutomaton, settings, storage, controller_dimensions };
-  sim.mLocationUpdate = updateFunction;
+  Simulator sim{ automaton, settings, storage, controller_dimensions };
+  sim.mLocationUpdate = updateFunctionSimulator;
   sim.mCycleTimeDimension = tick;
   sim.mObservationDimensions = std::vector<Eigen::Index>({x,y});
   // initialize simulator
-  sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
+  sim.mLastStates.emplace( std::make_pair( automaton.getInitialStates().begin()->first, std::set<Point>{ initialState } ) );
 
   if ( training ) {
     assert( automaton.getInitialStates().size() == 1 );
