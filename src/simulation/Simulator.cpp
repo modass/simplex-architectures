@@ -100,10 +100,9 @@ namespace simplexArchitectures {
         Matrix constraints = Matrix::Zero( 2, 5 );
         Vector constants = Vector::Zero( 2 );
         // assign constraints:  tick = 0
-        // TODO this is highly sketchy, these constraints should not be hardcoded in the simulator but be provided from external sources
         // tick
-        constraints( 0, 4 ) = 1;
-        constraints( 1, 4 ) = -1;
+        constraints( 0, mCycleTimeDimension ) = 1;
+        constraints( 1, mCycleTimeDimension ) = -1;
         constants( 0 ) = 0;
         constants( 1 ) = -0;
         // collect all leaf nodes that agree with the cycle time
@@ -140,20 +139,16 @@ namespace simplexArchitectures {
             }
         }
 
-        // build constraints which represent the observation
-        constraints = Matrix::Zero( 4, 5 );
-        constants = Vector::Zero( 4 );
-        // assign constraints: x1, x2 = observation
-        // x1
-        constraints( 0, 0 ) = 1;
-        constraints( 1, 0 ) = -1;
-        constants( 0 ) = nextObservation.at( 0 );
-        constants( 1 ) = -nextObservation.at( 0 );
-        // x2
-        constraints( 2, 1 ) = 1;
-        constraints( 3, 1 ) = -1;
-        constants( 2 ) = nextObservation.at( 1 );
-        constants( 3 ) = -nextObservation.at( 1 );
+        // build constraints which represent the observation, only consider dimensions relevant
+        std::size_t dim = mObservationDimensions.size();
+        constraints = Matrix::Zero( 2*dim, mAutomaton.dimension() );
+        constants = Vector::Zero( 2*dim );
+        for(std::size_t i = 0; i < dim; ++i) {
+          constraints( 2*i, mObservationDimensions[i] ) = 1;
+          constraints( (2*i)+1, mObservationDimensions[i] ) = -1;
+          constants( 2*i ) = nextObservation[i];
+          constants( (2*i)+1 ) = -nextObservation[i];
+        }
         // filter sample boxes for observation
         for ( auto& [_, box] : samplesBoxes ) {
             box = box.intersectHalfspaces( constraints, constants );
@@ -165,8 +160,6 @@ namespace simplexArchitectures {
             auto tmp = box.vertices();
             if ( !tmp.empty() ) {
                 mLastStates[LocPtr] = std::set<Point>( tmp.begin(), tmp.end() );
-                // std::cout << "[Simulator] Add samples " << mLastStates[LocPtr] << " to mLastStates (Location: " <<
-                // LocPtr->getName() << ")" << std::endl;
                 assert( mLastStates[LocPtr].size() <= 2 );
             }
         }

@@ -37,6 +37,8 @@ namespace simplexArchitectures {
         hypro::HybridAutomaton<Number> &mAutomaton; ///< environment + specification model
         hypro::Settings mSettings;
         double mCycleTime = 1.0;
+        Eigen::Index mCycleTimeDimension;
+        std::vector<Eigen::Index> mObservationDimensions;
         std::vector<ReachTreeNode> roots;
         std::map<LocPtr, std::set<Point>> mLastStates;
         std::map<LocPtr, std::vector<Representation>> unknownSamples; ///< samples which are not known to be safe for the base controller
