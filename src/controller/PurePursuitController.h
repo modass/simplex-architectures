@@ -21,9 +21,11 @@ class PurePursuitController : public AbstractController<Point, Point> {
 
   RaceTrack track;
   size_t thetaDiscretization;
+  double cycleTime;
  private:
 
   const double wheelbase = 1.0;
+  const double maxLookahead = 4.0;
 
 };
 

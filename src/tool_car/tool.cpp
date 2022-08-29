@@ -139,6 +139,7 @@ int main( int argc, char* argv[] ) {
   auto tmpCtrl                 = new PurePursuitController();
   tmpCtrl->track               = track;
   tmpCtrl->thetaDiscretization = theta_discretization;
+  tmpCtrl->cycleTime           = cycleTime;
   tmpCtrl->lastWaypoint        = tmpCtrl->track.waypoints.begin();
   tmpCtrl->currentWaypoint     = std::next( tmpCtrl->lastWaypoint );
 
