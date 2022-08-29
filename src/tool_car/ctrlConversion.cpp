@@ -49,20 +49,9 @@ LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Nu
   return res;
 }
 
-double convertDeltaToTheta(double delta, double currentTheta, std::size_t theta_discretization) {
-
-  auto targetTheta = currentTheta + 0.5 * tan(delta);
-  if(targetTheta < 0) {
-    targetTheta = targetTheta + 2 * M_PI;
-  } else if(targetTheta >  2 * M_PI ) {
-    targetTheta = targetTheta - 2 * M_PI;
-  }
-
-  std::size_t theta_bucket_index = getThetaBucket(targetTheta, theta_discretization);
-  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
-
-  return theta_increment*0.5 + theta_bucket_index * theta_increment;
-
+double convertDeltaToTheta(double delta, double currentTheta, double cycleTime) {
+  auto targetTheta = currentTheta + 0.5 * cycleTime * tan(delta);
+  return normalizeAngle(targetTheta);
 }
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization) {

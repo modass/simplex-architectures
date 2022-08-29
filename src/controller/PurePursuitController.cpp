@@ -21,7 +21,7 @@ Point PurePursuitController::generateInput( Point state ) {
 //  double l = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
 
   double distanceToTarget = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
-  double l = std::min(4.0,distanceToTarget);
+  double l = std::min(maxLookahead, distanceToTarget);
   if ( distanceToTarget < 0.5 ) {
     lastWaypoint = currentWaypoint;
     if(currentWaypoint != (track.waypoints.end()-1)) {
@@ -46,9 +46,11 @@ Point PurePursuitController::generateInput( Point state ) {
     }
   }
 
-//  std::cout << "Pure pursuit controller output: delta = " << delta << ", velocity = " << velocity << std::endl;
 
-  auto theta = convertDeltaToTheta(delta, state.at(2), thetaDiscretization);
+
+  auto theta = convertDeltaToTheta(delta, state.at(2), cycleTime);
+
+//  std::cout << "Pure pursuit controller output: delta = " << delta << ", theta = " << theta << ", velocity = " << velocity << std::endl;
 
   return Point( { theta, velocity } );
 }
