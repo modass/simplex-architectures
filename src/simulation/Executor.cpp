@@ -108,7 +108,12 @@ Point simplexArchitectures::Executor::execute(const Point& ctrlInput) {
     std::uniform_int_distribution<std::size_t> LocPtr_dist{ 0, samplesBoxes.size() - 1 };
     std::size_t                                chosenLocPtr = LocPtr_dist( mGenerator );
     LocPtr                                     location     = std::next( samplesBoxes.begin(), chosenLocPtr )->first;
-    Point observation = samplesBoxes.at( location ).vertices().front();  //.projectOn( { 0, 1 } );
+    //Point observation = samplesBoxes.at( location ).vertices().front();  //.projectOn( { 0, 1 } );
+    hypro::vector_t<Number> observation_raw = hypro::vector_t<Number>(samplesBoxes.at(location).dimension());
+    for(Eigen::Index i = 0; i < samplesBoxes.at(location).dimension(); ++i) {
+      observation_raw(i) = carl::center(samplesBoxes.at(location).intervals()[i]);
+    }
+    Point observation{observation_raw};
 
     mLastLocation = location;
     mLastState    = observation;
