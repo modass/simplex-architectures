@@ -170,7 +170,7 @@ namespace simplexArchitectures {
         }
         // TODO continue here
         if(mLastStates.empty()) {
-          spdlog::warn("None of the simulated traces agrees with the actual real-world observation passed to the simulator.");
+          throw std::logic_error("None of the simulated traces agrees with the actual real-world observation passed to the simulator.");
         }
         spdlog::debug("Update simulator done.");
     }
