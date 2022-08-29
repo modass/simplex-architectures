@@ -221,6 +221,8 @@ int main( int argc, char* argv[] ) {
       fs.close();
     }
 
+    automaton.setGlobalBadStates(track.createSafetySpecification());
+
     // create model for simulation: includes locations for all theta buckets, but only stop transitions
     // that do not change theta and reduce the speed to zero.
     // This should terminate the simulation after the first jump with finding a fixed point.
