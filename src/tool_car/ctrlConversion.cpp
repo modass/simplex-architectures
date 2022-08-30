@@ -141,7 +141,10 @@ std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization
   }
   return res;
 }
-
+double getRepresentativeForThetaBucket( std::size_t theta_bucket, std::size_t discretization ) {
+  double theta_increment      = ( 2 * M_PI ) / double( discretization );
+  return 0.5 * theta_increment + (double(theta_bucket) * theta_increment);
+}
 
 } // namespace
 

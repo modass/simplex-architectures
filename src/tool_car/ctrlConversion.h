@@ -27,6 +27,8 @@ double convertDeltaToTheta(double delta, double currentTheta, double cycleTime);
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization);
 
+double getRepresentativeForThetaBucket(std::size_t theta_bucket, std::size_t discretization);
+
 std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_ranges, std::size_t discretization);
 
 std::size_t getXBucket(Number x, double x_min, double x_max, double x_interval_size);

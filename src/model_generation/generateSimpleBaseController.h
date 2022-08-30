@@ -17,6 +17,7 @@ namespace simplexArchitectures {
  * @return
  */
 BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization,
+                                                             size_t maxTurn, // in theta buckets
                                                              double stopZoneWidth,
                                                              double centerZoneWidth,
                                                              double centerAngle,

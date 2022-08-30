@@ -3,21 +3,22 @@
  */
 
 #include "BicycleBaseController.h"
-#include <spdlog/spdlog.h>
+
 #include <spdlog/fmt/bundled/ostream.h>
+#include <spdlog/spdlog.h>
+
+#include "tool_car/ctrlConversion.h"
 
 namespace simplexArchitectures {
 
 Point BicycleBaseController::generateInput( Point state ) {
+
   spdlog::trace("Get Base Controller output for state {}",state);
   auto numberOfSegments = segments.size();
   // zones: borderLeft, centerLeft, stop, centerRight, borderRight
   // bucket indices: (segment, zone)
   std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*> buckets;
   std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double,double>> outputs;
-
-  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
-  double theta_representative  = theta_increment / 2.0;
 
   // find the correct segment and zone
   std::size_t is = 0;
@@ -107,31 +108,64 @@ Point BicycleBaseController::generateInput( Point state ) {
         segmentAngle = 1.5*M_PI;
         break;
     }
-    double theta = segmentAngle;
+    double targetTheta = segmentAngle;
     double velocity = 1;
     switch ( iz ) {
       case 0: {
-        theta = normalizeAngle( segmentAngle - borderAngle );
+        targetTheta = normalizeAngle( segmentAngle - borderAngle );
         break;
       }
       case 1: {
-        theta = normalizeAngle(segmentAngle - centerAngle);
+        targetTheta = normalizeAngle(segmentAngle - centerAngle);
         break;
       }
       case 2: {
         velocity = 0;
+        targetTheta = state[2];
         break;
       }
       case 3: {
-        theta = normalizeAngle( segmentAngle + centerAngle );
+        targetTheta = normalizeAngle( segmentAngle + centerAngle );
         break;
       }
       case 4: {
-        theta = normalizeAngle( segmentAngle + borderAngle );
+        targetTheta = normalizeAngle( segmentAngle + borderAngle );
         break;
       }
 
     }
+
+    auto targetThetaBucket = getThetaBucket( targetTheta, theta_discretization );
+
+    double theta_increment      = ( 2 * M_PI ) / double( theta_discretization );
+    double theta_min = 0.0;
+    double theta_max = theta_increment;
+
+    size_t t =0;
+    for (t = 0; t < theta_discretization; t++) {
+      if(theta_min <= state[2] && state[2] <= theta_max) {
+        break;
+      }
+      theta_min += theta_increment;
+      theta_max += theta_increment;
+    }
+
+    auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization - targetThetaBucket + t;
+    auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization - t + targetThetaBucket;
+
+    size_t newThetaBucket;
+    if (differenceLeft == 0) {
+      newThetaBucket = targetThetaBucket;
+    } else if (differenceLeft < differenceRight) {
+      auto turn = std::min(maxTurn, differenceLeft);
+      newThetaBucket = t + turn;
+    } else if (differenceRight > differenceLeft) {
+      auto turn = std::min(maxTurn, differenceRight);
+      newThetaBucket = t - turn;
+    }
+
+    auto theta = getRepresentativeForThetaBucket(newThetaBucket, theta_discretization);
+
     return Point{theta,velocity};
 }
 

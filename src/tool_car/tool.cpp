@@ -80,13 +80,13 @@ int main( int argc, char* argv[] ) {
   std::size_t               maxJumps             = 200;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
-  Number                    widening = 0.1;
+  Number                    widening = 0.2;
   bool                      training = true;
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
-  bool                      plotSets     = true;
+  bool                      plotSets     = false;
   bool                      plotPosition = true;
 
   spdlog::set_level( spdlog::level::trace );
@@ -163,7 +163,7 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, 0.5, 0.15, M_PI / 12.0 /* 15° */,
+  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, 1, 0.5, 0.15, M_PI / 12.0 /* 15° */,
                                                                 0.87 /* 50° */, segments );
   auto& bcAtm = bc.mAutomaton;
 
@@ -391,8 +391,8 @@ int main( int argc, char* argv[] ) {
           for ( const auto& set : setVector ) {
             locationConditionMap initialConfigurations{};
             auto                 setIntervals = set.intervals();
-            setIntervals[0].bloat_by( 0.02 );
-            setIntervals[1].bloat_by( 0.02 );
+            setIntervals[0].bloat_by( widening );
+            setIntervals[1].bloat_by( widening );
             initialConfigurations[loc] = hypro::Condition( setIntervals );
             auto safe                  = trainer.run( settings, initialConfigurations );
             {

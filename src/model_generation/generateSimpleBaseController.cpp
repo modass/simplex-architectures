@@ -9,7 +9,7 @@
 
 namespace simplexArchitectures {
 
-BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization,
+BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization, size_t maxTurn, //in theta buckets
                                                                                    double stopZoneWidth,
                                                                                    double centerZoneWidth,
                                                                                    double centerAngle,
@@ -20,11 +20,12 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
   using Vector = hypro::vector_t<double>;
 
   hypro::HybridAutomaton<double> res;
-  constexpr Eigen::Index         x = 0;  // global position x
-  constexpr Eigen::Index         y = 1;  // global position y
-  constexpr Eigen::Index         C = 2;  // constants
+  constexpr Eigen::Index         x     = 0;  // global position x
+  constexpr Eigen::Index         y     = 1;  // global position y
+  constexpr Eigen::Index         theta = 2;  // global position y
+  constexpr Eigen::Index         C     = 3;  // constants
 
-  std::vector<std::string> variableNames{ "x", "y" };
+  std::vector<std::string> variableNames{ "x", "y", "theta" };
   res.setVariables( variableNames );
 
   auto numberOfSegments = segments.size();
@@ -35,9 +36,6 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
   // bucket indices: (segment, zone)
   std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*>               buckets;
   std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double, double>> outputs;
-
-  double theta_increment      = ( 2 * M_PI ) / double( theta_discretization );
-  double theta_representative = theta_increment / 2.0;
 
   for ( std::size_t is = 0; is < numberOfSegments; ++is ) {
     auto segment    = segments[is];
@@ -173,9 +171,64 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
       if ( zone == 4 ) {
         angle = normalizeAngle( segmentAngle + borderAngle );
       }
-      auto newThetaBucket = getThetaBucket( angle, theta_discretization );
-      auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
-      thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+
+      auto targetThetaBucket = getThetaBucket( angle, theta_discretization );
+
+      double theta_increment      = ( 2 * M_PI ) / double( theta_discretization );
+      double theta_min = 0.0;
+      double theta_max = theta_increment;
+
+      for (size_t t = 0; t < theta_discretization; t++) {
+        auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization - targetThetaBucket + t;
+        auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization - t + targetThetaBucket;
+
+
+        if (differenceLeft == 0) {
+          auto newThetaBucket = targetThetaBucket;
+          auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
+          thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+
+          Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
+          Vector guard_constants    = Vector::Zero( 2 );
+          guard_constraints( 0, theta ) = 1;
+          guard_constraints( 1, theta ) = -1;
+          guard_constants << theta_max, -theta_min;
+
+          thetaChange->setGuard({guard_constraints, guard_constants});
+        } else if (differenceLeft < differenceRight) {
+          auto turn = std::min(maxTurn, differenceLeft);
+          auto newThetaBucket = t + turn;
+          auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
+          thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+
+          Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
+          Vector guard_constants    = Vector::Zero( 2 );
+          guard_constraints( 0, theta ) = 1;
+          guard_constraints( 1, theta ) = -1;
+          guard_constants << theta_max, -theta_min;
+
+          thetaChange->setGuard({guard_constraints, guard_constants});
+
+        } else if (differenceRight > differenceLeft) {
+          auto turn = std::min(maxTurn, differenceRight);
+          auto newThetaBucket = t - turn;
+          auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
+          thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+
+          Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
+          Vector guard_constants    = Vector::Zero( 2 );
+          guard_constraints( 0, theta ) = 1;
+          guard_constraints( 1, theta ) = -1;
+          guard_constants << theta_max, -theta_min;
+
+          thetaChange->setGuard({guard_constraints, guard_constants});
+        }
+
+        theta_min += theta_increment;
+        theta_max += theta_increment;
+      }
+
+
     }
   }
 
@@ -208,6 +261,7 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
   result.centerZoneWidth = centerZoneWidth;
   result.stopZoneWidth = stopZoneWidth;
   result.theta_discretization = theta_discretization;
+  result.maxTurn = maxTurn;
   result.mAutomaton = res;
 
   return result;
