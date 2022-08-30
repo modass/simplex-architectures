@@ -150,18 +150,18 @@ Point BicycleBaseController::generateInput( Point state ) {
       theta_max += theta_increment;
     }
 
-    auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization - targetThetaBucket + t;
-    auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization - t + targetThetaBucket;
+    auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization + targetThetaBucket - t;
+    auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
 
     size_t newThetaBucket;
     if (differenceLeft == 0) {
       newThetaBucket = targetThetaBucket;
-    } else if (differenceLeft < differenceRight) {
+    } else if (differenceLeft <= differenceRight) {
       auto turn = std::min(maxTurn, differenceLeft);
-      newThetaBucket = t + turn;
-    } else if (differenceRight > differenceLeft) {
+      newThetaBucket = t + turn >= theta_discretization ? t + turn - theta_discretization : t + turn;
+    } else if (differenceRight < differenceLeft) {
       auto turn = std::min(maxTurn, differenceRight);
-      newThetaBucket = t - turn;
+      newThetaBucket = turn > t ? theta_discretization+t-turn : t - turn;
     }
 
     auto theta = getRepresentativeForThetaBucket(newThetaBucket, theta_discretization);

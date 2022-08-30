@@ -170,6 +170,7 @@ namespace simplexArchitectures {
         }
         // TODO continue here
         if(mLastStates.empty()) {
+          spdlog::warn("Reachability computation roots: {}", roots);
           throw std::logic_error("None of the simulated traces agrees with the actual real-world observation passed to the simulator.");
         }
         spdlog::debug("Update simulator done.");
