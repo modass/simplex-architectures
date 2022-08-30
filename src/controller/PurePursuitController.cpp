@@ -48,7 +48,7 @@ Point PurePursuitController::generateInput( Point state ) {
 
 
 
-  auto theta = convertDeltaToTheta(delta, state.at(2), cycleTime);
+  auto theta = convertDeltaToTheta(delta, state.at(2), cycleTime, scalingFactor);
 
 //  std::cout << "Pure pursuit controller output: delta = " << delta << ", theta = " << theta << ", velocity = " << velocity << std::endl;
 
