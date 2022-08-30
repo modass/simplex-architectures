@@ -26,7 +26,7 @@ class PurePursuitController : public AbstractController<Point, Point> {
 
   const double wheelbase = 1.0;
   const double maxLookahead = 4.0;
-  const double scalingFactor = 0.75; // 0.65 some interference, 0.75 very little interference, 1.0 no interference
+  const double scalingFactor = 0.65; // 0.65 some interference, 0.75 very little interference, 1.0 no interference
 
 };
 

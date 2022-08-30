@@ -92,11 +92,28 @@ namespace simplexArchitectures {
     }
 
     void Simulator::update(const Point& ctrlInput, const Point& nextObservation) {
-      spdlog::debug("Update simulator with ctrl input {} and the current observation {}", ctrlInput, nextObservation);
-      isSafe( ctrlInput );
+      spdlog::debug("Update simulator with ctrl input {}, old states {}, old location {}, and the current observation {}", ctrlInput, mLastStates, mLastStates.begin()->first->getName(), nextObservation);
+      auto safe = isSafe( ctrlInput );
+
+      if (safe == hypro::TRIBOOL::FALSE) {
+        spdlog::warn("Simulator updated with unsafe input ({}). Print details of the reachability analysis:", safe);
+        // This might happen after the cutoff and thus be spurious.
+        for ( auto& r : roots ) {
+          for ( auto& n : hypro::preorder( r ) ) {
+            spdlog::warn( "Process node with location {}, leaf: {}, initial set {}, flow pipe {}",
+                          n.getLocation()->getName(), n.isLeaf(), n.getInitialSet(), n.getFlowpipe() );
+          }
+        }
+      }
+      if (safe == hypro::TRIBOOL::NSET) {
+        spdlog::warn("Simulator updated with input that might visit unexplored states!");
+        // This might happen after the cutoff and thus be spurious.
+      }
+
         for (auto &root: roots) {
             cutoffControllerJumps(&root);
         }
+
 
         std::map<LocPtr, Box> samplesBoxes;
         Matrix constraints = Matrix::Zero( 2, mAutomaton.dimension() );
@@ -110,7 +127,11 @@ namespace simplexArchitectures {
         // collect all leaf nodes that agree with the cycle time
         for ( auto& r : roots ) {
             for ( auto& n : hypro::preorder( r ) ) {
-              //spdlog::trace("Process node with location {}",n.getLocation()->getName());
+//              spdlog::trace("Process node with location {}, leaf: {}, initial set {}, flow pipe {}",
+//                             n.getLocation()->getName(),
+//                             n.isLeaf(),
+//                             n.getInitialSet(),
+//                             n.getFlowpipe());
                 if ( n.isLeaf() ) {
                     // I don't think we really need this check. We only consider initial sets of nodes that where reached by resetting the cLocPtrk to zero.
                     auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );

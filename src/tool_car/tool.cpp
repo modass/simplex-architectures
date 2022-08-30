@@ -88,7 +88,7 @@ int main( int argc, char* argv[] ) {
   Number                    cycleTime{ 0.1 };
   bool                      plotSets     = false;
   bool                      plotPosition = false;
-  bool                      plotRaceTrack = true;
+  bool                      plotRaceTrack = false;
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
