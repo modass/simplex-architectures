@@ -87,7 +87,8 @@ int main( int argc, char* argv[] ) {
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
   bool                      plotSets     = false;
-  bool                      plotPosition = true;
+  bool                      plotPosition = false;
+  bool                      plotRaceTrack = true;
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -454,6 +455,17 @@ int main( int argc, char* argv[] ) {
     if ( plotSets || plotPosition ) {
       hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
       hypro::Plotter<Number>::getInstance().clear();
+    }
+
+    if (plotRaceTrack) {
+      auto& plt = hypro::Plotter<Number>::getInstance();
+      plt.clear();
+      auto car = executor.mLastState.projectOn( { 0, 1, 2 } );
+      auto color = advControllerUsed ? hypro::plotting::green : hypro::plotting::orange;
+      track.addToPlotter( car, color);
+      plt.setFilename( "racetrack_"+ss.str());
+      plt.plot2d( hypro::PLOTTYPE::png, true );
+      plt.clear();
     }
   }
   // the training data is automatically stored in case the trainer runs out of scope

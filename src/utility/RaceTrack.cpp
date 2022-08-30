@@ -51,7 +51,7 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
   return res;
 }
 
-void RaceTrack::addToPlotter( std::optional<Point> car ) {
+void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   assert(is_sane());
   if ( car.has_value() && ( car.value() ).dimension() != 3 ) {
     throw std::logic_error( "The tuple representing the car-position and heading is not 3-dimensional." );
@@ -68,7 +68,7 @@ void RaceTrack::addToPlotter( std::optional<Point> car ) {
   redSettings.fill = true;
   for ( const auto& specCondition : createSafetySpecification() ) {
     plt.addObject( hypro::Box<double>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
-                   hypro::plotting::colors[hypro::plotting::red], redSettings );
+                   hypro::plotting::colors[color], redSettings );
   }
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };
