@@ -7,24 +7,17 @@
 
 #include <hypro/datastructures/HybridAutomaton/HybridAutomaton.h>
 #include <hypro/datastructures/HybridAutomaton/output/Flowstar.h>
+#include "../utility/RoadSegment.h"
+#include "../controller/BicycleBaseController.h"
 
 namespace simplexArchitectures {
-
-enum RoadOrientation {LeftToRight, BottomToTop, RightToLeft, TopToBottom};
-
-struct RoadSegment {
-  double   x_min;
-  double   y_min;
-  double   x_max;
-  double   y_max;
-  RoadOrientation orientation;
-};
 
 /**
  * Computes a hybrid automaton for a base controller
  * @return
  */
-hypro::HybridAutomaton<double> generateSimpleBaseController(std::size_t theta_discretization,
+BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization,
+                                                             size_t maxTurn, // in theta buckets
                                                              double stopZoneWidth,
                                                              double centerZoneWidth,
                                                              double centerAngle,

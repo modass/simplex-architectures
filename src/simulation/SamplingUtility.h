@@ -15,7 +15,7 @@ namespace simplexArchitectures {
 template <typename Number>
 std::vector<carl::Interval<Number>> widenSample( const hypro::Point<Number>& sample, Number targetWidth,
                                                  std::vector<std::size_t> bloatingDimensions ) {
-  std::vector<carl::Interval<Number>> intervals = std::vector<carl::Interval<Number>>( 5, carl::Interval<Number>( 0 ) );
+  std::vector<carl::Interval<Number>> intervals = std::vector<carl::Interval<Number>>( sample.dimension(), carl::Interval<Number>( 0 ) );
   Number                              range     = targetWidth / 2;
   for ( std::size_t i = 0; i < sample.dimension(); ++i ) {
     if ( std::find( bloatingDimensions.begin(), bloatingDimensions.end(), i ) != bloatingDimensions.end() ) {

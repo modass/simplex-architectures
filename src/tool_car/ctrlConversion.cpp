@@ -7,6 +7,7 @@
 #include "utility/coordinate_util.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <regex>
 
 namespace simplexArchitectures {
 
@@ -48,20 +49,9 @@ LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Nu
   return res;
 }
 
-double convertDeltaToTheta(double delta, double currentTheta, std::size_t theta_discretization) {
-
-  auto targetTheta = currentTheta + 0.5 * tan(delta);
-  if(targetTheta < 0) {
-    targetTheta = targetTheta + 2 * M_PI;
-  } else if(targetTheta >  2 * M_PI ) {
-    targetTheta = targetTheta - 2 * M_PI;
-  }
-
-  std::size_t theta_bucket_index = getThetaBucket(targetTheta, theta_discretization);
-  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
-
-  return theta_increment*0.5 + theta_bucket_index * theta_increment;
-
+double convertDeltaToTheta(double delta, double currentTheta, double cycleTime) {
+  auto targetTheta = currentTheta + 0.5 * cycleTime * tan(delta);
+  return normalizeAngle(targetTheta);
 }
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization) {
@@ -136,6 +126,25 @@ std::size_t getYBucket( Number y, double y_min, double y_max, double y_interval_
     y_high += y_interval_size;
   }
   throw std::logic_error("Value out of range");}
+
+std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<typename Automaton::LocationType*>& in) {
+  std::vector<LocPtr> res;
+  std::size_t thetaBucket = getThetaBucket(theta, discretization);
+  //spdlog::trace("Search for locations with theta bucket {} corresponding to theta = {}",thetaBucket, theta);
+  std::regex theta_regex(".*theta_"+std::to_string(thetaBucket) + "((_.*)|$)");
+  for(auto* l : in) {
+    //spdlog::trace("Consider location {}",l->getName());
+    if(std::regex_match(l->getName(), theta_regex)) {
+      //spdlog::trace("Found matching location: {}",l->getName());
+      res.push_back(l);
+    }
+  }
+  return res;
+}
+double getRepresentativeForThetaBucket( std::size_t theta_bucket, std::size_t discretization ) {
+  double theta_increment      = ( 2 * M_PI ) / double( discretization );
+  return 0.5 * theta_increment + (double(theta_bucket) * theta_increment);
+}
 
 } // namespace
 

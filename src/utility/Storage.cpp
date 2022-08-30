@@ -19,10 +19,17 @@ void Storage::add( std::string locationName, const hypro::Box<Number>& set ) {
   if(mTrees.find(locationName) == std::end(mTrees)) {
     mTrees.emplace(std::make_pair(locationName, hypro::Hyperoctree<Number>(mStorageSettings.treeSplits, mStorageSettings.treeDepth, mStorageSettings.treeContainer)));
   }
-  if(set.dimension() != mStorageSettings.projectionDimensions.size()){
-    mTrees[locationName].add(set.projectOn(mStorageSettings.projectionDimensions));
-  } else {
-    mTrees[locationName].add(set);
+  hypro::CONTAINMENT filterResult = hypro::CONTAINMENT::FULL;
+  hypro::Box<Number> filteredSet = std::move(set);
+  if(!mStorageSettings.filter.isTrue()) {
+    std::tie(filterResult,filteredSet) = set.satisfiesHalfspaces(mStorageSettings.filter.getMatrix(), mStorageSettings.filter.getVector());
+  }
+  if(filterResult == hypro::CONTAINMENT::FULL || filterResult == hypro::CONTAINMENT::PARTIAL || filterResult == hypro::CONTAINMENT::YES) {
+    if(set.dimension() != mStorageSettings.projectionDimensions.size()){
+      mTrees[locationName].add(filteredSet.projectOn(mStorageSettings.projectionDimensions));
+    } else {
+      mTrees[locationName].add(filteredSet);
+    }
   }
 }
 
@@ -39,8 +46,9 @@ bool Storage::isContained( std::string locationName, const hypro::Box<Number>& s
 
 void Storage::plot( const std::string& outfilename ) {
   hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
-  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
+  // Assumption: All trees have the same base container size (intervals & dimension)
+  plt.rSettings().xPlotInterval  = mTrees.begin()->second.getContainer().interval(0);
+  plt.rSettings().yPlotInterval  = mTrees.begin()->second.getContainer().interval(1);
   plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
   plt.rSettings().overwriteFiles = true;
   for ( const auto& [locationName, tree] : mTrees ) {
@@ -55,8 +63,10 @@ void Storage::plot( const std::string& outfilename ) {
 
 void Storage::plotCombined(const std::string& outfilename, bool writeAndClear) {
   hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().xPlotInterval  = carl::Interval<double>( 0, 1 );
-  plt.rSettings().yPlotInterval  = carl::Interval<double>( 0, 1 );
+  // Assumption: All trees have the same base container size (intervals & dimension)
+  plt.rSettings().xPlotInterval  = mTrees.begin()->second.getContainer().interval(0);
+  plt.rSettings().yPlotInterval  = mTrees.begin()->second.getContainer().interval(1);
+  plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
   plt.rSettings().overwriteFiles = true;
   plt.setFilename(outfilename);
   plotOctrees(mTrees,plt,true);

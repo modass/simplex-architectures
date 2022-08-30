@@ -20,9 +20,12 @@ class PurePursuitController : public AbstractController<Point, Point> {
   std::vector<Point>::const_iterator currentWaypoint;
 
   RaceTrack track;
+  size_t thetaDiscretization;
+  double cycleTime;
  private:
 
   const double wheelbase = 1.0;
+  const double maxLookahead = 4.0;
 
 };
 

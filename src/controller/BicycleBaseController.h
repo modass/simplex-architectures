@@ -5,27 +5,24 @@
 #ifndef SIMPLEXARCHITECTURES_BICYCLEBASECONTROLLER_H
 #define SIMPLEXARCHITECTURES_BICYCLEBASECONTROLLER_H
 
-#include "AbstractController.h"
+#include "BaseController.h"
 #include "../types.h"
 #include "../utility/RaceTrack.h"
 #include "../utility/coordinate_util.h"
+#include "../utility/RoadSegment.h"
 
 namespace simplexArchitectures {
 
-class BicycleBaseController : public AbstractController<Point, Point> {
- public:
+struct BicycleBaseController : public BaseController<Automaton,Point, Point> {
   Point generateInput( Point state );
 
-  Point computeTarget( Point state );
-
-  std::vector<Point>::const_iterator lastWaypoint;
-  std::vector<Point>::const_iterator currentWaypoint;
-
-  RaceTrack track;
- private:
-
-
-  const double wheelbase = 1.0;
+  std::size_t theta_discretization;
+  std::size_t maxTurn;
+  double stopZoneWidth;
+  double centerZoneWidth;
+  double centerAngle;
+  double borderAngle;
+  std::vector<RoadSegment> segments;
 };
 
 }

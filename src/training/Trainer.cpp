@@ -78,18 +78,18 @@ locationConditionMap Trainer::generateInitialStates() const {
 }
 
 void Trainer::updateOctree( const std::vector<ReachTreeNode>& roots ) {
-  // constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
-  hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
-  hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );
-  constraints( 0, 4 )                 = 1;
-  constraints( 1, 4 )                 = -1;
+  // // constraints for cycle-time equals zero, encodes t <= 0 && -t <= -0
+  // hypro::matrix_t<Number> constraints = hypro::matrix_t<Number>::Zero( 2, 5 );
+  // hypro::vector_t<Number> constants   = hypro::vector_t<Number>::Zero( 2 );
+  // constraints( 0, 4 )                 = 1;
+  // constraints( 1, 4 )                 = -1;
   for ( const auto& r : roots ) {
     for ( const auto& node : hypro::preorder( r ) ) {
       for ( const auto& s : node.getFlowpipe() ) {
-        // only store segments which contain states where the cycle time is zero
-        if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
+        //// only store segments which contain states where the cycle time is zero
+        //if ( s.satisfiesHalfspaces( constraints, constants ).first != hypro::CONTAINMENT::NO ) {
           mStorage.add(node.getLocation()->getName(), s);
-        }
+        //}
       }
     }
   }

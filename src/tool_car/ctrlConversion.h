@@ -23,9 +23,11 @@ LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Numbe
 
 LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Number>& automaton, std::size_t theta_discretization);
 
-double convertDeltaToTheta(double delta, double currentTheta, std::size_t theta_discretization);
+double convertDeltaToTheta(double delta, double currentTheta, double cycleTime);
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization);
+
+double getRepresentativeForThetaBucket(std::size_t theta_bucket, std::size_t discretization);
 
 std::size_t getDeltaBucket(Number delta, const std::pair<double,double>& delta_ranges, std::size_t discretization);
 
@@ -33,6 +35,13 @@ std::size_t getXBucket(Number x, double x_min, double x_max, double x_interval_s
 
 std::size_t getYBucket(Number y, double y_min, double y_max, double y_interval_size);
 
+template<typename Automaton>
+std::vector<LocPtr> getLocationsForState(const Point& in, const Automaton& automaton);
+
+std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<typename Automaton::LocationType*>& in);
+
 } // namespace
+
+#include "ctrlConversion.tpp"
 
 #endif  // SIMPLEXARCHITECTURES_CTRLCONVERSION_H
