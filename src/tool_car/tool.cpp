@@ -86,7 +86,7 @@ int main( int argc, char* argv[] ) {
   Number                    cycleTime{ 0.1 };
   bool                      plotSets     = false;
   bool                      plotPosition = false;
-  bool                      plotRaceTrack = true;
+  bool                      plotRaceTrack = false;
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -346,7 +346,7 @@ int main( int argc, char* argv[] ) {
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-    storage.plotCombined( "storage_post_initial_training_combined", true );
+    //storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
