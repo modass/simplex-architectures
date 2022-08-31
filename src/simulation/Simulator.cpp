@@ -80,6 +80,7 @@ namespace simplexArchitectures {
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {
             if(!mStorage.isContained(loc->getName(),set)) {
+              spdlog::trace("Location {} with sample {} is not yet in the storage, add it and set state to NSET",loc->getName(), set);
               isSafe = hypro::TRIBOOL::NSET;
               if(unknownSamples.find(loc) == std::end(unknownSamples)) {
                 unknownSamples[loc] = std::vector<Representation>{};
@@ -104,10 +105,13 @@ namespace simplexArchitectures {
                           n.getLocation()->getName(), n.isLeaf(), n.getInitialSet(), n.getFlowpipe() );
           }
         }
+        mStorage.plot( "error_storage");
+        throw std::logic_error("An update to unsafe states should not happen.");
       }
       if (safe == hypro::TRIBOOL::NSET) {
         spdlog::warn("Simulator updated with input that might visit unexplored states!");
-        // This might happen after the cutoff and thus be spurious.
+        // This can only happen, if isSafe() ends in states that are not in the storage yet.
+        throw std::logic_error("Cannot detect new states during update.");
       }
 
         for (auto &root: roots) {

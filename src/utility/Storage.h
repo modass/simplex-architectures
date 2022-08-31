@@ -58,9 +58,9 @@ struct Storage {
   std::size_t size() const;
 
   /// Writes the currently available safe sets to a plot file, creating a file for each location.
-  void plot( const std::string& outfilename );
+  void plot( const std::string& outfilename ) const;
   /// Creates a combined plot of the currently available safe sets
-  void plotCombined( const std::string& outfilename, bool writeAndClear = true );
+  void plotCombined( const std::string& outfilename, bool writeAndClear = true ) const;
 
   void write();
 

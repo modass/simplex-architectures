@@ -261,7 +261,7 @@ int main( int argc, char* argv[] ) {
   constraints( 0, tick ) = 1;
   constraints( 1, tick ) = -1;
   Vector constants       = Vector::Zero( 2 );
-  constants << cycleTime, -cycleTime;
+  constants << 0, -0;
   storagesettings.filter = hypro::Condition<Number>( constraints, constants );
 
   auto             storage = Storage( storagefilename, storagesettings );
@@ -283,10 +283,10 @@ int main( int argc, char* argv[] ) {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     // for now hardcode 0 (theta in ctrl-output)
     auto candidates = getLocationForTheta( p[0], theta_discretization, simulationAutomaton.getLocations() );
-    if ( candidates.size() > 2 || candidates.size() < 1 ) {
+    if ( candidates.size() > 2 || candidates.empty() ) {
       std::cout << "Candidates:\n";
-      for ( const auto* l : candidates ) {
-        std::cout << l->getName() << "\n";
+      for ( const auto* candidate : candidates ) {
+        std::cout << candidate->getName() << "\n";
       }
       std::cout << std::flush;
       throw std::logic_error( "Number of control-location candidates (" + std::to_string( candidates.size() ) +
@@ -397,9 +397,9 @@ int main( int argc, char* argv[] ) {
             initialConfigurations[loc] = hypro::Condition( setIntervals );
             auto safe                  = trainer.run( settings, initialConfigurations );
             {
-              std::stringstream ss;
-              ss << set;
-              spdlog::debug( "Training result for location {} and set {}: {}", loc->getName(), ss.str(), safe );
+              // TODO remove for performance reasons
+              auto tmp = Representation(setIntervals);
+              spdlog::debug( "Training result for location {} and set {}: {}", loc->getName(), tmp, safe );
             }
             allSafe = allSafe && safe;
           }
@@ -453,7 +453,7 @@ int main( int argc, char* argv[] ) {
       }
     }
     if ( plotSets || plotPosition ) {
-      hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
+      hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, false );
       hypro::Plotter<Number>::getInstance().clear();
     }
 
