@@ -166,7 +166,7 @@ Point BicycleBaseController::generateInput( Point state ) {
 
     auto theta = getRepresentativeForThetaBucket(newThetaBucket, theta_discretization);
 
-    spdlog::trace("Target angle {}, new theta {} (bucket {})",targetTheta, theta, newThetaBucket);
+    spdlog::trace("Target angle {} (bucket {}), new theta {} (bucket {})",targetTheta, targetThetaBucket, theta, newThetaBucket);
     return Point{theta,velocity};
 }
 
