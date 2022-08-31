@@ -38,7 +38,6 @@
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
 #include "ctrlConversion.h"
-#include "model_generation/generateBicycle.h"
 #include "model_generation/generateCarModel.h"
 #include "model_generation/generateSimpleBaseController.h"
 #include "simulation/Executor.h"
@@ -60,7 +59,6 @@ using namespace simplexArchitectures;
 using I            = carl::Interval<Number>;
 using IV           = std::vector<I>;
 using Box          = hypro::Box<Number>;
-using CarAutomaton = hypro::HybridAutomatonComp<Number>;
 
 // global constants
 constexpr Eigen::Index                x     = 0;
@@ -103,15 +101,6 @@ int main( int argc, char* argv[] ) {
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
                 "the analysis terminates?" );
   CLI11_PARSE( app, argc, argv );
-  // parse model
-  hypro::ReachabilitySettings reachSettings;
-  auto                        carModel = modelGenerator::generateCarModel( theta_discretization, cycleTime );
-  reachSettings.timeStep               = timeStepSize;
-  {
-    std::ofstream fs{ "car.model" };
-    fs << hypro::toFlowstarFormat( carModel );
-    fs.close();
-  }
 
   // Hard code Racetrack
   RaceTrack track;
@@ -126,18 +115,33 @@ int main( int argc, char* argv[] ) {
 
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
-  Number initialTheta    = 0.01;
-  Number initialVelocity = 1;
-  Point  initialPosition = Point( { 6.0, 0.5 } );
-  Point  initialCarState = Point( { initialPosition[0], initialPosition[1], initialTheta } );
-  Point  initialState    = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, initialVelocity } );
-  double bloating        = 0.0;
-  double angularBloating = 0.0;  // 1.0472 approx. 60 degrees
-  IV     initialValuations{ I{ initialPosition[0] - bloating, initialPosition[0] + bloating },
-                        I{ initialPosition[1] - bloating, initialPosition[1] + bloating }, I{ initialTheta }, I{ 0 },
-                        I{ initialVelocity } };
+  Number wheelbase         = 1.0;
+  Number bcVelocity        = 1;
+  size_t bcMaxTurn         = 1;  // in theta buckets
+  double bcStopZoneWidth   = 0.5;
+  double bcCenterZoneWidth = 0.15;
+  double bcCenterAngle     = M_PI / 12.0; /* 15° */
+  double bcBorderAngle     = 0.87;        /* 50° */
+  Number acVelocity        = 2;
+  Number acLookahead       = 4.0;
+  Number acScaling         = 0.65;
+  Number initialTheta      = 0.01;
+  Point  initialPosition   = Point( { 6.0, 0.5 } );
+  Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
+  Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
+  IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
 
-  auto tmpCtrl                 = new PurePursuitController();
+  // parse model
+  hypro::ReachabilitySettings reachSettings;
+  auto carModel          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity );
+  reachSettings.timeStep = timeStepSize;
+  {
+    std::ofstream fs{ "car.model" };
+    fs << hypro::toFlowstarFormat( carModel );
+    fs.close();
+  }
+
+  auto tmpCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
   tmpCtrl->track               = track;
   tmpCtrl->thetaDiscretization = theta_discretization;
   tmpCtrl->cycleTime           = cycleTime;
@@ -164,8 +168,8 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, 1, 0.5, 0.15, M_PI / 12.0 /* 15° */,
-                                                                0.87 /* 50° */, segments );
+  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth, bcCenterZoneWidth, bcCenterAngle,
+                                                                bcBorderAngle, segments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 
   IV initialValuationsBC{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 2 ) };
@@ -227,7 +231,7 @@ int main( int argc, char* argv[] ) {
     // create model for simulation: includes locations for all theta buckets, but only stop transitions
     // that do not change theta and reduce the speed to zero.
     // This should terminate the simulation after the first jump with finding a fixed point.
-    simulationAutomaton = modelGenerator::generateCarModel( theta_discretization, cycleTime, false );
+    simulationAutomaton = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity, false );
     {
       auto startingLocationCandidates =
           getLocationForTheta( initialTheta, theta_discretization, simulationAutomaton.getLocations() );

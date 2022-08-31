@@ -109,7 +109,7 @@ Point BicycleBaseController::generateInput( Point state ) {
         break;
     }
     double targetTheta = segmentAngle;
-    double velocity = 1;
+    double currentvelocity = this->velocity;
     switch ( iz ) {
       case 0: {
         targetTheta = normalizeAngle( segmentAngle - borderAngle );
@@ -120,7 +120,7 @@ Point BicycleBaseController::generateInput( Point state ) {
         break;
       }
       case 2: {
-        velocity = 0;
+        currentvelocity = 0;
         targetTheta = state[2];
         break;
       }
@@ -167,7 +167,7 @@ Point BicycleBaseController::generateInput( Point state ) {
     auto theta = getRepresentativeForThetaBucket(newThetaBucket, theta_discretization);
 
     spdlog::trace("Target angle {} (bucket {}), new theta {} (bucket {})",targetTheta, targetThetaBucket, theta, newThetaBucket);
-    return Point{theta,velocity};
+    return Point{theta,currentvelocity};
 }
 
 

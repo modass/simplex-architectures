@@ -151,6 +151,7 @@ namespace simplexArchitectures {
                       for(const auto& s : n.getFlowpipe()) {
                         ss << s << "\n";
                       }
+                      spdlog::warn("Root node initial set: {}", r.getInitialSet());
                       // std::cout << "Node flowpipe:\n" << ss.str() << std::endl;
                       spdlog::warn("Node flags: timelock: {}, bad state: {}, has fixed point: {}, is on Zeno-cycle: {}", n.hasTimelock(), n.intersectedUnsafeRegion(), n.hasFixedPoint()==hypro::TRIBOOL::TRUE, n.isOnZenoCycle());
                       throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
@@ -203,7 +204,6 @@ namespace simplexArchitectures {
 
     void Simulator::setCtrlValue(Point &sample, const Point &ctrlInput) {
         // augment state with controller input
-        // sample.at( 2 ) = ctrlInput.at( 0 );
         for(Eigen::Index i = 0; i < mControlDimensions.size(); ++i) {
           sample[mControlDimensions[i]] = ctrlInput[i];
         }

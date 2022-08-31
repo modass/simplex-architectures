@@ -15,7 +15,8 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
                                                                                    double centerZoneWidth,
                                                                                    double centerAngle,
                                                                                    double borderAngle,
-                                                                                   const std::vector<RoadSegment>& segments) {
+                                                                                   const std::vector<RoadSegment>& segments,
+                                                    double velocity) {
 
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
@@ -264,6 +265,7 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
   result.theta_discretization = theta_discretization;
   result.maxTurn = maxTurn;
   result.mAutomaton = res;
+  result.velocity = velocity;
 
   return result;
 }
