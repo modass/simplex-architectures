@@ -124,7 +124,7 @@ int main( int argc, char* argv[] ) {
   double bcBorderAngle     = 0.87;        /* 50° */
   Number acVelocity        = 2;
   Number acLookahead       = 4.0;
-  Number acScaling         = 0.65;
+  Number acScaling         = 0.55;
   Number initialTheta      = 0.01;
   Point  initialPosition   = Point( { 6.0, 0.5 } );
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );

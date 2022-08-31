@@ -137,6 +137,7 @@ namespace simplexArchitectures {
 //                             n.getInitialSet(),
 //                             n.getFlowpipe());
                 if ( n.isLeaf() ) {
+                    // spdlog::trace("Node at location {} with initial set {} is a leaf-node.", n.getLocation()->getName(), n.getInitialSet());
                     // I don't think we really need this check. We only consider initial sets of nodes that where reached by resetting the cLocPtrk to zero.
                     auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
                     if(containment != hypro::CONTAINMENT::FULL) {
@@ -154,7 +155,8 @@ namespace simplexArchitectures {
                       spdlog::warn("Root node initial set: {}", r.getInitialSet());
                       // std::cout << "Node flowpipe:\n" << ss.str() << std::endl;
                       spdlog::warn("Node flags: timelock: {}, bad state: {}, has fixed point: {}, is on Zeno-cycle: {}", n.hasTimelock(), n.intersectedUnsafeRegion(), n.hasFixedPoint()==hypro::TRIBOOL::TRUE, n.isOnZenoCycle());
-                      throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
+                      //throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
+                      continue;
                     }
                     if ( containment != hypro::CONTAINMENT::NO ) {
                       // std::cout << "[Simulator] New sample: " << result << std::endl;
@@ -194,7 +196,6 @@ namespace simplexArchitectures {
                 assert( mLastStates[LocPtr].size() <= 2 );
             }
         }
-        // TODO continue here
         if(mLastStates.empty()) {
           spdlog::warn("Reachability computation roots: {}", roots);
           throw std::logic_error("None of the simulated traces agrees with the actual real-world observation passed to the simulator.");
