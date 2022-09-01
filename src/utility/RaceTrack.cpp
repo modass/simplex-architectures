@@ -70,6 +70,14 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
     plt.addObject( hypro::Box<double>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
                    hypro::plotting::colors[color], redSettings );
   }
+  // add start finish line
+  double startFinishWidth = 0.05;
+  plt.addObject({Point{startFinishX, startFinishYlow+safetyMargin},
+                       Point{startFinishX+startFinishWidth, startFinishYlow+safetyMargin},
+                       Point{startFinishX+startFinishWidth, startFinishYhigh-safetyMargin},
+                       Point{startFinishX, startFinishYhigh-safetyMargin}},
+                 hypro::plotting::colors[hypro::plotting::turquoise], redSettings);
+
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };
   double xArrowOffset = std::cos( car.value().at( 2 ));
