@@ -97,12 +97,12 @@ int main( int argc, char* argv[] ) {
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
-  std::size_t               trackID{ 1 };
-  bool                      plotSets     = false;
-  bool                      plotPosition = false;
-  bool                      plotRaceTrack = true;
+  std::size_t               trackID{ 0 };
+  bool                      plotSets      = false;
+  bool                      plotPosition  = false;
+  bool                      plotRaceTrack = false;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -165,9 +165,9 @@ int main( int argc, char* argv[] ) {
   double bcCenterZoneWidth = 0.15;
   double bcCenterAngle     = M_PI / 12.0; /* 15° */
   double bcBorderAngle     = 0.87;        /* 50° */
-  Number acVelocity        = 1;
+  Number acVelocity        = 2;           // 2,1;
   Number acLookahead       = 4.0;
-  Number acScaling         = 0.8;
+  Number acScaling         = 0.55;  // 0.55,0.8;
   Number initialTheta      = 0.01;
   Point  initialPosition   = Point( { 4.0, 1.5 } );
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
@@ -389,13 +389,13 @@ int main( int argc, char* argv[] ) {
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-    //storage.plotCombined( "storage_post_initial_training_combined", true );
+    // storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // for statistics: record in which iteration the base controller was needed
-  std::vector<bool> baseControllerInvocations( iterations, false );
-  std::vector<bool> computeAdaptation( iterations, false );
-  std::size_t lapCounter = 0;
+  std::vector<std::vector<bool>> baseControllerInvocations( 1 );
+  std::vector<std::vector<bool>> computeAdaptation( 1 );
+  std::size_t                    lapCounter = 0;
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
@@ -420,9 +420,16 @@ int main( int argc, char* argv[] ) {
         ss << advControllerInput;
         spdlog::debug( "Advanced controller is safe and traces end in known safe area, run with output {}", ss.str() );
       }
-      executeWithLapCount(executor, advControllerInput, lapCounter, track);
-      // TODO why does the simulator require the last used control input?
+      executeWithLapCount( executor, advControllerInput, lapCounter, track );
       sim.update( advControllerInput, executor.mLastState );
+      if ( baseControllerInvocations.size() <= lapCounter ) {
+        baseControllerInvocations.emplace_back( std::vector<bool>{} );
+      }
+      baseControllerInvocations[lapCounter].push_back( false );
+      if ( computeAdaptation.size() <= lapCounter ) {
+        computeAdaptation.emplace_back( std::vector<bool>{} );
+      }
+      computeAdaptation[lapCounter].push_back( false );
     } else if ( advControllerSafe == hypro::TRIBOOL::FALSE ) {
       Point bcInput = bc.generateInput( executor.mLastState );
       {
@@ -430,10 +437,17 @@ int main( int argc, char* argv[] ) {
         ss << bcInput;
         spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
       }
-      executeWithLapCount(executor, bcInput, lapCounter, track);
+      executeWithLapCount( executor, bcInput, lapCounter, track );
       sim.update( bcInput, executor.mLastState );
       advControllerUsed = false;
-      baseControllerInvocations[iteration_count - 1] = true;
+      if ( baseControllerInvocations.size() <= lapCounter ) {
+        baseControllerInvocations.emplace_back( std::vector<bool>{} );
+      }
+      baseControllerInvocations[lapCounter].push_back( true );
+      if ( computeAdaptation.size() <= lapCounter ) {
+        computeAdaptation.emplace_back( std::vector<bool>{} );
+      }
+      computeAdaptation[lapCounter].push_back( false );
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
       bool allSafe = false;
@@ -470,19 +484,33 @@ int main( int argc, char* argv[] ) {
           ss << bcInput;
           spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         }
-        executeWithLapCount(executor, bcInput, lapCounter, track);
+        executeWithLapCount( executor, bcInput, lapCounter, track );
         sim.update( bcInput, executor.mLastState );
         advControllerUsed = false;
-        baseControllerInvocations[iteration_count - 1] = true;
+        if ( computeAdaptation.size() <= lapCounter ) {
+          computeAdaptation.emplace_back( std::vector<bool>{} );
+        }
+        computeAdaptation[lapCounter].push_back( false );
+        if ( baseControllerInvocations.size() <= lapCounter ) {
+          baseControllerInvocations.emplace_back( std::vector<bool>{} );
+        }
+        baseControllerInvocations[lapCounter].push_back( true );
       } else {
         {
           std::stringstream ss;
           ss << advControllerInput;
           spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
         }
-        executeWithLapCount(executor, advControllerInput, lapCounter, track);
+        executeWithLapCount( executor, advControllerInput, lapCounter, track );
         sim.update( advControllerInput, executor.mLastState );
-        computeAdaptation[iteration_count - 1] = true;
+        if ( computeAdaptation.size() <= lapCounter ) {
+          computeAdaptation.emplace_back( std::vector<bool>{} );
+        }
+        computeAdaptation[lapCounter].push_back( true );
+        if ( baseControllerInvocations.size() <= lapCounter ) {
+          baseControllerInvocations.emplace_back( std::vector<bool>{} );
+        }
+        baseControllerInvocations[lapCounter].push_back( false );
       }
     }
 
@@ -527,21 +555,15 @@ int main( int argc, char* argv[] ) {
       plt.clear();
     }
   }
-  // write statistics to file
-  std::ofstream fs;
-  fs.open( "baseControllerInvocations", std::ios_base::app );
-  for ( auto v : baseControllerInvocations ) {
-    fs << v << ",";
+  for ( int i = 0; i < baseControllerInvocations.size(); ++i ) {
+    std::size_t numberTrainings = std::count_if( std::begin( computeAdaptation[i] ), std::end( computeAdaptation[i] ),
+                                                 []( bool val ) { return val; } );
+    std::size_t numberBCInvocations =
+        std::count_if( std::begin( baseControllerInvocations[i] ), std::end( baseControllerInvocations[i] ),
+                       []( bool val ) { return val; } );
+    spdlog::info( "Lap {} required {} iterations with {} BC-Invocations and {} successful trainings.", i,
+                  baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
-  fs << "\n";
-  fs.close();
-  fs.open( "adaptationInvocations", std::ios_base::app );
-  for ( auto v : computeAdaptation ) {
-    fs << v << ",";
-  }
-  fs << "\n";
-  fs.close();
-  return 0;
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }
