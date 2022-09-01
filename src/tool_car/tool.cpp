@@ -349,6 +349,9 @@ int main( int argc, char* argv[] ) {
     //storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
+  // for statistics: record in which iteration the base controller was needed
+  std::vector<bool> baseControllerInvocations( iterations, false );
+  std::vector<bool> computeAdaptation( iterations, false );
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
@@ -386,6 +389,7 @@ int main( int argc, char* argv[] ) {
       executor.execute( bcInput );
       sim.update( bcInput, executor.mLastState );
       advControllerUsed = false;
+      baseControllerInvocations[iteration_count - 1] = true;
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
       bool allSafe = false;
@@ -425,6 +429,7 @@ int main( int argc, char* argv[] ) {
         executor.execute( bcInput );
         sim.update( bcInput, executor.mLastState );
         advControllerUsed = false;
+        baseControllerInvocations[iteration_count - 1] = true;
       } else {
         {
           std::stringstream ss;
@@ -433,6 +438,7 @@ int main( int argc, char* argv[] ) {
         }
         executor.execute( advControllerInput );
         sim.update( advControllerInput, executor.mLastState );
+        computeAdaptation[iteration_count - 1] = true;
       }
     }
 
@@ -472,6 +478,21 @@ int main( int argc, char* argv[] ) {
       plt.clear();
     }
   }
+  // write statistics to file
+  std::ofstream fs;
+  fs.open( "baseControllerInvocations", std::ios_base::app );
+  for ( auto v : baseControllerInvocations ) {
+    fs << v << ",";
+  }
+  fs << "\n";
+  fs.close();
+  fs.open( "adaptationInvocations", std::ios_base::app );
+  for ( auto v : computeAdaptation ) {
+    fs << v << ",";
+  }
+  fs << "\n";
+  fs.close();
+  return 0;
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }
