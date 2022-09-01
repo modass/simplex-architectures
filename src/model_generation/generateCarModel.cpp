@@ -10,7 +10,7 @@
 
 namespace modelGenerator {
 
-hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization, double cycleTime, bool includeThetaTransitions) {
+hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization, double cycleTime, double bcvelocity, bool includeThetaTransitions) {
   // delta: steering angle, relative to the current heading
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
@@ -109,7 +109,9 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
         reset_vector                 = Vector::Zero( variableNames.size() );
         reset_matrix( tick, tick )   = 0;
         reset_matrix( theta, theta ) = 0;
+        reset_matrix( v, v )         = 0;
         reset_vector( theta )        = vtheta;
+        reset_vector( v )            = bcvelocity;
         changeTheta->setReset( hypro::Reset<double>( reset_matrix, reset_vector ) );
 
         // label for controller synchronisation

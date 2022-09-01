@@ -1,4 +1,4 @@
-add_library(SimplexArchitectures controller/Controller.cpp simulation/Simulator_old.cpp training/Trainer.cpp utility/octreePlotting.cpp utility/RaceTrack.cpp utility/reachTreeUtility.cpp utility/treeSerialization.cpp utility/Storage.cpp controller/RandomController.cpp controller/RLController.cpp controller/BicycleBaseController.cpp controller/PurePursuitController.cpp model_generation/generateBaseController.cpp model_generation/generateBaseController.cpp)
+add_library(SimplexArchitectures controller/Controller.cpp simulation/Simulator.cpp  training/Trainer.cpp utility/octreePlotting.cpp utility/RaceTrack.cpp utility/reachTreeUtility.cpp utility/treeSerialization.cpp utility/Storage.cpp controller/RandomController.cpp controller/RLController.cpp controller/BicycleBaseController.cpp controller/PurePursuitController.cpp model_generation/generateSimpleBaseController.cpp)
 target_include_directories(SimplexArchitectures PUBLIC ./)
 target_include_directories(SimplexArchitectures PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(SimplexArchitectures hypro-shared cereal::cereal spdlog stdc++fs)

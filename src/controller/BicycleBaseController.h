@@ -14,8 +14,10 @@
 namespace simplexArchitectures {
 
 struct BicycleBaseController : public BaseController<Automaton,Point, Point> {
+
   Point generateInput( Point state );
 
+  double velocity = 1.0;
   std::size_t theta_discretization;
   std::size_t maxTurn;
   double stopZoneWidth;

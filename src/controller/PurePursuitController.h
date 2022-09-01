@@ -14,6 +14,8 @@ namespace simplexArchitectures {
 
 class PurePursuitController : public AbstractController<Point, Point> {
  public:
+  PurePursuitController(double v, double wb, double mL, double sF) : velocity(v), wheelbase(wb), maxLookahead(mL), scalingFactor(sF) {}
+
   Point generateInput( Point state );
 
   std::vector<Point>::const_iterator lastWaypoint;
@@ -22,10 +24,12 @@ class PurePursuitController : public AbstractController<Point, Point> {
   RaceTrack track;
   size_t thetaDiscretization;
   double cycleTime;
- private:
 
-  const double wheelbase = 1.0;
-  const double maxLookahead = 4.0;
+ private:
+  const double velocity = 1.0;
+  const double wheelbase = 0.25;
+  const double maxLookahead = 4.0; // TODO find intuitive description ;)
+  const double scalingFactor = 0.65; // 0.65 some interference, 0.75 very little interference, 1.0 no interference
 
 };
 

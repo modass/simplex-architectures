@@ -27,12 +27,13 @@ struct ExecutionSettings {
 using Matrix = hypro::matrix_t<Number>;
 using Vector = hypro::vector_t<Number>;
 
+template<typename Automaton>
 struct Executor {
-  Executor( hypro::HybridAutomaton<Number>& automaton, LocPtr initialLocation, Point initialValuation )
+  Executor( Automaton& automaton, LocPtr initialLocation, Point initialValuation )
       : mAutomaton( automaton ), mLastLocation( initialLocation ), mLastState( initialValuation ) {}
 
   Point                           execute( const Point& ctrlInput );
-  hypro::HybridAutomaton<Number>& mAutomaton;
+  Automaton& mAutomaton;
   LocPtr                          mLastLocation;
   Point mLastState;
   hypro::Settings                 mSettings;
@@ -47,4 +48,7 @@ struct Executor {
     };
 
 }
+
+#include "Executor.tpp"
+
 #endif //SIMPLEXARCHITECTURES_EXECUTOR_H

@@ -31,6 +31,7 @@ void Storage::add( std::string locationName, const hypro::Box<Number>& set ) {
       mTrees[locationName].add(filteredSet);
     }
   }
+  assert( isContained( locationName, set ) );
 }
 
 bool Storage::isContained( std::string locationName, const hypro::Box<Number>& set ) const {
@@ -44,7 +45,7 @@ bool Storage::isContained( std::string locationName, const hypro::Box<Number>& s
   }
 }
 
-void Storage::plot( const std::string& outfilename ) {
+void Storage::plot( const std::string& outfilename ) const {
   hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
   // Assumption: All trees have the same base container size (intervals & dimension)
   plt.rSettings().xPlotInterval  = mTrees.begin()->second.getContainer().interval(0);
@@ -61,7 +62,7 @@ void Storage::plot( const std::string& outfilename ) {
   }
 }
 
-void Storage::plotCombined(const std::string& outfilename, bool writeAndClear) {
+void Storage::plotCombined(const std::string& outfilename, bool writeAndClear) const {
   hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
   // Assumption: All trees have the same base container size (intervals & dimension)
   plt.rSettings().xPlotInterval  = mTrees.begin()->second.getContainer().interval(0);

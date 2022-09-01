@@ -49,8 +49,8 @@ LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Nu
   return res;
 }
 
-double convertDeltaToTheta(double delta, double currentTheta, double cycleTime) {
-  auto targetTheta = currentTheta + 0.5 * cycleTime * tan(delta);
+double convertDeltaToTheta(double delta, double currentTheta, double cycleTime, double scalingFactor) {
+  auto targetTheta = currentTheta + scalingFactor * cycleTime * tan(delta);
   return normalizeAngle(targetTheta);
 }
 

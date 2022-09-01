@@ -38,7 +38,6 @@
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
 #include "ctrlConversion.h"
-#include "model_generation/generateBicycle.h"
 #include "model_generation/generateCarModel.h"
 #include "model_generation/generateSimpleBaseController.h"
 #include "simulation/Executor.h"
@@ -60,7 +59,6 @@ using namespace simplexArchitectures;
 using I            = carl::Interval<Number>;
 using IV           = std::vector<I>;
 using Box          = hypro::Box<Number>;
-using CarAutomaton = hypro::HybridAutomatonComp<Number>;
 
 // global constants
 constexpr Eigen::Index                x     = 0;
@@ -87,7 +85,8 @@ int main( int argc, char* argv[] ) {
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
   bool                      plotSets     = false;
-  bool                      plotPosition = true;
+  bool                      plotPosition = false;
+  bool                      plotRaceTrack = false;
 
   spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
@@ -102,15 +101,6 @@ int main( int argc, char* argv[] ) {
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
                 "the analysis terminates?" );
   CLI11_PARSE( app, argc, argv );
-  // parse model
-  hypro::ReachabilitySettings reachSettings;
-  auto                        carModel = modelGenerator::generateCarModel( theta_discretization, cycleTime );
-  reachSettings.timeStep               = timeStepSize;
-  {
-    std::ofstream fs{ "car.model" };
-    fs << hypro::toFlowstarFormat( carModel );
-    fs.close();
-  }
 
   // Hard code Racetrack
   RaceTrack track;
@@ -125,18 +115,33 @@ int main( int argc, char* argv[] ) {
 
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
-  Number initialTheta    = 0.01;
-  Number initialVelocity = 1;
-  Point  initialPosition = Point( { 6.0, 0.5 } );
-  Point  initialCarState = Point( { initialPosition[0], initialPosition[1], initialTheta } );
-  Point  initialState    = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, initialVelocity } );
-  double bloating        = 0.0;
-  double angularBloating = 0.0;  // 1.0472 approx. 60 degrees
-  IV     initialValuations{ I{ initialPosition[0] - bloating, initialPosition[0] + bloating },
-                        I{ initialPosition[1] - bloating, initialPosition[1] + bloating }, I{ initialTheta }, I{ 0 },
-                        I{ initialVelocity } };
+  Number wheelbase         = 1.0;
+  Number bcVelocity        = 1;
+  size_t bcMaxTurn         = 1;  // in theta buckets
+  double bcStopZoneWidth   = 0.5;
+  double bcCenterZoneWidth = 0.15;
+  double bcCenterAngle     = M_PI / 12.0; /* 15° */
+  double bcBorderAngle     = 0.87;        /* 50° */
+  Number acVelocity        = 2;
+  Number acLookahead       = 4.0;
+  Number acScaling         = 0.55;
+  Number initialTheta      = 0.01;
+  Point  initialPosition   = Point( { 6.0, 0.5 } );
+  Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
+  Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
+  IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
 
-  auto tmpCtrl                 = new PurePursuitController();
+  // parse model
+  hypro::ReachabilitySettings reachSettings;
+  auto carModel          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity );
+  reachSettings.timeStep = timeStepSize;
+  {
+    std::ofstream fs{ "car.model" };
+    fs << hypro::toFlowstarFormat( carModel );
+    fs.close();
+  }
+
+  auto tmpCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
   tmpCtrl->track               = track;
   tmpCtrl->thetaDiscretization = theta_discretization;
   tmpCtrl->cycleTime           = cycleTime;
@@ -163,8 +168,8 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, 1, 0.5, 0.15, M_PI / 12.0 /* 15° */,
-                                                                0.87 /* 50° */, segments );
+  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth, bcCenterZoneWidth, bcCenterAngle,
+                                                                bcBorderAngle, segments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 
   IV initialValuationsBC{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 2 ) };
@@ -226,7 +231,7 @@ int main( int argc, char* argv[] ) {
     // create model for simulation: includes locations for all theta buckets, but only stop transitions
     // that do not change theta and reduce the speed to zero.
     // This should terminate the simulation after the first jump with finding a fixed point.
-    simulationAutomaton = modelGenerator::generateCarModel( theta_discretization, cycleTime, false );
+    simulationAutomaton = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity, false );
     {
       auto startingLocationCandidates =
           getLocationForTheta( initialTheta, theta_discretization, simulationAutomaton.getLocations() );
@@ -260,7 +265,7 @@ int main( int argc, char* argv[] ) {
   constraints( 0, tick ) = 1;
   constraints( 1, tick ) = -1;
   Vector constants       = Vector::Zero( 2 );
-  constants << cycleTime, -cycleTime;
+  constants << 0, -0;
   storagesettings.filter = hypro::Condition<Number>( constraints, constants );
 
   auto             storage = Storage( storagefilename, storagesettings );
@@ -282,10 +287,10 @@ int main( int argc, char* argv[] ) {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     // for now hardcode 0 (theta in ctrl-output)
     auto candidates = getLocationForTheta( p[0], theta_discretization, simulationAutomaton.getLocations() );
-    if ( candidates.size() > 2 || candidates.size() < 1 ) {
+    if ( candidates.size() > 2 || candidates.empty() ) {
       std::cout << "Candidates:\n";
-      for ( const auto* l : candidates ) {
-        std::cout << l->getName() << "\n";
+      for ( const auto* candidate : candidates ) {
+        std::cout << candidate->getName() << "\n";
       }
       std::cout << std::flush;
       throw std::logic_error( "Number of control-location candidates (" + std::to_string( candidates.size() ) +
@@ -341,9 +346,12 @@ int main( int argc, char* argv[] ) {
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-    storage.plotCombined( "storage_post_initial_training_combined", true );
+    //storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
+  // for statistics: record in which iteration the base controller was needed
+  std::vector<bool> baseControllerInvocations( iterations, false );
+  std::vector<bool> computeAdaptation( iterations, false );
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
@@ -381,6 +389,7 @@ int main( int argc, char* argv[] ) {
       executor.execute( bcInput );
       sim.update( bcInput, executor.mLastState );
       advControllerUsed = false;
+      baseControllerInvocations[iteration_count - 1] = true;
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
       bool allSafe = false;
@@ -396,9 +405,9 @@ int main( int argc, char* argv[] ) {
             initialConfigurations[loc] = hypro::Condition( setIntervals );
             auto safe                  = trainer.run( settings, initialConfigurations );
             {
-              std::stringstream ss;
-              ss << set;
-              spdlog::debug( "Training result for location {} and set {}: {}", loc->getName(), ss.str(), safe );
+              // TODO remove for performance reasons
+              auto tmp = Representation(setIntervals);
+              spdlog::debug( "Training result for location {} and set {}: {}", loc->getName(), tmp, safe );
             }
             allSafe = allSafe && safe;
           }
@@ -420,6 +429,7 @@ int main( int argc, char* argv[] ) {
         executor.execute( bcInput );
         sim.update( bcInput, executor.mLastState );
         advControllerUsed = false;
+        baseControllerInvocations[iteration_count - 1] = true;
       } else {
         {
           std::stringstream ss;
@@ -428,6 +438,7 @@ int main( int argc, char* argv[] ) {
         }
         executor.execute( advControllerInput );
         sim.update( advControllerInput, executor.mLastState );
+        computeAdaptation[iteration_count - 1] = true;
       }
     }
 
@@ -452,10 +463,36 @@ int main( int argc, char* argv[] ) {
       }
     }
     if ( plotSets || plotPosition ) {
-      hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
+      hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, false );
       hypro::Plotter<Number>::getInstance().clear();
     }
+
+    if (plotRaceTrack) {
+      auto& plt = hypro::Plotter<Number>::getInstance();
+      plt.clear();
+      auto car = executor.mLastState.projectOn( { 0, 1, 2 } );
+      auto color = advControllerUsed ? hypro::plotting::green : hypro::plotting::orange;
+      track.addToPlotter( car, color);
+      plt.setFilename( "racetrack_"+ss.str());
+      plt.plot2d( hypro::PLOTTYPE::png, true );
+      plt.clear();
+    }
   }
+  // write statistics to file
+  std::ofstream fs;
+  fs.open( "baseControllerInvocations", std::ios_base::app );
+  for ( auto v : baseControllerInvocations ) {
+    fs << v << ",";
+  }
+  fs << "\n";
+  fs.close();
+  fs.open( "adaptationInvocations", std::ios_base::app );
+  for ( auto v : computeAdaptation ) {
+    fs << v << ",";
+  }
+  fs << "\n";
+  fs.close();
+  return 0;
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }

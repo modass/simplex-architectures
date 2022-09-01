@@ -80,6 +80,7 @@ namespace simplexArchitectures {
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {
             if(!mStorage.isContained(loc->getName(),set)) {
+              spdlog::trace("Location {} with sample {} is not yet in the storage, add it and set state to NSET",loc->getName(), set);
               isSafe = hypro::TRIBOOL::NSET;
               if(unknownSamples.find(loc) == std::end(unknownSamples)) {
                 unknownSamples[loc] = std::vector<Representation>{};
@@ -92,11 +93,31 @@ namespace simplexArchitectures {
     }
 
     void Simulator::update(const Point& ctrlInput, const Point& nextObservation) {
-      spdlog::debug("Update simulator with ctrl input {} and the current observation {}", ctrlInput, nextObservation);
-      isSafe( ctrlInput );
+      spdlog::debug("Update simulator with ctrl input {}, old states {}, old location {}, and the current observation {}", ctrlInput, mLastStates, mLastStates.begin()->first->getName(), nextObservation);
+      auto safe = isSafe( ctrlInput );
+
+      if (safe == hypro::TRIBOOL::FALSE) {
+        spdlog::warn("Simulator updated with unsafe input ({}). Print details of the reachability analysis:", safe);
+        // This might happen after the cutoff and thus be spurious.
+        for ( auto& r : roots ) {
+          for ( auto& n : hypro::preorder( r ) ) {
+            spdlog::warn( "Process node with location {}, leaf: {}, initial set {}, flow pipe {}",
+                          n.getLocation()->getName(), n.isLeaf(), n.getInitialSet(), n.getFlowpipe() );
+          }
+        }
+        mStorage.plot( "error_storage");
+        throw std::logic_error("An update to unsafe states should not happen.");
+      }
+      if (safe == hypro::TRIBOOL::NSET) {
+        spdlog::warn("Simulator updated with input that might visit unexplored states!");
+        // This can only happen, if isSafe() ends in states that are not in the storage yet.
+        throw std::logic_error("Cannot detect new states during update.");
+      }
+
         for (auto &root: roots) {
             cutoffControllerJumps(&root);
         }
+
 
         std::map<LocPtr, Box> samplesBoxes;
         Matrix constraints = Matrix::Zero( 2, mAutomaton.dimension() );
@@ -110,8 +131,13 @@ namespace simplexArchitectures {
         // collect all leaf nodes that agree with the cycle time
         for ( auto& r : roots ) {
             for ( auto& n : hypro::preorder( r ) ) {
-              //spdlog::trace("Process node with location {}",n.getLocation()->getName());
+//              spdlog::trace("Process node with location {}, leaf: {}, initial set {}, flow pipe {}",
+//                             n.getLocation()->getName(),
+//                             n.isLeaf(),
+//                             n.getInitialSet(),
+//                             n.getFlowpipe());
                 if ( n.isLeaf() ) {
+                    // spdlog::trace("Node at location {} with initial set {} is a leaf-node.", n.getLocation()->getName(), n.getInitialSet());
                     // I don't think we really need this check. We only consider initial sets of nodes that where reached by resetting the cLocPtrk to zero.
                     auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
                     if(containment != hypro::CONTAINMENT::FULL) {
@@ -126,9 +152,11 @@ namespace simplexArchitectures {
                       for(const auto& s : n.getFlowpipe()) {
                         ss << s << "\n";
                       }
+                      spdlog::warn("Root node initial set: {}", r.getInitialSet());
                       // std::cout << "Node flowpipe:\n" << ss.str() << std::endl;
                       spdlog::warn("Node flags: timelock: {}, bad state: {}, has fixed point: {}, is on Zeno-cycle: {}", n.hasTimelock(), n.intersectedUnsafeRegion(), n.hasFixedPoint()==hypro::TRIBOOL::TRUE, n.isOnZenoCycle());
-                      throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
+                      //throw std::logic_error("Leaf node initial set " + ss.str() + " should be fully contained in tick = 0, but is actually not.");
+                      continue;
                     }
                     if ( containment != hypro::CONTAINMENT::NO ) {
                       // std::cout << "[Simulator] New sample: " << result << std::endl;
@@ -168,8 +196,8 @@ namespace simplexArchitectures {
                 assert( mLastStates[LocPtr].size() <= 2 );
             }
         }
-        // TODO continue here
         if(mLastStates.empty()) {
+          spdlog::warn("Reachability computation roots: {}", roots);
           throw std::logic_error("None of the simulated traces agrees with the actual real-world observation passed to the simulator.");
         }
         spdlog::debug("Update simulator done.");
@@ -177,7 +205,6 @@ namespace simplexArchitectures {
 
     void Simulator::setCtrlValue(Point &sample, const Point &ctrlInput) {
         // augment state with controller input
-        // sample.at( 2 ) = ctrlInput.at( 0 );
         for(Eigen::Index i = 0; i < mControlDimensions.size(); ++i) {
           sample[mControlDimensions[i]] = ctrlInput[i];
         }

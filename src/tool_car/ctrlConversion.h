@@ -23,7 +23,7 @@ LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Numbe
 
 LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Number>& automaton, std::size_t theta_discretization);
 
-double convertDeltaToTheta(double delta, double currentTheta, double cycleTime);
+double convertDeltaToTheta(double delta, double currentTheta, double cycleTime, double scalingFactor = 0.5);
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization);
 

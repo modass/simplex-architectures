@@ -22,7 +22,8 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
                                                              double centerZoneWidth,
                                                              double centerAngle,
                                                              double borderAngle,
-                                                             const std::vector<RoadSegment>& segments);
+                                                             const std::vector<RoadSegment>& segments,
+                                                              double velocity);
 
 }
 #endif  // SIMPLEXARCHITECTURES_GENERATEBASECONTROLLER_H

@@ -12,7 +12,6 @@ namespace simplexArchitectures {
 
 Point PurePursuitController::generateInput( Point state ) {
   double delta    = 0;
-  double velocity = 1.0;
 
   // TODO: The positions of x,y,theta in state should not be hard coded!
   Point target = translateToCarCoordinates(*currentWaypoint, Point{state.at(0), state.at(1)}, state.at(2));
@@ -47,12 +46,14 @@ Point PurePursuitController::generateInput( Point state ) {
   }
 
 
+  // convert delta to theta
+  auto& currentTheta = state[2];
+  auto thetaprime = tan(delta) * velocity / wheelbase;
+  // offset & rescaling (to time difference, scaling-factor is used to pick the theta at a certain point in time during the control cycle)
+  auto targetTheta = currentTheta + scalingFactor * cycleTime * thetaprime;
+  auto theta =  normalizeAngle(targetTheta);
 
-  auto theta = convertDeltaToTheta(delta, state.at(2), cycleTime);
-
-//  std::cout << "Pure pursuit controller output: delta = " << delta << ", theta = " << theta << ", velocity = " << velocity << std::endl;
-
-  return Point( { theta, velocity } );
+  return Point( { theta, this->velocity } );
 }
 
 }  // namespace simplexArchitectures
