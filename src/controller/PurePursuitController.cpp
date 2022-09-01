@@ -21,7 +21,7 @@ Point PurePursuitController::generateInput( Point state ) {
 
   double distanceToTarget = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
   double l = std::min(maxLookahead, distanceToTarget);
-  if ( distanceToTarget < 0.5 ) {
+  if ( distanceToTarget < 1.0 ) {
     lastWaypoint = currentWaypoint;
     if(currentWaypoint != (track.waypoints.end()-1)) {
       spdlog::debug("Switch to next waypoint");
