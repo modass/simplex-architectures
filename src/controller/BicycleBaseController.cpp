@@ -120,8 +120,7 @@ Point BicycleBaseController::generateInput( Point state ) {
         break;
       }
       case 2: {
-        currentvelocity = 0;
-        targetTheta = state[2];
+          targetTheta = segmentAngle;
         break;
       }
       case 3: {
@@ -154,6 +153,13 @@ Point BicycleBaseController::generateInput( Point state ) {
     auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
 
     size_t newThetaBucket;
+
+    auto maxStopDifference = theta_discretization/8;
+    if (iz == 2 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
+      spdlog::trace("Base controller stopped!");
+      return Point{targetTheta, 0};
+    }
+
     if (differenceLeft == 0) {
       newThetaBucket = targetThetaBucket;
     } else if (differenceLeft <= differenceRight) {
