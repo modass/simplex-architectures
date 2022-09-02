@@ -80,12 +80,15 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
 
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };
-  double xArrowOffset = std::cos( car.value().at( 2 ));
-  double yArrowOffset = std::sin( car.value().at( 2 ));
-  Point  carDirection{ xArrowOffset, yArrowOffset };
-  std::cout << "Direction: " << carDirection << std::endl;
-  plt.addVector( ( carPosition + carDirection ).rawCoordinates(), carPosition.rawCoordinates() );
-  plt.addPoint( carPosition );
+  auto heading = Point{std::cos( car.value().at( 2 )), std::sin( car.value().at( 2 ))};
+  auto offsetLeft = Point{std::cos( car.value().at( 2 ) + M_PI * 0.5), std::sin( car.value().at( 2 ) + M_PI * 0.5)};
+
+  auto a = carPosition + 0.1 * heading;
+  auto b = carPosition - 0.1 * heading + 0.1 * offsetLeft;
+  auto c = carPosition - 0.04 * heading;
+  auto d = carPosition - 0.1 * heading - 0.1 * offsetLeft;
+  plt.addPolyline({a,b,c,d,a});
+
 }
 
 }  // namespace simplexArchitectures

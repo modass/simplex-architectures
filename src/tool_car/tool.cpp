@@ -546,6 +546,8 @@ int main( int argc, char* argv[] ) {
       auto& plt = hypro::Plotter<Number>::getInstance();
       plt.clear();
       plt.rSettings().keepAspectRatio = true;
+      plt.rSettings().axes = false;
+      plt.rSettings().grid = false;
       plt.rSettings().xPlotInterval   = carl::Interval<double>( track.playground.intervals()[0].lower() - 0.5,
                                                               track.playground.intervals()[0].upper() + 0.5 );
       plt.rSettings().yPlotInterval   = carl::Interval<double>( track.playground.intervals()[1].lower() - 0.5,
