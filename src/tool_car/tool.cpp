@@ -31,12 +31,13 @@
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
 #include <random>
-#include <string>
 #include <regex>
+#include <string>
 
 #include "controller/AbstractController.h"
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
+#include "controller/RandomCarController.h"
 #include "ctrlConversion.h"
 #include "model_generation/generateCarModel.h"
 #include "model_generation/generateSimpleBaseController.h"
@@ -184,14 +185,16 @@ int main( int argc, char* argv[] ) {
     fs.close();
   }
 
-  auto tmpCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
-  tmpCtrl->track               = track;
-  tmpCtrl->thetaDiscretization = theta_discretization;
-  tmpCtrl->cycleTime           = cycleTime;
-  tmpCtrl->lastWaypoint        = tmpCtrl->track.waypoints.begin();
-  tmpCtrl->currentWaypoint     = std::next( tmpCtrl->lastWaypoint );
+  auto purePursuitCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
+  purePursuitCtrl->track               = track;
+  purePursuitCtrl->thetaDiscretization = theta_discretization;
+  purePursuitCtrl->cycleTime           = cycleTime;
+  purePursuitCtrl->lastWaypoint        = purePursuitCtrl->track.waypoints.begin();
+  purePursuitCtrl->currentWaypoint     = std::next( purePursuitCtrl->lastWaypoint );
 
-  AbstractController<Point, Point>* advCtrl = tmpCtrl;
+  auto randomCtrl = new RandomCarController(acVelocity, bcMaxTurn, theta_discretization);
+
+  AbstractController<Point, Point>* advCtrl = purePursuitCtrl;
 
   // use first controller output to determine the starting location
   Point ctrlInput = advCtrl->generateInput( initialCarState );
