@@ -94,16 +94,17 @@ int main( int argc, char* argv[] ) {
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening = 0.2;
   bool                      training = true;
+  bool                      alwaysUseAC = false; // use the ac even if it is unsafe
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
-  std::size_t               trackID{ 0 };
+  std::size_t               trackID{ 1 };
   bool                      plotSets      = false;
   bool                      plotPosition  = false;
-  bool                      plotRaceTrack = false;
+  bool                      plotRaceTrack = true;
 
-  spdlog::set_level( spdlog::level::info );
+  spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -415,9 +416,21 @@ int main( int argc, char* argv[] ) {
     hypro::TRIBOOL advControllerSafe = sim.isSafe( advControllerInput );
     bool           advControllerUsed = true;
 
+
+
     // if all safe & last point in reach set, pointify resulting set, update initialstate, update monitor (current
     // point)
-    if ( advControllerSafe == hypro::TRIBOOL::TRUE ) {
+    if (alwaysUseAC) {
+      executeWithLapCount( executor, advControllerInput, lapCounter, track );
+      if ( baseControllerInvocations.size() <= lapCounter ) {
+        baseControllerInvocations.emplace_back( std::vector<bool>{} );
+      }
+      baseControllerInvocations[lapCounter].push_back( false );
+      if ( computeAdaptation.size() <= lapCounter ) {
+        computeAdaptation.emplace_back( std::vector<bool>{} );
+      }
+      computeAdaptation[lapCounter].push_back( false );
+    } else if ( advControllerSafe == hypro::TRIBOOL::TRUE ) {
       {
         std::stringstream ss;
         ss << advControllerInput;
@@ -548,10 +561,10 @@ int main( int argc, char* argv[] ) {
       plt.rSettings().keepAspectRatio = true;
       plt.rSettings().axes = false;
       plt.rSettings().grid = false;
-      plt.rSettings().xPlotInterval   = carl::Interval<double>( track.playground.intervals()[0].lower() - 0.5,
-                                                              track.playground.intervals()[0].upper() + 0.5 );
-      plt.rSettings().yPlotInterval   = carl::Interval<double>( track.playground.intervals()[1].lower() - 0.5,
-                                                              track.playground.intervals()[1].upper() + 0.5 );
+      plt.rSettings().xPlotInterval   = carl::Interval<double>( track.playground.intervals()[0].lower() - 1.5,
+                                                              track.playground.intervals()[0].upper() + 1.5 );
+      plt.rSettings().yPlotInterval   = carl::Interval<double>( track.playground.intervals()[1].lower() - 1.5,
+                                                              track.playground.intervals()[1].upper() + 1.5 );
       auto car                        = executor.mLastState.projectOn( { 0, 1, 2 } );
       auto color                      = advControllerUsed ? hypro::plotting::green : hypro::plotting::orange;
       track.addToPlotter( car, color );
