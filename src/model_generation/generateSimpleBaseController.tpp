@@ -155,11 +155,11 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
         segmentAngle = 1.5 * M_PI;
         break;
     }
-    if ( zone == 2 ) {
-      auto stopTrans = source->createTransition( source );
-      stopTrans->addLabel( hypro::Label( "stop" ) );
-    } else {
+
       double angle;
+      if ( zone == 2 ) {
+        angle = segmentAngle;
+      }
       if ( zone == 1 ) {
         angle = normalizeAngle( segmentAngle - centerAngle );
       }
@@ -183,7 +183,19 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
         auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization + targetThetaBucket - t;
         auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
 
-        if (differenceLeft == 0) {
+        auto maxStopDifference = theta_discretization/8;
+        if (zone == 2 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
+          auto stopTrans = source->createTransition( source );
+          stopTrans->addLabel( hypro::Label( "stop" ) );
+
+          Matrix guard_constraints      = Matrix::Zero( 2, variableNames.size() );
+          Vector guard_constants        = Vector::Zero( 2 );
+          guard_constraints( 0, theta ) = 1;
+          guard_constraints( 1, theta ) = -1;
+          guard_constants << theta_max, -theta_min;
+
+          stopTrans->setGuard( { guard_constraints, guard_constants } );
+        } else if (differenceLeft == 0) {
           auto newThetaBucket = targetThetaBucket;
           auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
           thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
@@ -228,9 +240,6 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
         theta_min += theta_increment;
         theta_max += theta_increment;
       }
-
-
-    }
   }
 
   // segment changes

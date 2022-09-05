@@ -5,9 +5,11 @@
 #ifndef SIMPLEXARCHITECTURES_RACETRACK_H
 #define SIMPLEXARCHITECTURES_RACETRACK_H
 
-#include "../types.h"
-#include <hypro/util/plotting/Colors.h>
 #include <hypro/representations/GeometricObjectBase.h>
+#include <hypro/util/plotting/Colors.h>
+
+#include "../types.h"
+#include "RoadSegment.h"
 
 namespace simplexArchitectures {
 
@@ -15,7 +17,11 @@ struct RaceTrack {
   std::vector<Point>              waypoints;
   hypro::Box<double>              playground;
   std::vector<hypro::Box<double>> obstacles;
-  double                          safetyMargin = 0.2;
+  std::vector<RoadSegment>        roadSegments;
+  double                          safetyMargin     = 0.2;
+  Number                          startFinishX     = 5.0;
+  Number                          startFinishYlow  = 0.0;
+  Number                          startFinishYhigh = 3.0;
 
   std::vector<hypro::Condition<double>> createSafetySpecification() const;
 

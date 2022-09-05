@@ -31,12 +31,13 @@
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
 #include <random>
-#include <string>
 #include <regex>
+#include <string>
 
 #include "controller/AbstractController.h"
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
+#include "controller/RandomCarController.h"
 #include "ctrlConversion.h"
 #include "model_generation/generateCarModel.h"
 #include "model_generation/generateSimpleBaseController.h"
@@ -71,6 +72,19 @@ static const std::vector<std::size_t> interesting_dimensions{ x, y };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
+Point executeWithLapCount(Executor& executor, const Point& advControllerInput, size_t& lapCounter, const RaceTrack& racetrack) {
+  auto old_pos_x = executor.mLastState[0];
+  auto old_pos_y = executor.mLastState[1];
+  auto new_pos = executor.execute( advControllerInput );
+  auto new_pos_x = new_pos[0];
+  if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh && old_pos_x < racetrack.startFinishX &&
+       racetrack.startFinishX <= new_pos_x ) {
+    lapCounter++;
+    spdlog::info("Lap {}", lapCounter);
+  }
+  return new_pos;
+}
+
 int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
@@ -84,11 +98,12 @@ int main( int argc, char* argv[] ) {
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
-  bool                      plotSets      = true;
-  bool                      plotPosition  = true;
+  std::size_t               trackID{ 0 };
+  bool                      plotSets      = false;
+  bool                      plotPosition  = false;
   bool                      plotRaceTrack = false;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -102,16 +117,45 @@ int main( int argc, char* argv[] ) {
                 "the analysis terminates?" );
   CLI11_PARSE( app, argc, argv );
 
-  // Hard code Racetrack
-  RaceTrack track;
-  track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
-  track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
-  track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
+  // Hard code Racetracks
 
-  std::vector<RoadSegment> segments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
-                                        { 7.0, 0.0, 10.0, 7.0, BottomToTop },
-                                        { 3.0, 7.0, 10.0, 10.0, RightToLeft },
-                                        { 0.0, 3.0, 3.0, 10.0, TopToBottom } };
+
+  RaceTrack                track;
+  track.startFinishX = 5.0;
+  track.startFinishYlow = 0.0;
+  track.startFinishYhigh = 3.0;
+
+  switch(trackID) {
+    case 0: // square-shaped track
+      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
+      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
+      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
+
+      track.roadSegments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
+                             { 7.0, 0.0, 10.0, 7.0, BottomToTop },
+                             { 3.0, 7.0, 10.0, 10.0, RightToLeft },
+                             { 0.0, 3.0, 3.0, 10.0, TopToBottom } };
+      break;
+    case 1: // "L"-shaped track
+      track.playground = Box{ IV{ I{ 0, 19 }, I{ 0, 15 } } };
+      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 6 }, I{ 3, 12 } } },
+                                           Box{ IV{ I{ 6, 16 }, I{ 3, 7 } } },
+                                           Box{ IV{ I{ 9, 19 }, I{ 10, 15 } } } };
+      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 },  Point{ 9.5, 1.5 },  Point{ 17.5, 1.5 },
+                                             Point{ 17.5, 8.5 }, Point{ 12.5, 8.5 }, Point{ 7.5, 8.5 },
+                                             Point{ 7.5, 11.0 }, Point{ 7.5, 13.5 }, Point{ 1.5, 13.5 } };
+
+      track.roadSegments = { { 0.0, 0.0, 16.0, 3.0, LeftToRight },
+                             { 16.0, 0.0, 19.0, 7.0, BottomToTop },
+                             { 9.0, 7.0, 19.0, 10.0, RightToLeft },
+                             { 6.0, 7.0, 9.0, 12.0, BottomToTop },
+                             { 3.0, 12.0, 9.0, 15.0, RightToLeft },
+                             { 0.0, 3.0, 3.0, 15.0, TopToBottom } };
+      break;
+    default:
+      throw std::logic_error( "Invalid trackID!" );
+      break;
+  }
 
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
@@ -122,11 +166,11 @@ int main( int argc, char* argv[] ) {
   double bcCenterZoneWidth = 0.15;
   double bcCenterAngle     = M_PI / 12.0; /* 15° */
   double bcBorderAngle     = 0.87;        /* 50° */
-  Number acVelocity        = 2;
+  Number acVelocity        = 2;           // 2,1;
   Number acLookahead       = 4.0;
-  Number acScaling         = 0.55;
+  Number acScaling         = 0.55;  // 0.55,0.8;
   Number initialTheta      = 0.01;
-  Point  initialPosition   = Point( { 6.0, 0.5 } );
+  Point  initialPosition   = Point( { 4.0, 1.5 } );
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
   Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
   IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
@@ -142,14 +186,16 @@ int main( int argc, char* argv[] ) {
     fs.close();
   }
 
-  auto tmpCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
-  tmpCtrl->track               = track;
-  tmpCtrl->thetaDiscretization = theta_discretization;
-  tmpCtrl->cycleTime           = cycleTime;
-  tmpCtrl->lastWaypoint        = tmpCtrl->track.waypoints.begin();
-  tmpCtrl->currentWaypoint     = std::next( tmpCtrl->lastWaypoint );
+  auto purePursuitCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
+  purePursuitCtrl->track               = track;
+  purePursuitCtrl->thetaDiscretization = theta_discretization;
+  purePursuitCtrl->cycleTime           = cycleTime;
+  purePursuitCtrl->lastWaypoint        = purePursuitCtrl->track.waypoints.begin();
+  purePursuitCtrl->currentWaypoint     = std::next( purePursuitCtrl->lastWaypoint );
 
-  AbstractController<Point, Point>* advCtrl = tmpCtrl;
+  auto randomCtrl = new RandomCarController(acVelocity, bcMaxTurn, theta_discretization);
+
+  AbstractController<Point, Point>* advCtrl = purePursuitCtrl;
 
   // use first controller output to determine the starting location
   Point ctrlInput = advCtrl->generateInput( initialCarState );
@@ -169,9 +215,8 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController<hypro::HybridAutomaton<Number>>(
-      theta_discretization, bcMaxTurn, bcStopZoneWidth, bcCenterZoneWidth, bcCenterAngle, bcBorderAngle, segments,
-      bcVelocity );
+  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth, bcCenterZoneWidth, bcCenterAngle,
+                                                                bcBorderAngle, track.roadSegments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 
   IV initialValuationsBC{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 2 ) };
@@ -186,12 +231,12 @@ int main( int argc, char* argv[] ) {
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
   bcAtm.setInitialStates( initialStatesBC );
 
-  {
-    std::cout << "BC automaton:\n" << bcAtm << std::endl;
+//  {
+//    std::cout << "BC automaton:\n" << bcAtm << std::endl;
     // std::ofstream fs{ "bcAutomaton.model" };
     // fs << hypro::toFlowstarFormat( bcAtm );
     // fs.close();
-  }
+//  }
 
   // Automata compostion:
   auto                                                         mainLocations = carModel.getLocations();
@@ -338,12 +383,13 @@ int main( int argc, char* argv[] ) {
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-    //storage.plotCombined( "storage_post_initial_training_combined", true );
+    // storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // for statistics: record in which iteration the base controller was needed
-  std::vector<bool> baseControllerInvocations( iterations, false );
-  std::vector<bool> computeAdaptation( iterations, false );
+  std::vector<std::vector<bool>> baseControllerInvocations( 1 );
+  std::vector<std::vector<bool>> computeAdaptation( 1 );
+  std::size_t                    lapCounter = 0;
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
   while ( iteration_count++ < iterations ) {
@@ -368,9 +414,16 @@ int main( int argc, char* argv[] ) {
         ss << advControllerInput;
         spdlog::debug( "Advanced controller is safe and traces end in known safe area, run with output {}", ss.str() );
       }
-      executor.execute( advControllerInput );
-      // TODO why does the simulator require the last used control input?
+      executeWithLapCount( executor, advControllerInput, lapCounter, track );
       sim.update( advControllerInput, executor.mLastState );
+      if ( baseControllerInvocations.size() <= lapCounter ) {
+        baseControllerInvocations.emplace_back( std::vector<bool>{} );
+      }
+      baseControllerInvocations[lapCounter].push_back( false );
+      if ( computeAdaptation.size() <= lapCounter ) {
+        computeAdaptation.emplace_back( std::vector<bool>{} );
+      }
+      computeAdaptation[lapCounter].push_back( false );
     } else if ( advControllerSafe == hypro::TRIBOOL::FALSE ) {
       Point bcInput = bc.generateInput( executor.mLastState );
       {
@@ -378,10 +431,17 @@ int main( int argc, char* argv[] ) {
         ss << bcInput;
         spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
       }
-      executor.execute( bcInput );
+      executeWithLapCount( executor, bcInput, lapCounter, track );
       sim.update( bcInput, executor.mLastState );
       advControllerUsed = false;
-      baseControllerInvocations[iteration_count - 1] = true;
+      if ( baseControllerInvocations.size() <= lapCounter ) {
+        baseControllerInvocations.emplace_back( std::vector<bool>{} );
+      }
+      baseControllerInvocations[lapCounter].push_back( true );
+      if ( computeAdaptation.size() <= lapCounter ) {
+        computeAdaptation.emplace_back( std::vector<bool>{} );
+      }
+      computeAdaptation[lapCounter].push_back( false );
     } else {
       spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
       bool allSafe = false;
@@ -418,19 +478,33 @@ int main( int argc, char* argv[] ) {
           ss << bcInput;
           spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
         }
-        executor.execute( bcInput );
+        executeWithLapCount( executor, bcInput, lapCounter, track );
         sim.update( bcInput, executor.mLastState );
         advControllerUsed = false;
-        baseControllerInvocations[iteration_count - 1] = true;
+        if ( computeAdaptation.size() <= lapCounter ) {
+          computeAdaptation.emplace_back( std::vector<bool>{} );
+        }
+        computeAdaptation[lapCounter].push_back( false );
+        if ( baseControllerInvocations.size() <= lapCounter ) {
+          baseControllerInvocations.emplace_back( std::vector<bool>{} );
+        }
+        baseControllerInvocations[lapCounter].push_back( true );
       } else {
         {
           std::stringstream ss;
           ss << advControllerInput;
           spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
         }
-        executor.execute( advControllerInput );
+        executeWithLapCount( executor, advControllerInput, lapCounter, track );
         sim.update( advControllerInput, executor.mLastState );
-        computeAdaptation[iteration_count - 1] = true;
+        if ( computeAdaptation.size() <= lapCounter ) {
+          computeAdaptation.emplace_back( std::vector<bool>{} );
+        }
+        computeAdaptation[lapCounter].push_back( true );
+        if ( baseControllerInvocations.size() <= lapCounter ) {
+          baseControllerInvocations.emplace_back( std::vector<bool>{} );
+        }
+        baseControllerInvocations[lapCounter].push_back( false );
       }
     }
 
@@ -459,32 +533,33 @@ int main( int argc, char* argv[] ) {
       hypro::Plotter<Number>::getInstance().clear();
     }
 
-    if (plotRaceTrack) {
+    if ( plotRaceTrack ) {
       auto& plt = hypro::Plotter<Number>::getInstance();
       plt.clear();
-      auto car = executor.mLastState.projectOn( { 0, 1, 2 } );
-      auto color = advControllerUsed ? hypro::plotting::green : hypro::plotting::orange;
-      track.addToPlotter( car, color);
-      plt.setFilename( "racetrack_"+ss.str());
+      plt.rSettings().keepAspectRatio = true;
+      plt.rSettings().axes = false;
+      plt.rSettings().grid = false;
+      plt.rSettings().xPlotInterval   = carl::Interval<double>( track.playground.intervals()[0].lower() - 0.5,
+                                                              track.playground.intervals()[0].upper() + 0.5 );
+      plt.rSettings().yPlotInterval   = carl::Interval<double>( track.playground.intervals()[1].lower() - 0.5,
+                                                              track.playground.intervals()[1].upper() + 0.5 );
+      auto car                        = executor.mLastState.projectOn( { 0, 1, 2 } );
+      auto color                      = advControllerUsed ? hypro::plotting::green : hypro::plotting::orange;
+      track.addToPlotter( car, color );
+      plt.setFilename( "racetrack_" + ss.str() );
       plt.plot2d( hypro::PLOTTYPE::png, true );
       plt.clear();
     }
   }
-  // write statistics to file
-  std::ofstream fs;
-  fs.open( "baseControllerInvocations", std::ios_base::app );
-  for ( auto v : baseControllerInvocations ) {
-    fs << v << ",";
+  for ( int i = 0; i < baseControllerInvocations.size(); ++i ) {
+    std::size_t numberTrainings = std::count_if( std::begin( computeAdaptation[i] ), std::end( computeAdaptation[i] ),
+                                                 []( bool val ) { return val; } );
+    std::size_t numberBCInvocations =
+        std::count_if( std::begin( baseControllerInvocations[i] ), std::end( baseControllerInvocations[i] ),
+                       []( bool val ) { return val; } );
+    spdlog::info( "Lap {} required {} iterations with {} BC-Invocations and {} successful trainings.", i,
+                  baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
-  fs << "\n";
-  fs.close();
-  fs.open( "adaptationInvocations", std::ios_base::app );
-  for ( auto v : computeAdaptation ) {
-    fs << v << ",";
-  }
-  fs << "\n";
-  fs.close();
-  return 0;
   // the training data is automatically stored in case the trainer runs out of scope
   return 0;
 }
