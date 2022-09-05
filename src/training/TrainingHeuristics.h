@@ -15,14 +15,14 @@
 
 namespace simplexArchitectures {
 
-using locationConditionMap = hypro::HybridAutomaton<Number>::locationConditionMap;
+using locationConditionMap = Automaton::locationConditionMap;
 
 struct InitialStatesGenerator {
-  virtual locationConditionMap operator()( const hypro::HybridAutomaton<Number>& automaton, const TrainingSettings& settings ) = 0;
+  virtual locationConditionMap operator()( const Automaton& automaton, const TrainingSettings& settings ) = 0;
 };
 
 struct Random : public InitialStatesGenerator{
-  locationConditionMap operator()( const hypro::HybridAutomaton<Number>& automaton, const TrainingSettings& settings ) {
+  locationConditionMap operator()( const Automaton& automaton, const TrainingSettings& settings ) {
     locationConditionMap                       res;
     std::mt19937                               generator;
     std::uniform_int_distribution<std::size_t> LocPtr_dist{ 0, automaton.getLocations().size() - 1 };
@@ -44,11 +44,10 @@ struct Random : public InitialStatesGenerator{
 };
 
 struct Single : public InitialStatesGenerator {
-  Single(const locationConditionMap& i) : initialStates(i) {}
+  Single( const locationConditionMap& i ) : initialStates( i ) {}
 
-  locationConditionMap operator()( const hypro::HybridAutomaton<Number>&, const TrainingSettings& ) {
-    return initialStates;
-  }
+  locationConditionMap operator()( const Automaton&, const TrainingSettings& ) { return initialStates; }
+
  private:
   locationConditionMap initialStates;
 };
@@ -63,14 +62,14 @@ struct Grid : public InitialStatesGenerator {
     }
   }
 
-  locationConditionMap operator()( const hypro::HybridAutomaton<Number>& automaton, const TrainingSettings& settings ) {
+  locationConditionMap operator()( const Automaton& automaton, const TrainingSettings& settings ) {
     locationConditionMap res;
     if ( gen.end() ) {
       gen.reset();
       locIndex++;
     }
     currentCell = gen();
-    LocPtr loc  = automaton.getLocationByIndex(locIndex);
+    LocPtr loc  = automaton.getLocationByIndex( locIndex );
 
     // create sample
     Point sample{ hypro::vector_t<Number>::Zero( settings.samplingArea.dimension() ) };
@@ -101,7 +100,7 @@ struct GridCover : public InitialStatesGenerator {
     }
   }
 
-  locationConditionMap operator()( const hypro::HybridAutomaton<Number>& automaton, const TrainingSettings& settings ) {
+  locationConditionMap operator()( const Automaton& automaton, const TrainingSettings& settings ) {
     locationConditionMap res;
     if ( gen.end() ) {
       gen.reset();

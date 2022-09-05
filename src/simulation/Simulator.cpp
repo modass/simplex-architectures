@@ -23,30 +23,30 @@ namespace simplexArchitectures {
 //        spdlog::trace("Simulate for samples in {} locations",mLastStates.size());
         for ( const auto& [l, samples] : mLastStates ) {
             for ( auto sample : samples ) {
-//                spdlog::trace("Simulate from {} starting in location {}", sample, l->getName());
-                setCtrlValue(sample, ctrlInput);
-                LocPtr newLocation = l;
-                //spdlog::trace("Location before update: {}", l->getName());
-                if(mLocationUpdate) {
-                  newLocation = mLocationUpdate(ctrlInput,l);
-                }
-                //spdlog::trace("Updated sample: {} in location {}",sample,newLocation->getName());
-                // create intervals representing the initial state
-                std::vector<carl::Interval<Number>> intervals;
-                for ( Eigen::Index i = 0; i < sample.dimension(); ++i ) {
-                    intervals.emplace_back( carl::Interval<Number>( sample.at( i ) ) );
-                }
-                auto initialBox = hypro::Condition<Number>{ intervals };
-                typename hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
-                initialStates[newLocation] = initialBox;
-                mAutomaton.setInitialStates( initialStates );
-                auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
-                // add roots for this sample to global reachtree
-                for ( auto&& sr : sampleRoots ) {
-                  roots.emplace_back( std::move( sr ) );
-                }
-                // std::cout << "[Simulator] Add sample " << sample << " for simulation." << std::endl;
+            //                spdlog::trace("Simulate from {} starting in location {}", sample, l->getName());
+            setCtrlValue( sample, ctrlInput );
+            LocPtr newLocation = l;
+            // spdlog::trace("Location before update: {}", l->getName());
+            if ( mLocationUpdate ) {
+              newLocation = mLocationUpdate( ctrlInput, l );
             }
+            // spdlog::trace("Updated sample: {} in location {}",sample,newLocation->getName());
+            //  create intervals representing the initial state
+            std::vector<carl::Interval<Number>> intervals;
+            for ( Eigen::Index i = 0; i < sample.dimension(); ++i ) {
+              intervals.emplace_back( carl::Interval<Number>( sample.at( i ) ) );
+            }
+            auto                                     initialBox = hypro::Condition<Number>{ intervals };
+            typename Automaton::locationConditionMap initialStates;
+            initialStates[newLocation] = initialBox;
+            mAutomaton.setInitialStates( initialStates );
+            auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
+            // add roots for this sample to global reachtree
+            for ( auto&& sr : sampleRoots ) {
+              roots.emplace_back( std::move( sr ) );
+            }
+            // std::cout << "[Simulator] Add sample " << sample << " for simulation." << std::endl;
+          }
         }
 
         // call simulation as reachability analysis for a maximal time duration of 1 (cycle time)

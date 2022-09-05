@@ -30,41 +30,41 @@ Point simplexArchitectures::Executor<Automaton>::execute( const Point& ctrlInput
   for ( Eigen::Index i = 0; i < extendedState.dimension(); ++i ) {
     intervals.emplace_back( carl::Interval<Number>( extendedState.at( i ) ) );
   }
-  auto                                                          initialBox = hypro::Condition<Number>{ intervals };
-  typename hypro::HybridAutomaton<Number>::locationConditionMap initialStates;
+  auto                                     initialBox = hypro::Condition<Number>{ intervals };
+  typename Automaton::locationConditionMap initialStates;
   initialStates[mLastLocation] = initialBox;
-    mAutomaton.setInitialStates( initialStates );
-    auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
-    // add roots for this sample to global reachtree
-    for ( auto&& sr : sampleRoots ) {
-      roots.emplace_back( std::move( sr ) );
-    }
+  mAutomaton.setInitialStates( initialStates );
+  auto sampleRoots = hypro::makeRoots<Representation>( mAutomaton );
+  // add roots for this sample to global reachtree
+  for ( auto&& sr : sampleRoots ) {
+    roots.emplace_back( std::move( sr ) );
+  }
 
-    mSettings.rFixedParameters().globalTimeHorizon = 0.2;
-    mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( 1.1*mCycleTime );
-    mSettings.rFixedParameters().jumpDepth =
-        2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
+  mSettings.rFixedParameters().globalTimeHorizon = 0.2;
+  mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( 1.1 * mCycleTime );
+  mSettings.rFixedParameters().jumpDepth =
+      2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
 
-    auto reacher = ReachabilityAnalyzer( mAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), roots );
-    auto isSafe  = reacher.computeForwardReachability();
+  auto reacher = ReachabilityAnalyzer( mAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), roots );
+  auto isSafe  = reacher.computeForwardReachability();
 
-    if(mPlot) {
-      auto& plt = hypro::Plotter<Number>::getInstance();
-      plt.clear();
-      plt.setFilename("executor");
-      plt.rSettings().overwriteFiles = false;
-      for(const auto& r : roots) {
-        for(const auto& n : hypro::preorder(r)) {
-          for(const auto& s: n.getFlowpipe()) {
-            plt.addObject(s.projectOn(plt.settings().dimensions).vertices());
-          }
+  if ( mPlot ) {
+    auto& plt = hypro::Plotter<Number>::getInstance();
+    plt.clear();
+    plt.setFilename( "executor" );
+    plt.rSettings().overwriteFiles = false;
+    for ( const auto& r : roots ) {
+      for ( const auto& n : hypro::preorder( r ) ) {
+        for ( const auto& s : n.getFlowpipe() ) {
+          plt.addObject( s.projectOn( plt.settings().dimensions ).vertices() );
         }
       }
-      plt.plot2d(hypro::PLOTTYPE::png, true);
     }
+    plt.plot2d( hypro::PLOTTYPE::png, true );
+  }
 
-    if ( isSafe != hypro::REACHABILITY_RESULT::SAFE ) {
-      spdlog::warn( "Executor reports potentially unsafe state!" );
+  if ( isSafe != hypro::REACHABILITY_RESULT::SAFE ) {
+    spdlog::warn( "Executor reports potentially unsafe state!" );
       exit( 0 );
     }
 

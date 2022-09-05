@@ -16,14 +16,15 @@ namespace simplexArchitectures {
  * Computes a hybrid automaton for a base controller
  * @return
  */
-BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization,
-                                                             size_t maxTurn, // in theta buckets
-                                                             double stopZoneWidth,
-                                                             double centerZoneWidth,
-                                                             double centerAngle,
-                                                             double borderAngle,
-                                                             const std::vector<RoadSegment>& segments,
-                                                              double velocity);
+template <typename HybridAutomaton>
+BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t theta_discretization,
+                                                                     size_t      maxTurn,  // in theta buckets
+                                                                     double stopZoneWidth, double centerZoneWidth,
+                                                                     double centerAngle, double borderAngle,
+                                                                     const std::vector<RoadSegment>& segments,
+                                                                     double                          velocity );
 
-}
+}  // namespace simplexArchitectures
+
+#include "generateSimpleBaseController.tpp"
 #endif  // SIMPLEXARCHITECTURES_GENERATEBASECONTROLLER_H
