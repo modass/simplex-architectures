@@ -10,13 +10,13 @@
 
 namespace simplexArchitectures {
 
-template <typename HybridAutomaton>
-BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t theta_discretization,
-                                                                     size_t      maxTurn,  // in theta buckets
-                                                                     double stopZoneWidth, double centerZoneWidth,
-                                                                     double centerAngle, double borderAngle,
+template<typename HybridAutomaton>
+BicycleBaseController<HybridAutomaton> generateSimpleBaseController(std::size_t theta_discretization, size_t maxTurn, //in theta buckets
+                                                                     double stopZoneWidth,
+                                                                     double borderAngle,
                                                                      const std::vector<RoadSegment>& segments,
-                                                                     double                          velocity ) {
+                                                                     double velocity) {
+
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
 
@@ -33,7 +33,7 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
 
   // sync labels: theta_{0..theta_discretization-1}, stop
 
-  // zones: borderLeft, centerLeft, stop, centerRight, borderRight
+  // zones: borderLeft, stop, borderRight
   // bucket indices: (segment, zone)
   std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*>               buckets;
   std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double, double>> outputs;
@@ -44,7 +44,7 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
 
     // TODO add assertions to check that the arithmetic used to calculate the boundaries produces valid intervals
 
-    for ( std::size_t iz = 0; iz < 5; ++iz ) {
+    for ( std::size_t iz = 0; iz < 3; ++iz ) {
       double x_low;
       double y_low;
       double x_high;
@@ -54,48 +54,32 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
         x_low    = segment.x_min;
         x_high   = segment.x_max;
         auto mid = segment.y_min + ( segment.y_max - segment.y_min ) / 2.0;
-        if ( iz == 2 ) {
+        if ( iz == 1 ) {
           y_low  = mid - stopZoneWidth / 2;
           y_high = mid + stopZoneWidth / 2;
-        } else if ( ( iz == 1 && segment.orientation == LeftToRight ) ||
-                    ( iz == 3 && segment.orientation == RightToLeft ) ) {
-          y_low  = mid + stopZoneWidth / 2;
-          y_high = mid + stopZoneWidth / 2 + centerZoneWidth;
-        } else if ( ( iz == 1 && segment.orientation == RightToLeft ) ||
-                    ( iz == 3 && segment.orientation == LeftToRight ) ) {
-          y_high = mid - stopZoneWidth / 2;
-          y_low  = mid - stopZoneWidth / 2 - centerZoneWidth;
         } else if ( ( iz == 0 && segment.orientation == LeftToRight ) ||
-                    ( iz == 4 && segment.orientation == RightToLeft ) ) {
-          y_low  = mid + stopZoneWidth / 2 + centerZoneWidth;
+                    ( iz == 2 && segment.orientation == RightToLeft ) ) {
+          y_low  = mid + stopZoneWidth / 2;
           y_high = segment.y_max;
         } else if ( ( iz == 0 && segment.orientation == RightToLeft ) ||
-                    ( iz == 4 && segment.orientation == LeftToRight ) ) {
-          y_high = mid - stopZoneWidth / 2 - centerZoneWidth;
+                    ( iz == 2 && segment.orientation == LeftToRight ) ) {
+          y_high = mid - stopZoneWidth / 2;
           y_low  = segment.y_min;
         }
       } else {  // vertical
         y_low    = segment.y_min;
         y_high   = segment.y_max;
         auto mid = segment.x_min + ( segment.x_max - segment.x_min ) / 2.0;
-        if ( iz == 2 ) {
+        if ( iz == 1 ) {
           x_low  = mid - stopZoneWidth / 2;
           x_high = mid + stopZoneWidth / 2;
-        } else if ( ( iz == 3 && segment.orientation == BottomToTop ) ||
-                    ( iz == 1 && segment.orientation == TopToBottom ) ) {
-          x_low  = mid + stopZoneWidth / 2;
-          x_high = mid + stopZoneWidth / 2 + centerZoneWidth;
-        } else if ( ( iz == 3 && segment.orientation == TopToBottom ) ||
-                    ( iz == 1 && segment.orientation == BottomToTop ) ) {
-          x_high = mid - stopZoneWidth / 2;
-          x_low  = mid - stopZoneWidth / 2 - centerZoneWidth;
-        } else if ( ( iz == 4 && segment.orientation == BottomToTop ) ||
+        } else if ( ( iz == 2 && segment.orientation == BottomToTop ) ||
                     ( iz == 0 && segment.orientation == TopToBottom ) ) {
-          x_low  = mid + stopZoneWidth / 2 + centerZoneWidth;
+          x_low  = mid + stopZoneWidth / 2;
           x_high = segment.x_max;
-        } else if ( ( iz == 4 && segment.orientation == TopToBottom ) ||
+        } else if ( ( iz == 2 && segment.orientation == TopToBottom ) ||
                     ( iz == 0 && segment.orientation == BottomToTop ) ) {
-          x_high = mid - stopZoneWidth / 2 - centerZoneWidth;
+          x_high = mid - stopZoneWidth / 2;
           x_low  = segment.x_min;
         }
       }
@@ -124,7 +108,7 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
     size_t leftZone    = zone - 1;
     bool   leftExists  = zone > 0;
     size_t rightZone   = zone + 1;
-    bool   rightExists = zone < 4;
+    bool   rightExists = zone < 2;
 
     // connections in the same segment
     if ( leftExists ) {
@@ -157,19 +141,11 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
     }
 
       double angle;
-      if ( zone == 2 ) {
-        angle = segmentAngle;
-      }
       if ( zone == 1 ) {
-        angle = normalizeAngle( segmentAngle - centerAngle );
-      }
-      if ( zone == 3 ) {
-        angle = normalizeAngle( segmentAngle + centerAngle );
-      }
-      if ( zone == 0 ) {
+        angle = segmentAngle;
+      } else if ( zone == 0 ) {
         angle = normalizeAngle( segmentAngle - borderAngle );
-      }
-      if ( zone == 4 ) {
+      } else if ( zone == 2 ) {
         angle = normalizeAngle( segmentAngle + borderAngle );
       }
 
@@ -184,7 +160,7 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
         auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
 
         auto maxStopDifference = theta_discretization/8;
-        if (zone == 2 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
+        if (zone == 1 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
           auto stopTrans = source->createTransition( source );
           stopTrans->addLabel( hypro::Label( "stop" ) );
 
@@ -248,8 +224,8 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
       auto nextSegmentId     = segmentId < numberOfSegments - 1 ? segmentId + 1 : 0;
       auto previousSegmentId = segmentId > 0 ? segmentId - 1 : numberOfSegments - 1;
 
-      for ( auto thisZoneId = 0; thisZoneId < 5; thisZoneId++ ) {
-        for ( auto targetZoneId = 0; targetZoneId < 5; targetZoneId++ ) {
+      for ( auto thisZoneId = 0; thisZoneId < 3; thisZoneId++ ) {
+        for ( auto targetZoneId = 0; targetZoneId < 3; targetZoneId++ ) {
           auto thisLocation = buckets[std::tuple( segmentId, thisZoneId )];
 
           auto nextLocation = buckets[std::tuple( nextSegmentId, targetZoneId )];
@@ -264,12 +240,10 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t
     }
   }
 
-  BicycleBaseController<HybridAutomaton> result;
-  result.segments             = segments;
-  result.borderAngle          = borderAngle;
-  result.centerAngle          = centerAngle;
-  result.centerZoneWidth      = centerZoneWidth;
-  result.stopZoneWidth        = stopZoneWidth;
+  BicycleBaseController result;
+  result.segments = segments;
+  result.borderAngle = borderAngle;
+  result.stopZoneWidth = stopZoneWidth;
   result.theta_discretization = theta_discretization;
   result.maxTurn              = maxTurn;
   result.velocity             = velocity;

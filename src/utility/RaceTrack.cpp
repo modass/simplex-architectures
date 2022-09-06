@@ -13,32 +13,37 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
   std::vector<hypro::Condition<double>> res;
   // bloat-functor
   auto bloat = [this]( const auto& intv ) {
-    return carl::Interval<double>( intv.lower() - safetyMargin, intv.upper() + safetyMargin );
+    return intv;
   };
   // add playground
   std::vector<carl::Interval<double>> intervals;
+  const double borderWidth = 0.3;
   // left
-  intervals.emplace_back( playground.intervals().at( 0 ).lower(),
-                          playground.intervals().at( 0 ).lower() + safetyMargin );
-  intervals.emplace_back( playground.intervals().at( 1 ) );
+  intervals.emplace_back( playground.intervals().at( 0 ).lower() - borderWidth,
+                          playground.intervals().at( 0 ).lower() );
+  intervals.emplace_back( playground.intervals().at( 1 ).lower(),
+                          playground.intervals().at( 1 ).upper() + borderWidth );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // right
-  intervals.emplace_back( playground.intervals().at( 0 ).upper() - safetyMargin,
-                          playground.intervals().at( 0 ).upper() );
-  intervals.emplace_back( playground.intervals().at( 1 ) );
+  intervals.emplace_back( playground.intervals().at( 0 ).upper(),
+                          playground.intervals().at( 0 ).upper() + borderWidth);
+  intervals.emplace_back( playground.intervals().at( 1 ).lower() - borderWidth,
+                          playground.intervals().at( 1 ).upper() );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // bottom
-  intervals.emplace_back( playground.intervals().at( 0 ) );
-  intervals.emplace_back( playground.intervals().at( 1 ).lower(),
-                          playground.intervals().at( 1 ).lower() + safetyMargin );
+  intervals.emplace_back( playground.intervals().at( 0 ).lower() - borderWidth,
+                          playground.intervals().at( 0 ).upper() );
+  intervals.emplace_back( playground.intervals().at( 1 ).lower() - borderWidth,
+                          playground.intervals().at( 1 ).lower() );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // top
-  intervals.emplace_back( playground.intervals().at( 0 ) );
-  intervals.emplace_back( playground.intervals().at( 1 ).upper() - safetyMargin,
-                          playground.intervals().at( 1 ).upper() );
+  intervals.emplace_back( playground.intervals().at( 0 ).lower(),
+                          playground.intervals().at( 0 ).upper() + borderWidth );
+  intervals.emplace_back( playground.intervals().at( 1 ).upper(),
+                          playground.intervals().at( 1 ).upper() + borderWidth );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // all obstacles
@@ -72,10 +77,10 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   }
   // add start finish line
   double startFinishWidth = 0.05;
-  plt.addObject({Point{startFinishX, startFinishYlow+safetyMargin},
-                       Point{startFinishX+startFinishWidth, startFinishYlow+safetyMargin},
-                       Point{startFinishX+startFinishWidth, startFinishYhigh-safetyMargin},
-                       Point{startFinishX, startFinishYhigh-safetyMargin}},
+  plt.addObject({Point{startFinishX, startFinishYlow},
+                       Point{startFinishX+startFinishWidth, startFinishYlow},
+                       Point{startFinishX+startFinishWidth, startFinishYhigh},
+                       Point{startFinishX, startFinishYhigh}},
                  hypro::plotting::colors[hypro::plotting::turquoise], redSettings);
 
   // add car, if existing

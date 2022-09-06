@@ -17,12 +17,12 @@ namespace simplexArchitectures {
  * @return
  */
 template <typename HybridAutomaton>
-BicycleBaseController<HybridAutomaton> generateSimpleBaseController( std::size_t theta_discretization,
-                                                                     size_t      maxTurn,  // in theta buckets
-                                                                     double stopZoneWidth, double centerZoneWidth,
-                                                                     double centerAngle, double borderAngle,
-                                                                     const std::vector<RoadSegment>& segments,
-                                                                     double                          velocity );
+BicycleBaseController<HybridAutomaton> generateSimpleBaseController(std::size_t theta_discretization,
+                                                             size_t maxTurn, // in theta buckets
+                                                             double stopZoneWidth,
+                                                             double borderAngle,
+                                                             const std::vector<RoadSegment>& segments,
+                                                              double velocity);
 
 }  // namespace simplexArchitectures
 
