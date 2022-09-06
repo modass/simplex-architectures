@@ -89,12 +89,13 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 200;
+  std::size_t               maxJumps             = 1000;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening = 0.2;
   bool                      training = true;
   bool                      alwaysUseAC = false; // use the ac even if it is unsafe
+  bool                      alwaysUseBC = false; // use the ac even if the AC is safe
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
@@ -163,9 +164,7 @@ int main( int argc, char* argv[] ) {
   Number wheelbase         = 1.0;
   Number bcVelocity        = 1;
   size_t bcMaxTurn         = 1;  // in theta buckets
-  double bcStopZoneWidth   = 0.5;
-  double bcCenterZoneWidth = 0.15;
-  double bcCenterAngle     = M_PI / 12.0; /* 15° */
+  double bcStopZoneWidth   = 0.6;
   double bcBorderAngle     = 0.87;        /* 50° */
   Number acVelocity        = 2;           // 2,1;
   Number acLookahead       = 4.0;
@@ -215,7 +214,7 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth, bcCenterZoneWidth, bcCenterAngle,
+  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth,
                                                                 bcBorderAngle, track.roadSegments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 
@@ -393,7 +392,7 @@ int main( int argc, char* argv[] ) {
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-    // storage.plotCombined( "storage_post_initial_training_combined", true );
+     storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // for statistics: record in which iteration the base controller was needed
@@ -420,7 +419,18 @@ int main( int argc, char* argv[] ) {
 
     // if all safe & last point in reach set, pointify resulting set, update initialstate, update monitor (current
     // point)
-    if (alwaysUseAC) {
+    if (alwaysUseBC) {
+      Point bcInput = bc.generateInput( executor.mLastState );
+      executeWithLapCount( executor, bcInput, lapCounter, track );
+      if ( baseControllerInvocations.size() <= lapCounter ) {
+        baseControllerInvocations.emplace_back( std::vector<bool>{} );
+      }
+      baseControllerInvocations[lapCounter].push_back( false );
+      if ( computeAdaptation.size() <= lapCounter ) {
+        computeAdaptation.emplace_back( std::vector<bool>{} );
+      }
+      computeAdaptation[lapCounter].push_back( false );
+    } else if (alwaysUseAC) {
       executeWithLapCount( executor, advControllerInput, lapCounter, track );
       if ( baseControllerInvocations.size() <= lapCounter ) {
         baseControllerInvocations.emplace_back( std::vector<bool>{} );
@@ -583,5 +593,6 @@ int main( int argc, char* argv[] ) {
                   baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
   // the training data is automatically stored in case the trainer runs out of scope
+//  storage.plotCombined( "storage_post_execution_combined", true );
   return 0;
 }

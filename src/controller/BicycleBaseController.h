@@ -21,8 +21,6 @@ struct BicycleBaseController : public BaseController<Automaton,Point, Point> {
   std::size_t theta_discretization;
   std::size_t maxTurn;
   double stopZoneWidth;
-  double centerZoneWidth;
-  double centerAngle;
   double borderAngle;
   std::vector<RoadSegment> segments;
 };

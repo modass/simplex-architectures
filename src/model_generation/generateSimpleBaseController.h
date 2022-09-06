@@ -19,8 +19,6 @@ namespace simplexArchitectures {
 BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization,
                                                              size_t maxTurn, // in theta buckets
                                                              double stopZoneWidth,
-                                                             double centerZoneWidth,
-                                                             double centerAngle,
                                                              double borderAngle,
                                                              const std::vector<RoadSegment>& segments,
                                                               double velocity);
