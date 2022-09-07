@@ -240,7 +240,7 @@ BicycleBaseController<HybridAutomaton> generateSimpleBaseController(std::size_t 
     }
   }
 
-  BicycleBaseController result;
+  BicycleBaseController<HybridAutomaton> result;
   result.segments = segments;
   result.borderAngle = borderAngle;
   result.stopZoneWidth = stopZoneWidth;

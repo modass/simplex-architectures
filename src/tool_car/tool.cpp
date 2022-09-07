@@ -216,8 +216,8 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth,
-                                                                bcBorderAngle, track.roadSegments, bcVelocity );
+  auto bc = simplexArchitectures::generateSimpleBaseController<hypro::HybridAutomaton<Number>>(
+      theta_discretization, bcMaxTurn, bcStopZoneWidth, bcBorderAngle, track.roadSegments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 
   IV initialValuationsBC{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 2 ) };
