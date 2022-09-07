@@ -40,7 +40,7 @@
 #include "controller/RandomCarController.h"
 #include "ctrlConversion.h"
 #include "model_generation/generateCarModel.h"
-#include "model_generation/generateSimpleBaseController.h"
+#include "model_generation/generateCarBaseController.h"
 #include "simulation/Executor.h"
 #include "simulation/SamplingUtility.h"
 #include "simulation/Simulator.h"
@@ -95,12 +95,12 @@ int main( int argc, char* argv[] ) {
   Number                    widening = 0.2;
   bool                      training = true;
   bool                      alwaysUseAC = false; // use the ac even if it is unsafe
-  bool                      alwaysUseBC = false; // use the ac even if the AC is safe
+  bool                      alwaysUseBC = false; // use the bc even if the AC is safe
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
-  std::size_t               trackID{ 1 };
+  std::size_t               trackID{ 0 };
   bool                      plotSets      = false;
   bool                      plotPosition  = false;
   bool                      plotRaceTrack = true;
@@ -133,26 +133,30 @@ int main( int argc, char* argv[] ) {
       track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
       track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
 
-      track.roadSegments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
-                             { 7.0, 0.0, 10.0, 7.0, BottomToTop },
-                             { 3.0, 7.0, 10.0, 10.0, RightToLeft },
-                             { 0.0, 3.0, 3.0, 10.0, TopToBottom } };
+      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
+                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
+                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
+                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
+//      track.roadSegments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
+//                             { 7.0, 0.0, 10.0, 7.0, BottomToTop },
+//                             { 3.0, 7.0, 10.0, 10.0, RightToLeft },
+//                             { 0.0, 3.0, 3.0, 10.0, TopToBottom } };
       break;
-    case 1: // "L"-shaped track
-      track.playground = Box{ IV{ I{ 0, 19 }, I{ 0, 15 } } };
-      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 6 }, I{ 3, 12 } } },
-                                           Box{ IV{ I{ 6, 16 }, I{ 3, 7 } } },
-                                           Box{ IV{ I{ 9, 19 }, I{ 10, 15 } } } };
-      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 },  Point{ 9.5, 1.5 },  Point{ 17.5, 1.5 },
-                                             Point{ 17.5, 8.5 }, Point{ 12.5, 8.5 }, Point{ 7.5, 8.5 },
-                                             Point{ 7.5, 11.0 }, Point{ 7.5, 13.5 }, Point{ 1.5, 13.5 } };
-
-      track.roadSegments = { { 0.0, 0.0, 16.0, 3.0, LeftToRight },
-                             { 16.0, 0.0, 19.0, 7.0, BottomToTop },
-                             { 9.0, 7.0, 19.0, 10.0, RightToLeft },
-                             { 6.0, 7.0, 9.0, 12.0, BottomToTop },
-                             { 3.0, 12.0, 9.0, 15.0, RightToLeft },
-                             { 0.0, 3.0, 3.0, 15.0, TopToBottom } };
+//    case 1: // "L"-shaped track
+//      track.playground = Box{ IV{ I{ 0, 19 }, I{ 0, 15 } } };
+//      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 6 }, I{ 3, 12 } } },
+//                                           Box{ IV{ I{ 6, 16 }, I{ 3, 7 } } },
+//                                           Box{ IV{ I{ 9, 19 }, I{ 10, 15 } } } };
+//      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 },  Point{ 9.5, 1.5 },  Point{ 17.5, 1.5 },
+//                                             Point{ 17.5, 8.5 }, Point{ 12.5, 8.5 }, Point{ 7.5, 8.5 },
+//                                             Point{ 7.5, 11.0 }, Point{ 7.5, 13.5 }, Point{ 1.5, 13.5 } };
+//
+//      track.roadSegments = { { 0.0, 0.0, 16.0, 3.0, LeftToRight },
+//                             { 16.0, 0.0, 19.0, 7.0, BottomToTop },
+//                             { 9.0, 7.0, 19.0, 10.0, RightToLeft },
+//                             { 6.0, 7.0, 9.0, 12.0, BottomToTop },
+//                             { 3.0, 12.0, 9.0, 15.0, RightToLeft },
+//                             { 0.0, 3.0, 3.0, 15.0, TopToBottom } };
       break;
     default:
       throw std::logic_error( "Invalid trackID!" );
@@ -164,7 +168,7 @@ int main( int argc, char* argv[] ) {
   Number wheelbase         = 1.0;
   Number bcVelocity        = 1;
   size_t bcMaxTurn         = 1;  // in theta buckets
-  double bcStopZoneWidth   = 0.6;
+  double bcStopZoneWidth   = 0.2; // for the car bc this is relative to the width of the road
   double bcBorderAngle     = 0.87;        /* 50° */
   Number acVelocity        = 2;           // 2,1;
   Number acLookahead       = 4.0;
@@ -214,7 +218,7 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateSimpleBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth,
+  auto bc = simplexArchitectures::generateCarBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth,
                                                                 bcBorderAngle, track.roadSegments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 

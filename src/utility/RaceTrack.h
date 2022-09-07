@@ -17,7 +17,7 @@ struct RaceTrack {
   std::vector<Point>              waypoints;
   hypro::Box<double>              playground;
   std::vector<hypro::Box<double>> obstacles;
-  std::vector<RoadSegment>        roadSegments;
+  std::vector<GeneralRoadSegment> roadSegments;
   double                          safetyMargin     = 0.2;
   Number                          startFinishX     = 5.0;
   Number                          startFinishYlow  = 0.0;
