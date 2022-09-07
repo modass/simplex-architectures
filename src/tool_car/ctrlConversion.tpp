@@ -27,7 +27,7 @@ std::vector<Location*> getLocationForTheta( Number theta, std::size_t discretiza
   spdlog::trace( "Search for locations with theta bucket {} corresponding to theta = {}", thetaBucket, theta );
   std::regex theta_regex( ".*theta_" + std::to_string( thetaBucket ) + "((_.*)|$)" );
   for ( auto* l : in ) {
-    spdlog::trace( "Consider location {}", l->getName() );
+    // spdlog::trace( "Consider location {}", l->getName() );
     if ( std::regex_match( l->getName(), theta_regex ) ) {
       spdlog::trace( "Found matching location: {}", l->getName() );
       res.push_back( l );

@@ -72,15 +72,16 @@ static const std::vector<std::size_t> interesting_dimensions{ x, y };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
-Point executeWithLapCount(Executor& executor, const Point& advControllerInput, size_t& lapCounter, const RaceTrack& racetrack) {
+Point executeWithLapCount( Executor<Automaton>& executor, const Point& advControllerInput, size_t& lapCounter,
+                           const RaceTrack& racetrack ) {
   auto old_pos_x = executor.mLastState[0];
   auto old_pos_y = executor.mLastState[1];
-  auto new_pos = executor.execute( advControllerInput );
+  auto new_pos   = executor.execute( advControllerInput );
   auto new_pos_x = new_pos[0];
-  if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh && old_pos_x < racetrack.startFinishX &&
-       racetrack.startFinishX <= new_pos_x ) {
+  if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
+       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) {
     lapCounter++;
-    spdlog::info("Lap {}", lapCounter);
+    spdlog::info( "Lap {}", lapCounter );
   }
   return new_pos;
 }
@@ -343,7 +344,7 @@ int main( int argc, char* argv[] ) {
     const std::string tmp(l->getName());
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
     std::string oldSegmentZoneSubstring = matches[0];
-    //spdlog::trace("Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring);
+    spdlog::trace( "Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring );
 
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {
