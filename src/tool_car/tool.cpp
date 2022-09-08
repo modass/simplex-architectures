@@ -89,7 +89,7 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 1000;
+  std::size_t               maxJumps             = 200;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening = 0.2;
@@ -133,10 +133,14 @@ int main( int argc, char* argv[] ) {
       track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
       track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
 
-      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
-                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
-                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
-                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
+//      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
+//                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
+//                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
+//                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
+      track.roadSegments = { {Point{0, 3}, Point{0, 0}, Point{7, 3}, Point{7,0} },
+                             {Point{7, 0}, Point{10,0}, Point{7, 7}, Point{10,7} },
+                             {Point{10, 7}, Point{10,10}, Point{3, 7}, Point{3,10} },
+                             {Point{3, 10}, Point{0,10}, Point{3, 3}, Point{0,3} } };
 //      track.roadSegments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
 //                             { 7.0, 0.0, 10.0, 7.0, BottomToTop },
 //                             { 3.0, 7.0, 10.0, 10.0, RightToLeft },
@@ -234,12 +238,12 @@ int main( int argc, char* argv[] ) {
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
   bcAtm.setInitialStates( initialStatesBC );
 
-//  {
-//    std::cout << "BC automaton:\n" << bcAtm << std::endl;
-    // std::ofstream fs{ "bcAutomaton.model" };
-    // fs << hypro::toFlowstarFormat( bcAtm );
-    // fs.close();
-//  }
+  {
+    std::cout << "BC automaton:\n" << bcAtm << std::endl;
+     std::ofstream fs{ "bcAutomaton.model" };
+     fs << hypro::toFlowstarFormat( bcAtm );
+     fs.close();
+  }
 
   // Automata compostion:
   auto                                                         mainLocations = carModel.getLocations();
@@ -597,6 +601,6 @@ int main( int argc, char* argv[] ) {
                   baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
   // the training data is automatically stored in case the trainer runs out of scope
-//  storage.plotCombined( "storage_post_execution_combined", true );
+  storage.plotCombined( "storage_post_execution_combined", true );
   return 0;
 }

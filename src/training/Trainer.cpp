@@ -52,7 +52,7 @@ bool Trainer::run(hypro::Settings settings, const locationConditionMap& initialS
   settings.rFixedParameters().globalTimeHorizon = -1;
   settings.rStrategy().front().detectZenoBehavior                 = true;
   settings.rFixedParameters().localTimeHorizon = 100;
-  settings.rFixedParameters().jumpDepth = 1000;
+  settings.rFixedParameters().jumpDepth = 200;
   settings.rStrategy().front().aggregation = hypro::AGG_SETTING::AGG;
   // run single iteration
   auto res = runIteration( settings, *generator );

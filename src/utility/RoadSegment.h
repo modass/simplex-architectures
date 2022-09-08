@@ -36,7 +36,11 @@ struct GeneralRoadSegment {
   hypro::Condition<Number> getLeftZoneInvariant(double relativeCenterZoneWidth);
   hypro::Condition<Number> getCenterZoneInvariant(double relativeCenterZoneWidth);
   hypro::Condition<Number> getRightZoneInvariant(double relativeCenterZoneWidth);
-  Number getSegmentAngle();
+  Number getSegmentAngle() const;
+  Point getCenterStartLeft(double relativeCenterZoneWidth) const;
+  Point getCenterStartRight(double relativeCenterZoneWidth) const;
+  Point getCenterEndLeft(double relativeCenterZoneWidth) const;
+  Point getCenterEndRight(double relativeCenterZoneWidth) const;
 
   static hypro::Condition<Number> pointsToCondition( Point pointA, Point pointB, Point pointC, Point pointD );
 };

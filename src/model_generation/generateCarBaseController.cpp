@@ -12,7 +12,7 @@ CarBaseController generateCarBaseController( std::size_t theta_discretization, s
   hypro::HybridAutomaton<double> res;
   constexpr Eigen::Index         x     = 0;  // global position x
   constexpr Eigen::Index         y     = 1;  // global position y
-  constexpr Eigen::Index         theta = 2;  // global position y
+  constexpr Eigen::Index         theta = 2;  // global theta heading
   constexpr Eigen::Index         C     = 3;  // constants
 
   std::vector<std::string> variableNames{ "x", "y", "theta" };
@@ -47,26 +47,42 @@ CarBaseController generateCarBaseController( std::size_t theta_discretization, s
     auto& [segmentId, zone] = key;
     auto segment            = segments[segmentId];
 
-    size_t leftZone    = zone - 1;
-    bool   leftExists  = zone > 0;
-    size_t rightZone   = zone + 1;
-    bool   rightExists = zone < 2;
+    switch (zone) {
+      case 0: //left
+      {
+        auto centerLocation  = buckets[std::make_tuple( segmentId, 1 )];
+        auto a               = segment.getCenterStartLeft( stopZoneWidth );
+        auto b               = segment.getCenterEndLeft( stopZoneWidth );
+        generateCrossingTransition(source, centerLocation, a, b, theta_discretization);
+        break;
+      }
+      case 1: //center
+      {
+        auto leftLocation  = buckets[std::make_tuple( segmentId, 0 )];
+        auto aL               = segment.getCenterEndLeft( stopZoneWidth );
+        auto bL               = segment.getCenterStartLeft( stopZoneWidth );
+        generateCrossingTransition(source, leftLocation, aL, bL, theta_discretization);
 
-    // connections in the same segment
-    if ( leftExists ) {
-      auto leftLocation   = buckets[std::make_tuple( segmentId, leftZone )];
-      auto leftTransition = source->createTransition( leftLocation );
-      leftTransition->setGuard( leftLocation->getInvariant() );
+        auto rightLocation  = buckets[std::make_tuple( segmentId, 2 )];
+        auto aR               = segment.getCenterStartRight( stopZoneWidth );
+        auto bR               = segment.getCenterEndRight( stopZoneWidth );
+        generateCrossingTransition(source, rightLocation, aR, bR, theta_discretization);
+        break;
+      }
+      case 2: //right
+      {
+        auto centerLocation  = buckets[std::make_tuple( segmentId, 1 )];
+        auto a               = segment.getCenterEndRight( stopZoneWidth );
+        auto b               = segment.getCenterStartRight( stopZoneWidth );
+        generateCrossingTransition(source, centerLocation, a, b, theta_discretization);
+        break;
+      }
     }
 
-    if ( rightExists ) {
-      auto rightLocation   = buckets[std::make_tuple( segmentId, rightZone )];
-      auto rightTransition = source->createTransition( rightLocation );
-      rightTransition->setGuard( rightLocation->getInvariant() );
-    }
+    double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
+    double segmentAngle = segment.getSegmentAngle();
 
     // outputs
-    double segmentAngle = segment.getSegmentAngle();
     double angle;
     if ( zone == 1 ) {
       angle = segmentAngle;
@@ -78,7 +94,6 @@ CarBaseController generateCarBaseController( std::size_t theta_discretization, s
 
     auto targetThetaBucket = getThetaBucket( angle, theta_discretization );
 
-    double theta_increment      = ( 2 * M_PI ) / double( theta_discretization );
     double theta_min = 0.0;
     double theta_max = theta_increment;
 
@@ -149,6 +164,7 @@ CarBaseController generateCarBaseController( std::size_t theta_discretization, s
   // segment changes
   if ( numberOfSegments > 1 ) {
     for ( auto segmentId = 0; segmentId < numberOfSegments; segmentId++ ) {
+      auto segment = segments[segmentId];
       auto nextSegmentId     = segmentId < numberOfSegments - 1 ? segmentId + 1 : 0;
       auto previousSegmentId = segmentId > 0 ? segmentId - 1 : numberOfSegments - 1;
 
@@ -157,12 +173,12 @@ CarBaseController generateCarBaseController( std::size_t theta_discretization, s
           auto thisLocation = buckets[std::tuple( segmentId, thisZoneId )];
 
           auto nextLocation = buckets[std::tuple( nextSegmentId, targetZoneId )];
-          auto transNext    = thisLocation->createTransition( nextLocation );
-          transNext->setGuard( nextLocation->getInvariant() );
+          generateCrossingTransition( thisLocation, nextLocation, segment.endRight, segment.endLeft,
+                                      theta_discretization );
 
           auto previousLocation = buckets[std::tuple( previousSegmentId, targetZoneId )];
-          auto transPrevious    = thisLocation->createTransition( previousLocation );
-          transPrevious->setGuard( previousLocation->getInvariant() );
+          generateCrossingTransition( thisLocation, previousLocation, segment.startLeft, segment.startRight,
+                                      theta_discretization );
         }
       }
     }
@@ -173,6 +189,81 @@ CarBaseController generateCarBaseController( std::size_t theta_discretization, s
   result.mAutomaton = res;
 
   return result;
+}
+
+std::pair<double, double> crossingInterval( Point A, Point B, std::size_t theta_discretization ) {
+  auto v = B - A;
+  double crossingAngle = normalizeAngle( atan2(v[1], v[0]) );
+  double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
+
+  size_t bucketA = getThetaBucket(crossingAngle, theta_discretization);
+  double representativeA = getRepresentativeForThetaBucket(bucketA, theta_discretization);
+  double angleA;
+  if (representativeA > crossingAngle) {
+    angleA = representativeA - theta_increment/2;
+  } else {
+    angleA = representativeA + theta_increment/2;
+  }
+
+  double crossingAngleB = normalizeAngle(crossingAngle+M_PI);
+  size_t bucketB = getThetaBucket(crossingAngleB, theta_discretization);
+  double representativeB = getRepresentativeForThetaBucket(bucketB, theta_discretization);
+  double angleB;
+  if (representativeB < crossingAngleB) {
+    angleB = representativeB - theta_increment/2;
+  } else {
+    angleB = representativeB + theta_increment/2;
+  }
+
+  return {angleA, angleB};
+}
+void generateCrossingTransition( hypro::Location<double>* origin, hypro::Location<double>* target, Point borderA,
+                                  Point borderB, std::size_t theta_discretization) {
+  constexpr Eigen::Index         x     = 0;  // global position x
+  constexpr Eigen::Index         y     = 1;  // global position y
+  constexpr Eigen::Index         theta = 2;  // global theta heading
+  constexpr Eigen::Index         C     = 3;  // constants
+
+  std::vector<std::string> variableNames{ "x", "y", "theta" };
+
+  auto [angleLower, angleUpper] = crossingInterval(borderA, borderB, theta_discretization);
+
+  if (angleLower < angleUpper) {
+    auto transition = origin->createTransition( target );
+    auto guard           = target->getInvariant();
+    Matrix constraints      = Matrix::Zero( 2, variableNames.size() );
+    Vector constants        = Vector::Zero( 2 );
+    constraints( 0, theta ) = 1;
+    constraints( 1, theta ) = -1;
+    constants << angleUpper, -angleLower;
+    guard.addConstraints( {constraints, constants} );
+    transition->setGuard( guard );
+  } else {
+    //create two transitions, because the theta interval wraps around zero
+    {
+      auto transition = origin->createTransition( target );
+      auto guard      = target->getInvariant();
+      Matrix constraints      = Matrix::Zero( 1, variableNames.size() );
+      Vector constants        = Vector::Zero( 1 );
+      constraints( 0, theta ) = 1;
+      constants << angleLower;
+      guard.addConstraints( { constraints, constants } );
+      transition->setGuard( guard );
+    }
+
+    {
+      auto transition = origin->createTransition( target );
+      auto guard      = target->getInvariant();
+      Matrix constraints      = Matrix::Zero( 1, variableNames.size() );
+      Vector constants        = Vector::Zero( 1 );
+      constraints( 0, theta ) = -1;
+      constants << -angleUpper;
+      guard.addConstraints( { constraints, constants } );
+      transition->setGuard( guard );
+    }
+  }
+
+
 }
 
 }

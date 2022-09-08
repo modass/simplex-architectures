@@ -9,37 +9,31 @@
 namespace simplexArchitectures {
 
 hypro::Condition<Number> GeneralRoadSegment::getLeftZoneInvariant( double relativeCenterZoneWidth ) {
-  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
-
   auto pointA = startLeft;
   auto pointB = endLeft;
-  auto pointC = endLeft + (endRight - endLeft) * relativeBorderZoneWidth;
-  auto pointD = startLeft + (startRight - startLeft) * relativeBorderZoneWidth;
+  auto pointC = getCenterEndLeft(relativeCenterZoneWidth);
+  auto pointD = getCenterStartLeft(relativeCenterZoneWidth);
 
   return pointsToCondition(pointA, pointB, pointC, pointD);
 }
 hypro::Condition<Number> GeneralRoadSegment::getCenterZoneInvariant( double relativeCenterZoneWidth ) {
-  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
-
-  auto pointA = startLeft + (startRight - startLeft) * relativeBorderZoneWidth;
-  auto pointB = endLeft + (endRight - endLeft) * relativeBorderZoneWidth;
-  auto pointC = endRight + (endLeft - endRight) * relativeBorderZoneWidth;
-  auto pointD = startRight + (startLeft - startRight) * relativeBorderZoneWidth;
+  auto pointA = getCenterStartLeft(relativeCenterZoneWidth);
+  auto pointB = getCenterEndLeft(relativeCenterZoneWidth);
+  auto pointC = getCenterEndRight(relativeCenterZoneWidth);
+  auto pointD = getCenterStartRight(relativeCenterZoneWidth);
 
   return pointsToCondition(pointA, pointB, pointC, pointD);
 }
 hypro::Condition<Number> GeneralRoadSegment::getRightZoneInvariant( double relativeCenterZoneWidth ) {
-  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
-
-  auto pointA = startRight + (startLeft - startRight) * relativeBorderZoneWidth;
-  auto pointB = endRight + (endLeft - endRight) * relativeBorderZoneWidth;
+  auto pointA = getCenterStartRight(relativeCenterZoneWidth);
+  auto pointB = getCenterEndRight(relativeCenterZoneWidth);
   auto pointC = endRight;
   auto pointD = startRight;
 
   return pointsToCondition(pointA, pointB, pointC, pointD);
 }
 
-Number GeneralRoadSegment::getSegmentAngle() {
+Number GeneralRoadSegment::getSegmentAngle() const {
   auto pointS = startLeft + (startRight - startLeft) * 0.5;
   auto pointE = endLeft + (endRight - endLeft) * 0.5;
   auto headingVector = pointE - pointS;
@@ -74,5 +68,24 @@ hypro::Condition<Number> GeneralRoadSegment::pointsToCondition(Point pointA, Poi
   return {constraints, constants};
 }
 
+Point GeneralRoadSegment::getCenterStartLeft(double relativeCenterZoneWidth) const {
+  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
+  return startLeft + (startRight - startLeft) * relativeBorderZoneWidth;
+}
+
+Point GeneralRoadSegment::getCenterStartRight(double relativeCenterZoneWidth) const {
+  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
+  return startRight + (startLeft - startRight) * relativeBorderZoneWidth;
+}
+
+Point GeneralRoadSegment::getCenterEndLeft(double relativeCenterZoneWidth) const {
+  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
+  return endLeft + (endRight - endLeft) * relativeBorderZoneWidth;
+}
+
+Point GeneralRoadSegment::getCenterEndRight(double relativeCenterZoneWidth) const {
+  auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
+  return endRight + (endLeft - endRight) * relativeBorderZoneWidth;
+}
 
 }
