@@ -10,22 +10,21 @@
 
 namespace simplexArchitectures {
 
-BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization, size_t maxTurn, //in theta buckets
-                                                                                   double stopZoneWidth,
-                                                                                   double centerZoneWidth,
-                                                                                   double centerAngle,
-                                                                                   double borderAngle,
-                                                                                   const std::vector<RoadSegment>& segments,
-                                                    double velocity) {
+template<typename HybridAutomaton>
+BicycleBaseController<HybridAutomaton> generateSimpleBaseController(std::size_t theta_discretization, size_t maxTurn, //in theta buckets
+                                                                     double stopZoneWidth,
+                                                                     double borderAngle,
+                                                                     const std::vector<RoadSegment>& segments,
+                                                                     double velocity) {
 
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
 
-  hypro::HybridAutomaton<double> res;
-  constexpr Eigen::Index         x     = 0;  // global position x
-  constexpr Eigen::Index         y     = 1;  // global position y
-  constexpr Eigen::Index         theta = 2;  // global position y
-  constexpr Eigen::Index         C     = 3;  // constants
+  HybridAutomaton        res;
+  constexpr Eigen::Index x     = 0;  // global position x
+  constexpr Eigen::Index y     = 1;  // global position y
+  constexpr Eigen::Index theta = 2;  // global position y
+  constexpr Eigen::Index C     = 3;  // constants
 
   std::vector<std::string> variableNames{ "x", "y", "theta" };
   res.setVariables( variableNames );
@@ -34,7 +33,7 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
 
   // sync labels: theta_{0..theta_discretization-1}, stop
 
-  // zones: borderLeft, centerLeft, stop, centerRight, borderRight
+  // zones: borderLeft, stop, borderRight
   // bucket indices: (segment, zone)
   std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*>               buckets;
   std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double, double>> outputs;
@@ -45,7 +44,7 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
 
     // TODO add assertions to check that the arithmetic used to calculate the boundaries produces valid intervals
 
-    for ( std::size_t iz = 0; iz < 5; ++iz ) {
+    for ( std::size_t iz = 0; iz < 3; ++iz ) {
       double x_low;
       double y_low;
       double x_high;
@@ -55,48 +54,32 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
         x_low    = segment.x_min;
         x_high   = segment.x_max;
         auto mid = segment.y_min + ( segment.y_max - segment.y_min ) / 2.0;
-        if ( iz == 2 ) {
+        if ( iz == 1 ) {
           y_low  = mid - stopZoneWidth / 2;
           y_high = mid + stopZoneWidth / 2;
-        } else if ( ( iz == 1 && segment.orientation == LeftToRight ) ||
-                    ( iz == 3 && segment.orientation == RightToLeft ) ) {
-          y_low  = mid + stopZoneWidth / 2;
-          y_high = mid + stopZoneWidth / 2 + centerZoneWidth;
-        } else if ( ( iz == 1 && segment.orientation == RightToLeft ) ||
-                    ( iz == 3 && segment.orientation == LeftToRight ) ) {
-          y_high = mid - stopZoneWidth / 2;
-          y_low  = mid - stopZoneWidth / 2 - centerZoneWidth;
         } else if ( ( iz == 0 && segment.orientation == LeftToRight ) ||
-                    ( iz == 4 && segment.orientation == RightToLeft ) ) {
-          y_low  = mid + stopZoneWidth / 2 + centerZoneWidth;
+                    ( iz == 2 && segment.orientation == RightToLeft ) ) {
+          y_low  = mid + stopZoneWidth / 2;
           y_high = segment.y_max;
         } else if ( ( iz == 0 && segment.orientation == RightToLeft ) ||
-                    ( iz == 4 && segment.orientation == LeftToRight ) ) {
-          y_high = mid - stopZoneWidth / 2 - centerZoneWidth;
+                    ( iz == 2 && segment.orientation == LeftToRight ) ) {
+          y_high = mid - stopZoneWidth / 2;
           y_low  = segment.y_min;
         }
       } else {  // vertical
         y_low    = segment.y_min;
         y_high   = segment.y_max;
         auto mid = segment.x_min + ( segment.x_max - segment.x_min ) / 2.0;
-        if ( iz == 2 ) {
+        if ( iz == 1 ) {
           x_low  = mid - stopZoneWidth / 2;
           x_high = mid + stopZoneWidth / 2;
-        } else if ( ( iz == 3 && segment.orientation == BottomToTop ) ||
-                    ( iz == 1 && segment.orientation == TopToBottom ) ) {
-          x_low  = mid + stopZoneWidth / 2;
-          x_high = mid + stopZoneWidth / 2 + centerZoneWidth;
-        } else if ( ( iz == 3 && segment.orientation == TopToBottom ) ||
-                    ( iz == 1 && segment.orientation == BottomToTop ) ) {
-          x_high = mid - stopZoneWidth / 2;
-          x_low  = mid - stopZoneWidth / 2 - centerZoneWidth;
-        } else if ( ( iz == 4 && segment.orientation == BottomToTop ) ||
+        } else if ( ( iz == 2 && segment.orientation == BottomToTop ) ||
                     ( iz == 0 && segment.orientation == TopToBottom ) ) {
-          x_low  = mid + stopZoneWidth / 2 + centerZoneWidth;
+          x_low  = mid + stopZoneWidth / 2;
           x_high = segment.x_max;
-        } else if ( ( iz == 4 && segment.orientation == TopToBottom ) ||
+        } else if ( ( iz == 2 && segment.orientation == TopToBottom ) ||
                     ( iz == 0 && segment.orientation == BottomToTop ) ) {
-          x_high = mid - stopZoneWidth / 2 - centerZoneWidth;
+          x_high = mid - stopZoneWidth / 2;
           x_low  = segment.x_min;
         }
       }
@@ -125,7 +108,7 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
     size_t leftZone    = zone - 1;
     bool   leftExists  = zone > 0;
     size_t rightZone   = zone + 1;
-    bool   rightExists = zone < 4;
+    bool   rightExists = zone < 2;
 
     // connections in the same segment
     if ( leftExists ) {
@@ -156,21 +139,13 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
         segmentAngle = 1.5 * M_PI;
         break;
     }
-    if ( zone == 2 ) {
-      auto stopTrans = source->createTransition( source );
-      stopTrans->addLabel( hypro::Label( "stop" ) );
-    } else {
+
       double angle;
       if ( zone == 1 ) {
-        angle = normalizeAngle( segmentAngle - centerAngle );
-      }
-      if ( zone == 3 ) {
-        angle = normalizeAngle( segmentAngle + centerAngle );
-      }
-      if ( zone == 0 ) {
+        angle = segmentAngle;
+      } else if ( zone == 0 ) {
         angle = normalizeAngle( segmentAngle - borderAngle );
-      }
-      if ( zone == 4 ) {
+      } else if ( zone == 2 ) {
         angle = normalizeAngle( segmentAngle + borderAngle );
       }
 
@@ -184,7 +159,19 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
         auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization + targetThetaBucket - t;
         auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
 
-        if (differenceLeft == 0) {
+        auto maxStopDifference = theta_discretization/8;
+        if (zone == 1 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
+          auto stopTrans = source->createTransition( source );
+          stopTrans->addLabel( hypro::Label( "stop" ) );
+
+          Matrix guard_constraints      = Matrix::Zero( 2, variableNames.size() );
+          Vector guard_constants        = Vector::Zero( 2 );
+          guard_constraints( 0, theta ) = 1;
+          guard_constraints( 1, theta ) = -1;
+          guard_constants << theta_max, -theta_min;
+
+          stopTrans->setGuard( { guard_constraints, guard_constants } );
+        } else if (differenceLeft == 0) {
           auto newThetaBucket = targetThetaBucket;
           auto thetaChange    = source->createTransition( buckets[std::make_tuple( segmentId, zone )] );
           thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
@@ -229,9 +216,6 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
         theta_min += theta_increment;
         theta_max += theta_increment;
       }
-
-
-    }
   }
 
   // segment changes
@@ -240,8 +224,8 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
       auto nextSegmentId     = segmentId < numberOfSegments - 1 ? segmentId + 1 : 0;
       auto previousSegmentId = segmentId > 0 ? segmentId - 1 : numberOfSegments - 1;
 
-      for ( auto thisZoneId = 0; thisZoneId < 5; thisZoneId++ ) {
-        for ( auto targetZoneId = 0; targetZoneId < 5; targetZoneId++ ) {
+      for ( auto thisZoneId = 0; thisZoneId < 3; thisZoneId++ ) {
+        for ( auto targetZoneId = 0; targetZoneId < 3; targetZoneId++ ) {
           auto thisLocation = buckets[std::tuple( segmentId, thisZoneId )];
 
           auto nextLocation = buckets[std::tuple( nextSegmentId, targetZoneId )];
@@ -256,18 +240,25 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
     }
   }
 
-  BicycleBaseController result;
+  BicycleBaseController<HybridAutomaton> result;
   result.segments = segments;
   result.borderAngle = borderAngle;
-  result.centerAngle = centerAngle;
-  result.centerZoneWidth = centerZoneWidth;
   result.stopZoneWidth = stopZoneWidth;
   result.theta_discretization = theta_discretization;
-  result.maxTurn = maxTurn;
-  result.mAutomaton = res;
-  result.velocity = velocity;
+  result.maxTurn              = maxTurn;
+  result.velocity             = velocity;
+  setAutomaton( result, std::move( res ) );
 
   return result;
 }
 
-} // namespace
+void setAutomaton( BicycleBaseController<hypro::HybridAutomaton<Number>>& ctrl, hypro::HybridAutomaton<Number>&& ha ) {
+  ctrl.mAutomaton = std::move( ha );
+}
+
+void setAutomaton( BicycleBaseController<hypro::HybridAutomatonComp<Number>>& ctrl,
+                   hypro::HybridAutomaton<Number>&&                           ha ) {
+  ctrl.mAutomaton.addAutomaton( std::move( ha ) );
+}
+
+}  // namespace simplexArchitectures

@@ -11,23 +11,25 @@
 
 namespace simplexArchitectures {
 
-LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Number>& automaton, LocPtr lastLocation, std::size_t delta_discretization, const std::pair<double, double>& delta_ranges) {
+LocPtr convertCtrlToLocation( const Point& in, const Automaton& automaton, LocPtr lastLocation,
+                              std::size_t delta_discretization, const std::pair<double, double>& delta_ranges ) {
   LocPtr res = nullptr;
   // By convention the first component of the point is the used delta.
   // Simple approach: string-comparison
   // 1 find all locations for which the theta-component matches, should be |delta_discretization| many
-  std::string theta_substring = lastLocation->getName().substr(lastLocation->getName().find("theta_"), std::string::npos);
+  std::string theta_substring =
+      lastLocation->getName().substr( lastLocation->getName().find( "theta_" ), std::string::npos );
   std::vector<LocPtr> candidates;
-  for(const auto* lptr : automaton.getLocations()) {
-    if(lptr->getName().find(theta_substring) != std::string::npos) {
-      candidates.push_back(lptr);
+  for ( const auto* lptr : automaton.getLocations() ) {
+    if ( lptr->getName().find( theta_substring ) != std::string::npos ) {
+      candidates.push_back( lptr );
     }
   }
   // 2 select the candidate with the correct delta-bucket
-  std::size_t delta_bucket_index = getDeltaBucket(in[0], delta_ranges, delta_discretization);
-  std::string delta_substring = "delta_" + std::to_string(delta_bucket_index);
-  for(const auto* lptr : candidates) {
-    if(lptr->getName().find(delta_substring) != std::string::npos) {
+  std::size_t delta_bucket_index = getDeltaBucket( in[0], delta_ranges, delta_discretization );
+  std::string delta_substring    = "delta_" + std::to_string( delta_bucket_index );
+  for ( const auto* lptr : candidates ) {
+    if ( lptr->getName().find( delta_substring ) != std::string::npos ) {
       return lptr;
     }
   }
@@ -35,13 +37,13 @@ LocPtr convertCtrlToLocation(const Point& in, const hypro::HybridAutomaton<Numbe
   return res;
 }
 
-LocPtr convertCtrlToLocationSimple(double theta, const hypro::HybridAutomaton<Number>& automaton, std::size_t theta_discretization) {
+LocPtr convertCtrlToLocationSimple( double theta, const Automaton& automaton, std::size_t theta_discretization ) {
   LocPtr res = nullptr;
 
-  std::size_t theta_bucket_index = getThetaBucket(theta, theta_discretization);
-  std::string theta_substring = "theta_" + std::to_string(theta_bucket_index);
-  for(const auto* lptr : automaton.getLocations()) {
-    if(lptr->getName().find(theta_substring) != std::string::npos) {
+  std::size_t theta_bucket_index = getThetaBucket( theta, theta_discretization );
+  std::string theta_substring    = "theta_" + std::to_string( theta_bucket_index );
+  for ( const auto* lptr : automaton.getLocations() ) {
+    if ( lptr->getName().find( theta_substring ) != std::string::npos ) {
       return lptr;
     }
   }
@@ -125,25 +127,12 @@ std::size_t getYBucket( Number y, double y_min, double y_max, double y_interval_
     y_low += y_interval_size;
     y_high += y_interval_size;
   }
-  throw std::logic_error("Value out of range");}
-
-std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<typename Automaton::LocationType*>& in) {
-  std::vector<LocPtr> res;
-  std::size_t thetaBucket = getThetaBucket(theta, discretization);
-  //spdlog::trace("Search for locations with theta bucket {} corresponding to theta = {}",thetaBucket, theta);
-  std::regex theta_regex(".*theta_"+std::to_string(thetaBucket) + "((_.*)|$)");
-  for(auto* l : in) {
-    //spdlog::trace("Consider location {}",l->getName());
-    if(std::regex_match(l->getName(), theta_regex)) {
-      //spdlog::trace("Found matching location: {}",l->getName());
-      res.push_back(l);
-    }
-  }
-  return res;
+  throw std::logic_error( "Value out of range" );
 }
+
 double getRepresentativeForThetaBucket( std::size_t theta_bucket, std::size_t discretization ) {
-  double theta_increment      = ( 2 * M_PI ) / double( discretization );
-  return 0.5 * theta_increment + (double(theta_bucket) * theta_increment);
+  double theta_increment = ( 2 * M_PI ) / double( discretization );
+  return 0.5 * theta_increment + ( double( theta_bucket ) * theta_increment );
 }
 
 } // namespace

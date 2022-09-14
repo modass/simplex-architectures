@@ -13,32 +13,37 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
   std::vector<hypro::Condition<double>> res;
   // bloat-functor
   auto bloat = [this]( const auto& intv ) {
-    return carl::Interval<double>( intv.lower() - safetyMargin, intv.upper() + safetyMargin );
+    return intv;
   };
   // add playground
   std::vector<carl::Interval<double>> intervals;
+  const double borderWidth = 0.3;
   // left
-  intervals.emplace_back( playground.intervals().at( 0 ).lower(),
-                          playground.intervals().at( 0 ).lower() + safetyMargin );
-  intervals.emplace_back( playground.intervals().at( 1 ) );
+  intervals.emplace_back( playground.intervals().at( 0 ).lower() - borderWidth,
+                          playground.intervals().at( 0 ).lower() );
+  intervals.emplace_back( playground.intervals().at( 1 ).lower(),
+                          playground.intervals().at( 1 ).upper() + borderWidth );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // right
-  intervals.emplace_back( playground.intervals().at( 0 ).upper() - safetyMargin,
-                          playground.intervals().at( 0 ).upper() );
-  intervals.emplace_back( playground.intervals().at( 1 ) );
+  intervals.emplace_back( playground.intervals().at( 0 ).upper(),
+                          playground.intervals().at( 0 ).upper() + borderWidth);
+  intervals.emplace_back( playground.intervals().at( 1 ).lower() - borderWidth,
+                          playground.intervals().at( 1 ).upper() );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // bottom
-  intervals.emplace_back( playground.intervals().at( 0 ) );
-  intervals.emplace_back( playground.intervals().at( 1 ).lower(),
-                          playground.intervals().at( 1 ).lower() + safetyMargin );
+  intervals.emplace_back( playground.intervals().at( 0 ).lower() - borderWidth,
+                          playground.intervals().at( 0 ).upper() );
+  intervals.emplace_back( playground.intervals().at( 1 ).lower() - borderWidth,
+                          playground.intervals().at( 1 ).lower() );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // top
-  intervals.emplace_back( playground.intervals().at( 0 ) );
-  intervals.emplace_back( playground.intervals().at( 1 ).upper() - safetyMargin,
-                          playground.intervals().at( 1 ).upper() );
+  intervals.emplace_back( playground.intervals().at( 0 ).lower(),
+                          playground.intervals().at( 0 ).upper() + borderWidth );
+  intervals.emplace_back( playground.intervals().at( 1 ).upper(),
+                          playground.intervals().at( 1 ).upper() + borderWidth );
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // all obstacles
@@ -70,14 +75,25 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
     plt.addObject( hypro::Box<double>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
                    hypro::plotting::colors[color], redSettings );
   }
+  // add start finish line
+  double startFinishWidth = 0.05;
+  plt.addObject({Point{startFinishX, startFinishYlow},
+                       Point{startFinishX+startFinishWidth, startFinishYlow},
+                       Point{startFinishX+startFinishWidth, startFinishYhigh},
+                       Point{startFinishX, startFinishYhigh}},
+                 hypro::plotting::colors[hypro::plotting::turquoise], redSettings);
+
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };
-  double xArrowOffset = std::cos( car.value().at( 2 ));
-  double yArrowOffset = std::sin( car.value().at( 2 ));
-  Point  carDirection{ xArrowOffset, yArrowOffset };
-  std::cout << "Direction: " << carDirection << std::endl;
-  plt.addVector( ( carPosition + carDirection ).rawCoordinates(), carPosition.rawCoordinates() );
-  plt.addPoint( carPosition );
+  auto heading = Point{std::cos( car.value().at( 2 )), std::sin( car.value().at( 2 ))};
+  auto offsetLeft = Point{std::cos( car.value().at( 2 ) + M_PI * 0.5), std::sin( car.value().at( 2 ) + M_PI * 0.5)};
+
+  auto a = carPosition + 0.1 * heading;
+  auto b = carPosition - 0.1 * heading + 0.1 * offsetLeft;
+  auto c = carPosition - 0.04 * heading;
+  auto d = carPosition - 0.1 * heading - 0.1 * offsetLeft;
+  plt.addPolyline({a,b,c,d,a});
+
 }
 
 }  // namespace simplexArchitectures
