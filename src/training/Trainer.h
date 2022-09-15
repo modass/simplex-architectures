@@ -22,7 +22,7 @@
 
 namespace simplexArchitectures {
 
-using locationConditionMap = hypro::HybridAutomaton<double>::locationConditionMap;
+using locationConditionMap = Automaton::locationConditionMap;
 
 /**
  * Class used for training with a basic controller to collect sets of safe
@@ -31,15 +31,9 @@ using locationConditionMap = hypro::HybridAutomaton<double>::locationConditionMa
  */
 class Trainer {
  public:
-  Trainer( hypro::HybridAutomaton<Number>& automaton, TrainingSettings trainingSettings, Storage& storage ):
-        mTrainingSettings( trainingSettings ),
-        mStorage(storage),
-  mAutomaton(automaton)
-  {
-  }
-  ~Trainer() {
-    mStorage.write();
-  }
+  Trainer( Automaton& automaton, TrainingSettings trainingSettings, Storage& storage )
+      : mTrainingSettings( trainingSettings ), mStorage( storage ), mAutomaton( automaton ) {}
+  ~Trainer() { mStorage.write(); }
   /**
    * Starts training with the provided settings. The trainer will try to load a file containing already discovered save
    * sets (as specified in the filename) and extend those.
@@ -76,9 +70,9 @@ class Trainer {
   std::size_t computeRequiredIterationsForFullCoverage() const;
 
  protected:
-  TrainingSettings mTrainingSettings;                            ///< settings for training
-  Storage& mStorage;
-  hypro::HybridAutomaton<Number>&                    mAutomaton;  ///< automaton representing the model
+  TrainingSettings mTrainingSettings;  ///< settings for training
+  Storage&         mStorage;
+  Automaton&       mAutomaton;  ///< automaton representing the model
 };
 
 }  // namespace simplexArchitectures

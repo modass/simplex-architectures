@@ -13,8 +13,8 @@
 
 namespace simplexArchitectures {
 
-struct BicycleBaseController : public BaseController<Automaton,Point, Point> {
-
+template <typename HybridAutomaton>
+struct BicycleBaseController : public BaseController<HybridAutomaton, Point, Point> {
   Point generateInput( Point state );
 
   double velocity = 1.0;
@@ -25,6 +25,8 @@ struct BicycleBaseController : public BaseController<Automaton,Point, Point> {
   std::vector<RoadSegment> segments;
 };
 
-}
+}  // namespace simplexArchitectures
+
+#include "BicycleBaseController.tpp"
 
 #endif  // SIMPLEXARCHITECTURES_BICYCLEBASECONTROLLER_H

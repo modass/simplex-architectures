@@ -106,24 +106,24 @@ bool Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   // analysis
   auto reacher = ReachabilityAnalyzer( mAutomaton, settings.fixedParameters(), settings.strategy().front(), roots );
   // set up callbacks which are used by hypro to access the octree
-  std::size_t                                                                  shortcuts = 0;
-  std::function<bool( const Representation&, const hypro::Location<double>* )> callback =
-      [this, &shortcuts]( const auto& set, const auto locptr ) {
-        if ( mStorage.isContained( locptr->getName(), set ) ) {
-          ++shortcuts;
-          return true;
-        }
-        return false;
-      };
-  hypro::ReachabilityCallbacks<Representation, hypro::Location<double>> callbackStructure{ callback };
+  std::size_t                                                   shortcuts = 0;
+  std::function<bool( const Representation&, const Location* )> callback  = [this, &shortcuts]( const auto& set,
+                                                                                               const auto  locptr ) {
+    if ( mStorage.isContained( locptr->getName(), set ) ) {
+      ++shortcuts;
+      return true;
+    }
+    return false;
+  };
+  hypro::ReachabilityCallbacks<Representation, Location> callbackStructure{ callback };
   reacher.setCallbacks( callbackStructure );
   // start reachability analysis
-  spdlog::debug("Start reachability analysis");
+  spdlog::debug( "Start reachability analysis" );
   auto result = reacher.computeForwardReachability();
-  if(shortcuts > 0) {
+  if ( shortcuts > 0 ) {
     spdlog::debug( "Found {} fixed points by exploiting existing results.", shortcuts );
   }
-  spdlog::debug("Reachability analysis done");
+  spdlog::debug( "Reachability analysis done" );
 
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {

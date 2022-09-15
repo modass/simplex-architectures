@@ -11,20 +11,20 @@
 
 namespace simplexArchitectures {
 
-Point BicycleBaseController::generateInput( Point state ) {
-
-  spdlog::trace("Get Base Controller output for state {}",state);
+template <typename HybridAutomaton>
+Point BicycleBaseController<HybridAutomaton>::generateInput( Point state ) {
+  spdlog::trace( "Get Base Controller output for state {}", state );
   auto numberOfSegments = segments.size();
   // zones: borderLeft, centerLeft, stop, centerRight, borderRight
   // bucket indices: (segment, zone)
-  std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*> buckets;
-  std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double,double>> outputs;
+  std::map<std::tuple<std::size_t, std::size_t>, typename HybridAutomaton::LocationType*> buckets;
+  std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::pair<double, double>>  outputs;
 
   // find the correct segment and zone
-  std::size_t is = 0;
-  std::size_t iz = 0;
-  auto        segment = segments[0];
-  bool foundZoneAndSegment = false;
+  std::size_t is                  = 0;
+  std::size_t iz                  = 0;
+  auto        segment             = segments[0];
+  bool        foundZoneAndSegment = false;
   for ( ; is < numberOfSegments; ++is ) {
     segment         = segments[is];
     bool horizontal = segment.orientation == LeftToRight || segment.orientation == RightToLeft;

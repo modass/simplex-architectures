@@ -10,20 +10,21 @@
 
 namespace simplexArchitectures {
 
-BicycleBaseController generateSimpleBaseController(std::size_t theta_discretization, size_t maxTurn, //in theta buckets
-                                                                                   double stopZoneWidth,
-                                                                                   double borderAngle,
-                                                                                   const std::vector<RoadSegment>& segments,
-                                                    double velocity) {
+template<typename HybridAutomaton>
+BicycleBaseController<HybridAutomaton> generateSimpleBaseController(std::size_t theta_discretization, size_t maxTurn, //in theta buckets
+                                                                     double stopZoneWidth,
+                                                                     double borderAngle,
+                                                                     const std::vector<RoadSegment>& segments,
+                                                                     double velocity) {
 
   using Matrix = hypro::matrix_t<double>;
   using Vector = hypro::vector_t<double>;
 
-  hypro::HybridAutomaton<double> res;
-  constexpr Eigen::Index         x     = 0;  // global position x
-  constexpr Eigen::Index         y     = 1;  // global position y
-  constexpr Eigen::Index         theta = 2;  // global position y
-  constexpr Eigen::Index         C     = 3;  // constants
+  HybridAutomaton        res;
+  constexpr Eigen::Index x     = 0;  // global position x
+  constexpr Eigen::Index y     = 1;  // global position y
+  constexpr Eigen::Index theta = 2;  // global position y
+  constexpr Eigen::Index C     = 3;  // constants
 
   std::vector<std::string> variableNames{ "x", "y", "theta" };
   res.setVariables( variableNames );
@@ -239,16 +240,25 @@ BicycleBaseController generateSimpleBaseController(std::size_t theta_discretizat
     }
   }
 
-  BicycleBaseController result;
+  BicycleBaseController<HybridAutomaton> result;
   result.segments = segments;
   result.borderAngle = borderAngle;
   result.stopZoneWidth = stopZoneWidth;
   result.theta_discretization = theta_discretization;
-  result.maxTurn = maxTurn;
-  result.mAutomaton = res;
-  result.velocity = velocity;
+  result.maxTurn              = maxTurn;
+  result.velocity             = velocity;
+  setAutomaton( result, std::move( res ) );
 
   return result;
 }
 
-} // namespace
+void setAutomaton( BicycleBaseController<hypro::HybridAutomaton<Number>>& ctrl, hypro::HybridAutomaton<Number>&& ha ) {
+  ctrl.mAutomaton = std::move( ha );
+}
+
+void setAutomaton( BicycleBaseController<hypro::HybridAutomatonComp<Number>>& ctrl,
+                   hypro::HybridAutomaton<Number>&&                           ha ) {
+  ctrl.mAutomaton.addAutomaton( std::move( ha ) );
+}
+
+}  // namespace simplexArchitectures
