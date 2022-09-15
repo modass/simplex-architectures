@@ -204,6 +204,8 @@ void generateCrossingTransition( Location* origin, Location* target, Point borde
 
   auto [angleLower, angleUpper] = crossingInterval(borderA, borderB, theta_discretization);
 
+//  spdlog::info("Cross from {} to {}. Angles: lower: {}, upper: {}", origin->getName(), target->getName(), angleLower, angleUpper);
+
   if (angleLower < angleUpper) {
     auto transition = origin->createTransition( target );
     auto guard           = target->getInvariant();
@@ -221,8 +223,8 @@ void generateCrossingTransition( Location* origin, Location* target, Point borde
       auto guard      = target->getInvariant();
       Matrix constraints      = Matrix::Zero( 1, variableNames.size() );
       Vector constants        = Vector::Zero( 1 );
-      constraints( 0, theta ) = 1;
-      constants << angleLower;
+      constraints( 0, theta ) = -1;
+      constants << -angleLower;
       guard.addConstraints( { constraints, constants } );
       transition->setGuard( guard );
     }
@@ -232,8 +234,8 @@ void generateCrossingTransition( Location* origin, Location* target, Point borde
       auto guard      = target->getInvariant();
       Matrix constraints      = Matrix::Zero( 1, variableNames.size() );
       Vector constants        = Vector::Zero( 1 );
-      constraints( 0, theta ) = -1;
-      constants << -angleUpper;
+      constraints( 0, theta ) = 1;
+      constants << angleUpper;
       guard.addConstraints( { constraints, constants } );
       transition->setGuard( guard );
     }

@@ -13,23 +13,23 @@ std::pair<double, double> crossingInterval( Point A, Point B, std::size_t theta_
   size_t bucketA = getThetaBucket(crossingAngle, theta_discretization);
   double representativeA = getRepresentativeForThetaBucket(bucketA, theta_discretization);
   double angleA;
-  if (representativeA > crossingAngle) {
-    angleA = representativeA - theta_increment/2;
+  if (representativeA < crossingAngle) {
+    angleA = representativeA + theta_increment/2; //include bucket
   } else {
-    angleA = representativeA + theta_increment/2;
+    angleA = representativeA - theta_increment/2; //exclude bucket
   }
 
-  double crossingAngleB = normalizeAngle(crossingAngle+M_PI);
+  double crossingAngleB = normalizeAngle(crossingAngle-M_PI);
   size_t bucketB = getThetaBucket(crossingAngleB, theta_discretization);
   double representativeB = getRepresentativeForThetaBucket(bucketB, theta_discretization);
   double angleB;
-  if (representativeB < crossingAngleB) {
-    angleB = representativeB - theta_increment/2;
+  if (representativeB > crossingAngleB) {
+    angleB = representativeB - theta_increment/2; //include bucket
   } else {
-    angleB = representativeB + theta_increment/2;
+    angleB = representativeB + theta_increment/2; //exclude bucket
   }
 
-  return {angleA, angleB};
+  return {angleB, angleA};
 }
 
 } // namespace
