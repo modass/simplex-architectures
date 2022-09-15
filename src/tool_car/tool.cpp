@@ -72,15 +72,16 @@ static const std::vector<std::size_t> interesting_dimensions{ x, y };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
-Point executeWithLapCount(Executor& executor, const Point& advControllerInput, size_t& lapCounter, const RaceTrack& racetrack) {
+Point executeWithLapCount( Executor<Automaton>& executor, const Point& advControllerInput, size_t& lapCounter,
+                           const RaceTrack& racetrack ) {
   auto old_pos_x = executor.mLastState[0];
   auto old_pos_y = executor.mLastState[1];
-  auto new_pos = executor.execute( advControllerInput );
+  auto new_pos   = executor.execute( advControllerInput );
   auto new_pos_x = new_pos[0];
-  if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh && old_pos_x < racetrack.startFinishX &&
-       racetrack.startFinishX <= new_pos_x ) {
+  if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
+       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) {
     lapCounter++;
-    spdlog::info("Lap {}", lapCounter);
+    spdlog::info( "Lap {}", lapCounter );
   }
   return new_pos;
 }
@@ -103,9 +104,9 @@ int main( int argc, char* argv[] ) {
   std::size_t               trackID{ 0 };
   bool                      plotSets      = false;
   bool                      plotPosition  = false;
-  bool                      plotRaceTrack = true;
+  bool                      plotRaceTrack = false;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -186,6 +187,7 @@ int main( int argc, char* argv[] ) {
   // parse model
   hypro::ReachabilitySettings reachSettings;
   auto carModel          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity );
+  carModel.setGlobalBadStates( track.createSafetySpecification() );
   reachSettings.timeStep = timeStepSize;
   {
     std::ofstream fs{ "car.model" };
@@ -215,9 +217,9 @@ int main( int argc, char* argv[] ) {
     if ( startingLocationCandidates.size() != 1 ) {
       throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
     }
-    LocPtr startingLocation = startingLocationCandidates.front();
+    auto* startingLocation = startingLocationCandidates.front();
 
-    locationConditionMap initialStates;
+    typename decltype( carModel )::locationConditionMap initialStates;
     initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
     carModel.setInitialStates( initialStates );
   }
@@ -232,18 +234,18 @@ int main( int argc, char* argv[] ) {
   if ( locCandidates.size() != 1 ) {
     throw std::logic_error( "Something went wrong in the design of the BC." );
   }
-  LocPtr startingLocationBC = locCandidates.front();
+  auto startingLocationBC = locCandidates.front();
 
-  locationConditionMap initialStatesBC;
+  hypro::HybridAutomaton<Number>::locationConditionMap initialStatesBC;
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
   bcAtm.setInitialStates( initialStatesBC );
 
-  {
-    std::cout << "BC automaton:\n" << bcAtm << std::endl;
-     std::ofstream fs{ "bcAutomaton.model" };
-     fs << hypro::toFlowstarFormat( bcAtm );
-     fs.close();
-  }
+//  {
+//    std::cout << "BC automaton:\n" << bcAtm << std::endl;
+    // std::ofstream fs{ "bcAutomaton.model" };
+    // fs << hypro::toFlowstarFormat( bcAtm );
+    // fs.close();
+//  }
 
   // Automata compostion:
   auto                                                         mainLocations = carModel.getLocations();
@@ -255,49 +257,39 @@ int main( int argc, char* argv[] ) {
 
   Automaton automaton;
   Automaton simulationAutomaton;
-  // TODO currently disabled loading from file, since it takes longer than composing. We should serialize automata in
-  // the future
-  if ( false && hypro::file_exists( composedAutomatonFile ) ) {
-    std::cout << "Load composed automaton from file." << std::endl;
-    hypro::ReachabilitySettings s;
-    std::tie( automaton, s ) = hypro::parseFlowstarFile<Number>( composedAutomatonFile );
-  } else {
-    // Automata compostion:
-    std::cout << "Env #locations:" << carModel.getLocations().size() << std::endl;
-    std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
-    std::cout << "Start composition" << std::endl;
-    auto start = std::chrono::steady_clock::now();
-    bool reduceAutomaton = false;
-    automaton  = hypro::parallelCompose( carModel, bcAtm, variableMap, reduceAutomaton );
-    auto end   = std::chrono::steady_clock::now();
-    std::cout << "Composition finished" << std::endl;
-    std::cout << "Elapsed time in milliseconds: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() << " ms" << std::endl;
-    std::cout << "Combined #locations:" << automaton.getLocations().size() << std::endl;
-    {
-      std::ofstream fs{ composedAutomatonFile };
-      fs << hypro::toFlowstarFormat( automaton );
-      fs.close();
+
+  // Automata compostion:
+  std::cout << "Env #locations:" << carModel.getLocations().size() << std::endl;
+  std::cout << "BC #locations:" << bcAtm.getLocations().size() << std::endl;
+  std::cout << "Start composition" << std::endl;
+  auto start = std::chrono::steady_clock::now();
+  automaton.addAutomaton( std::move( carModel ) );
+  automaton.addAutomaton( std::move( bcAtm ) );
+  // the car model dictates all dynamics
+  automaton.makeComponentMaster( 0 );
+  // hypro::parallelCompose( carModel, bcAtm, variableMap, reduceAutomaton );
+  auto end = std::chrono::steady_clock::now();
+  std::cout << "Composition finished" << std::endl;
+  std::cout << "Elapsed time in milliseconds: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() << " ms" << std::endl;
+  std::cout << "Combined #locations:" << automaton.getLocations().size() << std::endl;
+
+  // create model for simulation: includes locations for all theta buckets, but only stop transitions
+  // that do not change theta and reduce the speed to zero.
+  // This should terminate the simulation after the first jump with finding a fixed point.
+  {
+    auto tmp = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity, false );
+    auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, tmp.getLocations() );
+    if ( startingLocationCandidates.size() != 1 ) {
+      throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
     }
+    auto startingLocation = startingLocationCandidates.front();
 
-    automaton.setGlobalBadStates(track.createSafetySpecification());
-
-    // create model for simulation: includes locations for all theta buckets, but only stop transitions
-    // that do not change theta and reduce the speed to zero.
-    // This should terminate the simulation after the first jump with finding a fixed point.
-    simulationAutomaton = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity, false );
-    {
-      auto startingLocationCandidates =
-          getLocationForTheta( initialTheta, theta_discretization, simulationAutomaton.getLocations() );
-      if ( startingLocationCandidates.size() != 1 ) {
-        throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
-      }
-      LocPtr startingLocation = startingLocationCandidates.front();
-
-      locationConditionMap initialStates;
-      initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
-      simulationAutomaton.setInitialStates( initialStates );
-    }
+    decltype( tmp )::locationConditionMap initialStates;
+    initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+    tmp.setInitialStates( initialStates );
+    // initialize simulation automaton
+    simulationAutomaton.addAutomaton( std::move( tmp ) );
   }
 
   // reachability analysis settings, here only used for simulation
@@ -360,7 +352,6 @@ int main( int argc, char* argv[] ) {
     const std::string tmp(l->getName());
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
     std::string oldSegmentZoneSubstring = matches[0];
-    //spdlog::trace("Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring);
 
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {
@@ -601,6 +592,6 @@ int main( int argc, char* argv[] ) {
                   baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
   // the training data is automatically stored in case the trainer runs out of scope
-  storage.plotCombined( "storage_post_execution_combined", true );
+//  storage.plotCombined( "storage_post_execution_combined", true );
   return 0;
 }

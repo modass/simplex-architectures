@@ -5,7 +5,6 @@
 #ifndef SIMPLEXARCHITECTURES_SAMPLINGUTILITY_H
 #define SIMPLEXARCHITECTURES_SAMPLINGUTILITY_H
 
-#include <carl/interval/Interval.h>
 #include <hypro/datastructures/Point.h>
 
 #include <vector>
