@@ -20,14 +20,14 @@ Point simplexArchitectures::Executor<Automaton>::execute( const Point& ctrlInput
   if(mLocationUpdate) {
     mLastLocation = mLocationUpdate(ctrlInput,mLastLocation);
   }
-  {
-    std::stringstream ss;
-    ss << extendedState;
-    spdlog::debug( "Run executor with initial state {} in location {}", ss.str(), mLastLocation->getName() );
-    ss.str( "" );
-    ss << *mLastLocation;
-    spdlog::trace( "Detailed location:\n{}", ss.str() );
-  }
+  //{
+  //  std::stringstream ss;
+  //  ss << extendedState;
+  //  spdlog::debug( "Run executor with initial state {} in location {}", ss.str(), mLastLocation->getName() );
+  //  ss.str( "" );
+  //  ss << *mLastLocation;
+  //  spdlog::trace( "Detailed location:\n{}", ss.str() );
+  //}
   // create intervals representing the initial state
   std::vector<carl::Interval<Number>> intervals;
   for ( Eigen::Index i = 0; i < extendedState.dimension(); ++i ) {

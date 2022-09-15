@@ -104,9 +104,9 @@ int main( int argc, char* argv[] ) {
   std::size_t               trackID{ 1 };
   bool                      plotSets      = false;
   bool                      plotPosition  = false;
-  bool                      plotRaceTrack = true;
+  bool                      plotRaceTrack = false;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -344,7 +344,6 @@ int main( int argc, char* argv[] ) {
     const std::string tmp(l->getName());
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
     std::string oldSegmentZoneSubstring = matches[0];
-    spdlog::trace( "Old location name: {}, matched substring: {}", l->getName(), oldSegmentZoneSubstring );
 
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {

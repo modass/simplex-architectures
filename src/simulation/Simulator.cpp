@@ -80,7 +80,6 @@ namespace simplexArchitectures {
         for(const auto& [loc,setVector] : nextStates) {
           for(const auto& set : setVector) {
             if(!mStorage.isContained(loc->getName(),set)) {
-              spdlog::trace("Location {} with sample {} is not yet in the storage, add it and set state to NSET",loc->getName(), set);
               isSafe = hypro::TRIBOOL::NSET;
               if(unknownSamples.find(loc) == std::end(unknownSamples)) {
                 unknownSamples[loc] = std::vector<Representation>{};
@@ -97,8 +96,6 @@ namespace simplexArchitectures {
           "Update simulator with ctrl input {}, old states {}, old location {}, and the current observation {}",
           ctrlInput, mLastStates, mLastStates.begin()->first->getName(), nextObservation );
       auto safe = isSafe( ctrlInput );
-
-      std::cout << "Current automaton: " << mAutomaton << std::endl;
 
       if ( safe == hypro::TRIBOOL::FALSE ) {
         spdlog::warn( "Simulator updated with unsafe input ({}). Print details of the reachability analysis:", safe );
@@ -134,11 +131,7 @@ namespace simplexArchitectures {
         // collect all leaf nodes that agree with the cycle time
         for ( auto& r : roots ) {
             for ( auto& n : hypro::preorder( r ) ) {
-            spdlog::trace( "Process node with location {}, leaf: {}, initial set {}, flow pipe {}",
-                           n.getLocation()->getName(), n.isLeaf(), n.getInitialSet(), n.getFlowpipe() );
             if ( n.isLeaf() ) {
-              spdlog::trace( "Node at location {} with initial set {} is a leaf-node.", n.getLocation()->getName(),
-                             n.getInitialSet() );
               // I don't think we really need this check. We only consider initial sets of nodes
               // that where reached by resetting the cLocPtrk to zero.
               auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
@@ -188,10 +181,8 @@ namespace simplexArchitectures {
           constants( 2*i ) = nextObservation[i];
           constants( (2*i)+1 ) = -nextObservation[i];
         }
-        spdlog::trace( "Constraints representing the observation: \n{}\n<=\n{}", constraints, constants );
         // filter sample boxes for observation
         for ( auto& [_, box] : samplesBoxes ) {
-          spdlog::trace( "Reduce box {} to observation", box );
           box = box.intersectHalfspaces( constraints, constants );
         }
 
