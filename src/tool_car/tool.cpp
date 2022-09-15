@@ -224,7 +224,7 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
-  auto bc = simplexArchitectures::generateCarBaseController( theta_discretization, bcMaxTurn, bcStopZoneWidth,
+  auto bc = simplexArchitectures::generateCarBaseController<hypro::HybridAutomaton<Number>>( theta_discretization, bcMaxTurn, bcStopZoneWidth,
                                                                 bcBorderAngle, track.roadSegments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
 

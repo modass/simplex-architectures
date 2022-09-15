@@ -15,7 +15,8 @@
 
 namespace simplexArchitectures {
 
-class CarBaseController : public BaseController<Automaton, Point, Point> {
+template <typename HybridAutomaton>
+class CarBaseController : public BaseController<HybridAutomaton, Point, Point> {
  public:
   CarBaseController( double v, size_t mT, double sZW, double bA, size_t tD )
       : velocity( v ), maxTurn( mT ), theta_discretization( tD ), stopZoneWidth(sZW), borderAngle(bA) {}
@@ -31,5 +32,7 @@ class CarBaseController : public BaseController<Automaton, Point, Point> {
 };
 
 }  // namespace simplexArchitectures
+
+#include "CarBaseController.tpp"
 
 #endif  // SIMPLEXARCHITECTURES_CARBASECONTROLLER_H

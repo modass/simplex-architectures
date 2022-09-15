@@ -13,16 +13,21 @@
 
 namespace simplexArchitectures {
 
-CarBaseController generateCarBaseController( std::size_t theta_discretization,
+template<typename HybridAutomaton>
+CarBaseController<HybridAutomaton> generateCarBaseController( std::size_t theta_discretization,
                                              size_t      maxTurn,  // in theta buckets
                                              double stopZoneWidth, double borderAngle,
                                              const std::vector<GeneralRoadSegment>& segments, double velocity );
 
 // generate constraints for the theta interval that allows to cross AB from left to right.
 std::pair<double, double> crossingInterval( Point A, Point B, std::size_t theta_discretization );
-void generateCrossingTransition( hypro::Location<double>* origin, hypro::Location<double>* target, Point borderA,
+
+template<typename Location>
+void generateCrossingTransition( Location* origin, Location* target, Point borderA,
                                   Point borderB, std::size_t theta_discretization );
 
 }  // namespace simplexArchitectures
+
+#include "generateCarBaseController.tpp"
 
 #endif  // SIMPLEXARCHITECTURES_GENERATECARBASECONTROLLER_H
