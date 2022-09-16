@@ -1,5 +1,6 @@
 # cmake module to make fetching of external ressources easier
 include(FetchContent)
+include(ExternalProject)
 
 # find hypro
 find_package(hypro CONFIG REQUIRED)
@@ -18,6 +19,9 @@ include(cli11)
 
 # logging framework
 include(spdlog)
+
+# triangle, a small tool to create 2D Delaunay triangulations
+include(triangle)
 
 # make targets available
 FetchContent_MakeAvailable(Catch2 cereal cli11 spdlog)

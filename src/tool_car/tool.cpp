@@ -45,6 +45,7 @@
 #include "simulation/SamplingUtility.h"
 #include "simulation/Simulator.h"
 #include "training/Trainer.h"
+#include "bad_states.h"
 #include "types.h"
 #include "utility/RaceTrack.h"
 #include "utility/Storage.h"
