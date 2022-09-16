@@ -35,10 +35,12 @@ std::size_t getXBucket(Number x, double x_min, double x_max, double x_interval_s
 
 std::size_t getYBucket(Number y, double y_min, double y_max, double y_interval_size);
 
-template<typename Automaton>
-std::vector<LocPtr> getLocationsForState(const Point& in, const Automaton& automaton);
+template <typename Automaton>
+std::vector<typename Automaton::LocationType*> getLocationsForState( const Point& in, const Automaton& automaton );
 
-std::vector<LocPtr> getLocationForTheta(Number theta, std::size_t discretization, const std::vector<typename Automaton::LocationType*>& in);
+template <typename Location>
+std::vector<Location*> getLocationForTheta( Number theta, std::size_t discretization,
+                                            const std::vector<Location*>& in );
 
 } // namespace
 

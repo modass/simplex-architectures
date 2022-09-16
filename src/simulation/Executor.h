@@ -2,16 +2,18 @@
 // Created by bmaderbacher on 15.03.22.
 //
 
-#include "../types.h"
-#include <hypro/types.h>
+#include <hypro/algorithms/reachability/Reach.h>
+#include <hypro/datastructures/HybridAutomaton/HybridAutomaton.h>
 #include <hypro/datastructures/reachability/ReachTreev2.h>
 #include <hypro/datastructures/reachability/ReachTreev2Util.h>
 #include <hypro/datastructures/reachability/TreeTraversal.h>
-#include <hypro/datastructures/HybridAutomaton/HybridAutomaton.h>
+#include <hypro/types.h>
 #include <hypro/util/plotting/Plotter.h>
-#include <hypro/algorithms/reachability/Reach.h>
-#include "../controller/ControllerUtil.h"
+
 #include <random>
+
+#include "../controller/ControllerUtil.h"
+#include "../types.h"
 
 #ifndef SIMPLEXARCHITECTURES_EXECUTOR_H
 #define SIMPLEXARCHITECTURES_EXECUTOR_H
@@ -27,24 +29,30 @@ struct ExecutionSettings {
 using Matrix = hypro::matrix_t<Number>;
 using Vector = hypro::vector_t<Number>;
 
+template <typename Automaton>
 struct Executor {
-  Executor( hypro::HybridAutomaton<Number>& automaton, LocPtr initialLocation, Point initialValuation )
+  Executor( Automaton& automaton, LocPtr initialLocation, Point initialValuation )
       : mAutomaton( automaton ), mLastLocation( initialLocation ), mLastState( initialValuation ) {}
 
-  Point                           execute( const Point& ctrlInput );
-  hypro::HybridAutomaton<Number>& mAutomaton;
-  LocPtr                          mLastLocation;
-  Point mLastState;
-  hypro::Settings                 mSettings;
-  ExecutionSettings               mExecutionSettings;
-  bool mPlot = true;
-  std::function<LocPtr(Point, LocPtr)> mLocationUpdate; ///< lambda-function that is used to update a location based on a ctrl-input
+  Point execute( const Point& ctrlInput );
+
+  Automaton&        mAutomaton;
+  LocPtr            mLastLocation;
+  Point             mLastState;
+  hypro::Settings   mSettings;
+  ExecutionSettings mExecutionSettings;
+  bool              mPlot = true;
+  std::function<LocPtr( Point, LocPtr )>
+      mLocationUpdate;  ///< lambda-function that is used to update a location based on a ctrl-input
 
  private:
-        double mCycleTime = 1.0;
-        std::vector<ReachTreeNode> roots;
-        std::mt19937 mGenerator;
-    };
+  double                     mCycleTime = 1.0;
+  std::vector<ReachTreeNode> roots;
+  std::mt19937               mGenerator;
+};
 
-}
-#endif //SIMPLEXARCHITECTURES_EXECUTOR_H
+}  // namespace simplexArchitectures
+
+#include "Executor.tpp"
+
+#endif  // SIMPLEXARCHITECTURES_EXECUTOR_H

@@ -2,6 +2,8 @@
 // Created by bmaderbacher on 07.09.22.
 //
 
+#pragma once
+
 #include "CarBaseController.h"
 
 #include <spdlog/fmt/bundled/ostream.h>
@@ -9,7 +11,8 @@
 
 namespace simplexArchitectures {
 
-Point CarBaseController::generateInput( Point state ) {
+template<typename HybridAutomaton>
+Point CarBaseController<HybridAutomaton>::generateInput( Point state ) {
   spdlog::trace("Get Base Controller output for state {}",state);
   auto numberOfSegments = segments.size();
 
