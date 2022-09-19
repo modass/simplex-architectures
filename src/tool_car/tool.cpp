@@ -611,6 +611,6 @@ int main( int argc, char* argv[] ) {
                   baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
   // the training data is automatically stored in case the trainer runs out of scope
-  storage.plotCombined( "storage_post_execution_combined", true );
+//  storage.plotCombined( "storage_post_execution_combined", true );
   return 0;
 }
