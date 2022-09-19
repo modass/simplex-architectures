@@ -8,6 +8,7 @@
 
 namespace simplexArchitectures {
 
+/*
 std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() const {
   assert(is_sane());
   std::vector<hypro::Condition<double>> res;
@@ -55,6 +56,7 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
     }
   return res;
 }
+ */
 
 void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   assert(is_sane());
@@ -65,7 +67,7 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   // add playground and obstacles
   plt.addObject( playground.vertices() );
   std::for_each( std::begin( obstacles ), std::end( obstacles ),
-                 [&plt]( const auto& obs ) { plt.addObject( obs.vertices() ); } );
+                 [&plt]( const auto& obs ) { auto tmp = hypro::HPolytope<double>{obs.getMatrix(), obs.getVector()}; plt.addObject( tmp.vertices() ); } );
   // add waypoints, in order
   plt.addOrderedObject( waypoints );
   // add safety specification
@@ -82,6 +84,18 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
                        Point{startFinishX+startFinishWidth, startFinishYhigh},
                        Point{startFinishX, startFinishYhigh}},
                  hypro::plotting::colors[hypro::plotting::turquoise], redSettings);
+
+  // add track segments
+  auto segmentSettings = plt.settings();
+  segmentSettings.fill = false;
+  for(const auto& segment : roadSegments) {
+    plt.addObject({ segment.startLeft, segment.startRight, segment.endLeft, segment.endRight},
+                   hypro::plotting::colors[hypro::plotting::orange], segmentSettings);
+    // add zone boundaries
+    plt.addPolyline({segment.getCenterStartLeft(0.2), segment.getCenterEndLeft(0.2)});
+    plt.addPolyline({segment.getCenterStartRight(0.2), segment.getCenterEndRight(0.2)});
+  }
+
 
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };

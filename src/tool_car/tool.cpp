@@ -52,6 +52,9 @@
 #include "utility/reachTreeUtility.h"
 #include "utility/treeSerialization.h"
 #include "../../racetracks/austria/bad_states.h"
+#include "../../racetracks/austria/segments.h"
+#include "../../racetracks/austria/waypoints.h"
+#include "../../racetracks/austria/playground.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -105,9 +108,9 @@ int main( int argc, char* argv[] ) {
   std::size_t               trackID{ 0 };
   bool                      plotSets      = false;
   bool                      plotPosition  = false;
-  bool                      plotRaceTrack = false;
+  bool                      plotRaceTrack = true;
 
-  spdlog::set_level( spdlog::level::info );
+  spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -125,20 +128,25 @@ int main( int argc, char* argv[] ) {
 
 
   RaceTrack                track;
-  track.startFinishX = 5.0;
-  track.startFinishYlow = 0.0;
-  track.startFinishYhigh = 3.0;
 
   switch(trackID) {
-    case 0: // square-shaped track
-      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
-      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
-      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
-
-      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
-                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
-                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
-                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
+    case 0:
+      track.playground = createPlayground<Number>();
+      track.obstacles = createBadStates<hypro::HybridAutomaton<Number>>();
+      track.roadSegments = createSegments<GeneralRoadSegment>();
+      track.waypoints = createWaypoints<Number>();
+      track.startFinishX = 5.0;
+      track.startFinishYlow = 0.0;
+      track.startFinishYhigh = 3.0;
+//    case 0: // square-shaped track
+//      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
+//      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
+//      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
+//
+//      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
+//                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
+//                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
+//                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
 //      track.roadSegments = { {Point{0, 3}, Point{0, 0}, Point{7, 3}, Point{7,0} },
 //                             {Point{7, 0}, Point{10,0}, Point{7, 7}, Point{10,7} },
 //                             {Point{10, 7}, Point{10,10}, Point{3, 7}, Point{3,10} },
@@ -164,6 +172,22 @@ int main( int argc, char* argv[] ) {
 //                             { 3.0, 12.0, 9.0, 15.0, RightToLeft },
 //                             { 0.0, 3.0, 3.0, 15.0, TopToBottom } };
       break;
+      //    case 1: // "L"-shaped track
+      //      track.playground = Box{ IV{ I{ 0, 19 }, I{ 0, 15 } } };
+      //      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 6 }, I{ 3, 12 } } },
+      //                                           Box{ IV{ I{ 6, 16 }, I{ 3, 7 } } },
+      //                                           Box{ IV{ I{ 9, 19 }, I{ 10, 15 } } } };
+      //      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 },  Point{ 9.5, 1.5 },  Point{ 17.5, 1.5 },
+      //                                             Point{ 17.5, 8.5 }, Point{ 12.5, 8.5 }, Point{ 7.5, 8.5 },
+      //                                             Point{ 7.5, 11.0 }, Point{ 7.5, 13.5 }, Point{ 1.5, 13.5 } };
+      //
+      //      track.roadSegments = { { 0.0, 0.0, 16.0, 3.0, LeftToRight },
+      //                             { 16.0, 0.0, 19.0, 7.0, BottomToTop },
+      //                             { 9.0, 7.0, 19.0, 10.0, RightToLeft },
+      //                             { 6.0, 7.0, 9.0, 12.0, BottomToTop },
+      //                             { 3.0, 12.0, 9.0, 15.0, RightToLeft },
+      //                             { 0.0, 3.0, 3.0, 15.0, TopToBottom } };
+      break;
     default:
       throw std::logic_error( "Invalid trackID!" );
       break;
@@ -180,7 +204,7 @@ int main( int argc, char* argv[] ) {
   Number acLookahead       = 4.0;
   Number acScaling         = 0.55;  // 0.55,0.8;
   Number initialTheta      = 0.01;
-  Point  initialPosition   = Point( { 1.0, 2.5 } );
+  Point  initialPosition   = track.waypoints[0] + (track.waypoints[1] - track.waypoints[0])*0.5;
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
   Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
   IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
@@ -231,7 +255,7 @@ int main( int argc, char* argv[] ) {
 
   IV initialValuationsBC{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 2 ) };
 
-  auto locCandidates = getLocationsForState( initialPosition, bcAtm );
+  auto locCandidates = getLocationsForState( initialCarState, bcAtm );
   if ( locCandidates.size() != 1 ) {
     throw std::logic_error( "Something went wrong in the design of the BC." );
   }
@@ -240,25 +264,6 @@ int main( int argc, char* argv[] ) {
   hypro::HybridAutomaton<Number>::locationConditionMap initialStatesBC;
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
   bcAtm.setInitialStates( initialStatesBC );
-
-  // TODO temporary to test, whether the generated polytopes from the script are correct
-  {
-    auto& plt = hypro::Plotter<Number>::getInstance();
-    auto conditions = createBadStates<hypro::HybridAutomaton<Number>>();
-    for(const auto& condition : conditions) {
-      std::cout << "Add object built from \n" << condition << "\nwhich is h-polytope\n" << hypro::HPolytope<Number>(condition.getMatrix(), condition.getVector()) << "\nwith vertices\n" << hypro::HPolytope<Number>(condition.getMatrix(), condition.getVector()).vertices() << std::endl;
-      plt.addObject(hypro::HPolytope<Number>(condition.getMatrix(), condition.getVector()).vertices());
-    }
-    plt.setFilename("racetrack_triangulation");
-    plt.plot2d(hypro::PLOTTYPE::png,true);
-  }
-
-//  {
-//    std::cout << "BC automaton:\n" << bcAtm << std::endl;
-//    std::ofstream fs{ "bcAutomaton.model" };
-//    fs << hypro::toFlowstarFormat( bcAtm );
-//    fs.close();
-//  }
 
   // Automata compostion:
   auto                                                         mainLocations = carModel.getLocations();
@@ -280,6 +285,7 @@ int main( int argc, char* argv[] ) {
   automaton.addAutomaton( std::move( bcAtm ) );
   // the car model dictates all dynamics
   automaton.makeComponentMaster( 0 );
+  spdlog::trace("Composed automaton has {} variables",automaton.dimension());
   // hypro::parallelCompose( carModel, bcAtm, variableMap, reduceAutomaton );
   auto end = std::chrono::steady_clock::now();
   std::cout << "Composition finished" << std::endl;

@@ -31,7 +31,6 @@ void Storage::add( std::string locationName, const hypro::Box<Number>& set ) {
       mTrees[locationName].add(filteredSet);
     }
   }
-  assert( isContained( locationName, set ) );
 }
 
 bool Storage::isContained( std::string locationName, const hypro::Box<Number>& set ) const {

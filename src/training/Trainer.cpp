@@ -1,5 +1,6 @@
 /*
- * Created by Stefan Schupp <stefan.schupp@tuwien.ac.at> on 20.02.22.
+ * Created by Stefan
+         Schupp <stefan.schupp@tuwien.ac.at> on 20.02.22.
  */
 
 #include "Trainer.h"
@@ -80,6 +81,7 @@ locationConditionMap Trainer::generateInitialStates() const {
 void Trainer::updateOctree( const std::vector<ReachTreeNode>& roots ) {
   for ( const auto& r : roots ) {
     for ( const auto& node : hypro::preorder( r ) ) {
+      assert(node.hasTimelock() != hypro::TRIBOOL::TRUE);
       mStorage.add(node.getLocation()->getName(), node.getInitialSet());
     }
   }
