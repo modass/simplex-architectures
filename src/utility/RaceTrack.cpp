@@ -74,7 +74,7 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   auto redSettings = plt.settings();
   redSettings.fill = true;
   for ( const auto& specCondition : createSafetySpecification() ) {
-    plt.addObject( hypro::Box<double>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
+    plt.addObject( hypro::HPolytope<Number>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
                    hypro::plotting::colors[color], redSettings );
   }
   // add start finish line
