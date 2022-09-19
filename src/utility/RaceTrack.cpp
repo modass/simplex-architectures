@@ -47,17 +47,12 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // all obstacles
-  if(!obstacles.empty()) {
     for ( const auto& obstacle : obstacles ) {
       std::vector<carl::Interval<double>> bloatedIntervals;
       std::transform( obstacle.intervals().begin(), obstacle.intervals().end(), std::back_inserter( bloatedIntervals ),
                       bloat );
       res.emplace_back( hypro::conditionFromIntervals( bloatedIntervals ) );
     }
-  } else {
-    auto bad_states = createBadStates<hypro::HybridAutomaton<Number>>();
-    res.insert(std::end(res),std::begin(bad_states), std::end(bad_states));
-  }
   return res;
 }
 

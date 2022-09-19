@@ -27,3 +27,6 @@ include(triangle)
 FetchContent_MakeAvailable(Catch2 cereal cli11 spdlog)
 list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/contrib)
 include(Catch)
+
+add_custom_target(ressources)
+add_dependencies(ressources triangle)

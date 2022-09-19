@@ -10,7 +10,6 @@
 
 #include "../types.h"
 #include "RoadSegment.h"
-#include "../tool_car/bad_states.h"
 
 namespace simplexArchitectures {
 

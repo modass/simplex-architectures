@@ -45,13 +45,13 @@
 #include "simulation/SamplingUtility.h"
 #include "simulation/Simulator.h"
 #include "training/Trainer.h"
-#include "bad_states.h"
 #include "types.h"
 #include "utility/RaceTrack.h"
 #include "utility/Storage.h"
 #include "utility/StorageSettings.h"
 #include "utility/reachTreeUtility.h"
 #include "utility/treeSerialization.h"
+#include "../../racetracks/austria/bad_states.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -240,6 +240,18 @@ int main( int argc, char* argv[] ) {
   hypro::HybridAutomaton<Number>::locationConditionMap initialStatesBC;
   initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
   bcAtm.setInitialStates( initialStatesBC );
+
+  // TODO temporary to test, whether the generated polytopes from the script are correct
+  {
+    auto& plt = hypro::Plotter<Number>::getInstance();
+    auto conditions = createBadStates<hypro::HybridAutomaton<Number>>();
+    for(const auto& condition : conditions) {
+      std::cout << "Add object built from \n" << condition << "\nwhich is h-polytope\n" << hypro::HPolytope<Number>(condition.getMatrix(), condition.getVector()) << "\nwith vertices\n" << hypro::HPolytope<Number>(condition.getMatrix(), condition.getVector()).vertices() << std::endl;
+      plt.addObject(hypro::HPolytope<Number>(condition.getMatrix(), condition.getVector()).vertices());
+    }
+    plt.setFilename("racetrack_triangulation");
+    plt.plot2d(hypro::PLOTTYPE::png,true);
+  }
 
 //  {
 //    std::cout << "BC automaton:\n" << bcAtm << std::endl;
