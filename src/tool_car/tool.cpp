@@ -51,11 +51,19 @@
 #include "utility/StorageSettings.h"
 #include "utility/reachTreeUtility.h"
 #include "utility/treeSerialization.h"
-#include "../../racetracks/austria/bad_states.h"
-#include "../../racetracks/austria/segments.h"
-#include "../../racetracks/austria/waypoints.h"
-#include "../../racetracks/austria/playground.h"
-#include "../../racetracks/austria/optimized_waypoints.h"
+#include "../../racetracks/austria_miniature/bad_states.h"
+#include "../../racetracks/austria_miniature/segments.h"
+#include "../../racetracks/austria_miniature/waypoints.h"
+#include "../../racetracks/austria_miniature/playground.h"
+//#include "../../racetracks/austria_miniature/optimized_waypoints.h"
+//#include "../../racetracks/austria_miniature/faulty_waypoints.h"
+
+//#include "../../racetracks/austria/bad_states.h"
+//#include "../../racetracks/austria/segments.h"
+//#include "../../racetracks/austria/waypoints.h"
+//#include "../../racetracks/austria/playground.h"
+//#include "../../racetracks/austria/optimized_waypoints.h"
+//#include "../../racetracks/austria/faulty_waypoints.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -84,7 +92,7 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
   auto new_pos   = executor.execute( advControllerInput );
   auto new_pos_x = new_pos[0];
   if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
-       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) {
+       old_pos_x > racetrack.startFinishX && racetrack.startFinishX >= new_pos_x ) {
     lapCounter++;
     spdlog::info( "Lap {}", lapCounter );
   }
@@ -138,11 +146,12 @@ int main( int argc, char* argv[] ) {
       track.playground = createPlayground<Number>();
       track.obstacles = createBadStates<hypro::HybridAutomaton<Number>>();
       track.roadSegments = createSegments<GeneralRoadSegment>();
-      //track.waypoints = createWaypoints<Number>();
-      track.waypoints = createOptimizedWaypoints<Number>();
-      track.startFinishX = 5.0;
-      track.startFinishYlow = 0.0;
-      track.startFinishYhigh = 3.0;
+      track.waypoints = createWaypoints<Number>();
+//      track.waypoints = createOptimizedWaypoints<Number>();
+//      track.waypoints = createFaultyWaypoints<Number>();
+      track.startFinishX = 200.0;
+      track.startFinishYlow = 65.0;
+      track.startFinishYhigh = 85.0;
 //    case 0: // square-shaped track
 //      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
 //      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
@@ -415,7 +424,7 @@ int main( int argc, char* argv[] ) {
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
     trainer.run( settings, initialStates );
-     storage.plotCombined( "storage_post_initial_training_combined", true );
+//     storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // for statistics: record in which iteration the base controller was needed
@@ -600,6 +609,19 @@ int main( int argc, char* argv[] ) {
                                                               track.playground.intervals()[1].upper() + 1.5 );
       auto car                        = executor.mLastState.projectOn( { 0, 1, 2 } );
       auto color                      = advControllerUsed ? hypro::plotting::green : hypro::plotting::orange;
+
+      if(alwaysUseAC) {
+        auto unsafe = false;
+        for ( auto o : track.obstacles) {
+          if (o.contains(car)) {
+            unsafe = true;
+          }
+        }
+        if(unsafe) {
+          color = hypro::plotting::red;
+        }
+      }
+
       track.addToPlotter( car, color );
       plt.setFilename( "racetrack_" + ss.str() );
       plt.plot2d( hypro::PLOTTYPE::png, true );

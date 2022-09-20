@@ -69,7 +69,7 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   std::for_each( std::begin( obstacles ), std::end( obstacles ),
                  [&plt]( const auto& obs ) { auto tmp = hypro::HPolytope<double>{obs.getMatrix(), obs.getVector()}; plt.addObject( tmp.vertices() ); } );
   // add waypoints, in order
-  plt.addOrderedObject( waypoints );
+//  plt.addOrderedObject( waypoints );
   // add safety specification
   auto redSettings = plt.settings();
   redSettings.fill = true;
@@ -78,7 +78,7 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
                    hypro::plotting::colors[color], redSettings );
   }
   // add start finish line
-  double startFinishWidth = 0.05;
+  double startFinishWidth = 1.0;
   plt.addObject({Point{startFinishX, startFinishYlow},
                        Point{startFinishX+startFinishWidth, startFinishYlow},
                        Point{startFinishX+startFinishWidth, startFinishYhigh},
