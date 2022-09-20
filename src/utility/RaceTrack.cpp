@@ -92,8 +92,8 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
     plt.addObject({ segment.startLeft, segment.startRight, segment.endLeft, segment.endRight},
                    hypro::plotting::colors[hypro::plotting::orange], segmentSettings);
     // add zone boundaries
-    plt.addPolyline({segment.getCenterStartLeft(0.2), segment.getCenterEndLeft(0.2)});
-    plt.addPolyline({segment.getCenterStartRight(0.2), segment.getCenterEndRight(0.2)});
+//    plt.addPolyline({segment.getCenterStartLeft(0.2), segment.getCenterEndLeft(0.2)});
+//    plt.addPolyline({segment.getCenterStartRight(0.2), segment.getCenterEndRight(0.2)});
   }
 
 
@@ -102,10 +102,12 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   auto heading = Point{std::cos( car.value().at( 2 )), std::sin( car.value().at( 2 ))};
   auto offsetLeft = Point{std::cos( car.value().at( 2 ) + M_PI * 0.5), std::sin( car.value().at( 2 ) + M_PI * 0.5)};
 
-  auto a = carPosition + 0.1 * heading;
-  auto b = carPosition - 0.1 * heading + 0.1 * offsetLeft;
-  auto c = carPosition - 0.04 * heading;
-  auto d = carPosition - 0.1 * heading - 0.1 * offsetLeft;
+  double car_size = 1.0;
+
+  auto a = carPosition + car_size * heading;
+  auto b = carPosition - car_size * heading + car_size * offsetLeft;
+  auto c = carPosition - car_size * 0.4 * heading;
+  auto d = carPosition - car_size * heading - car_size * offsetLeft;
   plt.addPolyline({a,b,c,d,a});
 
 }

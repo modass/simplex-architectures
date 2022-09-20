@@ -115,7 +115,7 @@ int main( int argc, char* argv[] ) {
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
-  plt.rSettings().resolution = std::pair<std::size_t,std::size_t>(2000,3000);
+  plt.rSettings().resolution = std::pair<std::size_t,std::size_t>(3000,2000);
   plt.rSettings().keepAspectRatio = true;
   plt.rSettings().plain           = true;
 
@@ -205,7 +205,7 @@ int main( int argc, char* argv[] ) {
   size_t bcMaxTurn         = 1;  // in theta buckets
   double bcStopZoneWidth   = 0.2; // for the car bc this is relative to the width of the road
   double bcBorderAngle     = 0.87;        /* 50° */
-  Number acVelocity        = 2;           // 2,1;
+  Number acVelocity        = 5;           // 2,1;
   Number acLookahead       = 4.0;
   Number acScaling         = 0.55;  // 0.55,0.8;
   Number initialTheta      = 0.01;
