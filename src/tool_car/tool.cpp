@@ -55,6 +55,7 @@
 #include "../../racetracks/austria/segments.h"
 #include "../../racetracks/austria/waypoints.h"
 #include "../../racetracks/austria/playground.h"
+#include "../../racetracks/austria/optimized_waypoints.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -110,7 +111,7 @@ int main( int argc, char* argv[] ) {
   bool                      plotPosition  = false;
   bool                      plotRaceTrack = true;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                      = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles = false;
@@ -134,7 +135,8 @@ int main( int argc, char* argv[] ) {
       track.playground = createPlayground<Number>();
       track.obstacles = createBadStates<hypro::HybridAutomaton<Number>>();
       track.roadSegments = createSegments<GeneralRoadSegment>();
-      track.waypoints = createWaypoints<Number>();
+      //track.waypoints = createWaypoints<Number>();
+      track.waypoints = createOptimizedWaypoints<Number>();
       track.startFinishX = 5.0;
       track.startFinishYlow = 0.0;
       track.startFinishYhigh = 3.0;
