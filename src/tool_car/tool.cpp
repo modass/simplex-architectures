@@ -113,8 +113,11 @@ int main( int argc, char* argv[] ) {
 
   spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
-  auto& plt                      = hypro::Plotter<Number>::getInstance();
-  plt.rSettings().overwriteFiles = false;
+  auto& plt                       = hypro::Plotter<Number>::getInstance();
+  plt.rSettings().overwriteFiles  = false;
+  plt.rSettings().resolution = std::pair<std::size_t,std::size_t>(2000,3000);
+  plt.rSettings().keepAspectRatio = true;
+  plt.rSettings().plain           = true;
 
   CLI::App app{ "Training application for simplex architectures project." };
   app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" );
