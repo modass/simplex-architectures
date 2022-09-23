@@ -51,10 +51,11 @@
 #include "utility/StorageSettings.h"
 #include "utility/reachTreeUtility.h"
 #include "utility/treeSerialization.h"
-#include "../../racetracks/austria_miniature/bad_states.h"
-#include "../../racetracks/austria_miniature/segments.h"
-#include "../../racetracks/austria_miniature/waypoints.h"
-#include "../../racetracks/austria_miniature/playground.h"
+
+//#include "../../racetracks/austria_miniature/bad_states.h"
+//#include "../../racetracks/austria_miniature/segments.h"
+//#include "../../racetracks/austria_miniature/waypoints.h"
+//#include "../../racetracks/austria_miniature/playground.h"
 //#include "../../racetracks/austria_miniature/optimized_waypoints.h"
 //#include "../../racetracks/austria_miniature/faulty_waypoints.h"
 
@@ -64,6 +65,16 @@
 //#include "../../racetracks/austria/playground.h"
 //#include "../../racetracks/austria/optimized_waypoints.h"
 //#include "../../racetracks/austria/faulty_waypoints.h"
+
+#include "../../racetracks/simpleL/bad_states.h"
+#include "../../racetracks/simpleL/segments.h"
+#include "../../racetracks/simpleL/waypoints.h"
+#include "../../racetracks/simpleL/playground.h"
+
+//#include "../../racetracks/gb_mini/bad_states.h"
+//#include "../../racetracks/gb_mini/segments.h"
+//#include "../../racetracks/gb_mini/waypoints.h"
+//#include "../../racetracks/gb_mini/playground.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -106,7 +117,7 @@ int main( int argc, char* argv[] ) {
   std::size_t               maxJumps             = 200;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
-  Number                    widening = 0.2;
+  Number                    widening = 0.5;
   bool                      training = true;
   bool                      alwaysUseAC = false; // use the ac even if it is unsafe
   bool                      alwaysUseBC = false; // use the bc even if the AC is safe
@@ -149,9 +160,14 @@ int main( int argc, char* argv[] ) {
       track.waypoints = createWaypoints<Number>();
 //      track.waypoints = createOptimizedWaypoints<Number>();
 //      track.waypoints = createFaultyWaypoints<Number>();
-      track.startFinishX = 200.0;
-      track.startFinishYlow = 65.0;
-      track.startFinishYhigh = 85.0;
+      // austria (mini?)
+//      track.startFinishX = 200.0;
+//      track.startFinishYlow = 65.0;
+//      track.startFinishYhigh = 85.0;
+      // simpleL
+      track.startFinishX = 30.0;
+      track.startFinishYlow = 15.0;
+      track.startFinishYhigh = 30.0;
 //    case 0: // square-shaped track
 //      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
 //      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
@@ -215,9 +231,9 @@ int main( int argc, char* argv[] ) {
   double bcStopZoneWidth   = 0.2; // for the car bc this is relative to the width of the road
   double bcBorderAngle     = 0.87;        /* 50° */
   Number acVelocity        = 5;           // 2,1;
-  Number acLookahead       = 4.0;
+  Number acLookahead       = 10.0;
   Number acScaling         = 0.55;  // 0.55,0.8;
-  Number initialTheta      = 0.01;
+  Number initialTheta      = 3.2; // 3.2 (L/at_mini)  0.1 (at)    6.2 (gb)
   Point  initialPosition   = track.waypoints[0] + (track.waypoints[1] - track.waypoints[0])*0.5;
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
   Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
@@ -638,6 +654,19 @@ int main( int argc, char* argv[] ) {
                   baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
   }
   // the training data is automatically stored in case the trainer runs out of scope
-//  storage.plotCombined( "storage_post_execution_combined", true );
+  storage.plotCombined( "storage_post_execution_combined", false );
+//  auto& plt = hypro::Plotter<Number>::getInstance();
+  plt.rSettings().keepAspectRatio = true;
+  plt.rSettings().axes = false;
+  plt.rSettings().grid = false;
+  plt.rSettings().xPlotInterval   = carl::Interval<double>( track.playground.intervals()[0].lower() - 1.5,
+                                                          track.playground.intervals()[0].upper() + 1.5 );
+  plt.rSettings().yPlotInterval   = carl::Interval<double>( track.playground.intervals()[1].lower() - 1.5,
+                                                          track.playground.intervals()[1].upper() + 1.5 );
+  auto car                        = executor.mLastState.projectOn( { 0, 1, 2 } );
+  auto color                      = hypro::plotting::orange;
+  track.addToPlotter( car, color );
+  hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
+
   return 0;
 }
