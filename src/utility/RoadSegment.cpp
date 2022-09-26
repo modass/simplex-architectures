@@ -106,13 +106,18 @@ Point GeneralRoadSegment::getWarningRightStartLeft( double relativeWarningZoneWi
   return startRight + (startRight - startLeft) * -relativeWarningZoneWidth;
 }
 Point GeneralRoadSegment::getWarningRightStartRight( double relativeWarningZoneWidth ) const {
-  return startRight + (startRight - startLeft) * relativeWarningZoneWidth;;
+  return startRight + ( startRight - startLeft ) * relativeWarningZoneWidth;
+  ;
 }
 Point GeneralRoadSegment::getWarningRightEndLeft( double relativeWarningZoneWidth ) const {
-  return endRight + (endRight - endLeft) * -relativeWarningZoneWidth;
+  return endRight + ( endRight - endLeft ) * -relativeWarningZoneWidth;
 }
 Point GeneralRoadSegment::getWarningRightEndRight( double relativeWarningZoneWidth ) const {
-  return endRight + (endRight - endLeft) * relativeWarningZoneWidth;
+  return endRight + ( endRight - endLeft ) * relativeWarningZoneWidth;
 }
 
+bool GeneralRoadSegment::contains( const Point& in ) const {
+  return pointsToCondition( startLeft, endLeft, endRight, startRight ).contains( in );
 }
+
+}  // namespace simplexArchitectures

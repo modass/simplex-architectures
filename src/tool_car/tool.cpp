@@ -117,24 +117,25 @@ int main( int argc, char* argv[] ) {
   std::size_t               maxJumps             = 200;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
-  Number                    widening = 0.5;
-  bool                      training = true;
-  bool                      alwaysUseAC = false; // use the ac even if it is unsafe
-  bool                      alwaysUseBC = false; // use the bc even if the AC is safe
+  Number                    widening    = 0.5;
+  bool                      training    = true;
+  bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
+  bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
   std::size_t               trackID{ 0 };
-  bool                      plotSets      = false;
-  bool                      plotPosition  = false;
-  bool                      plotRaceTrack = true;
+  bool                      plotSets       = false;
+  bool                      plotPosition   = false;
+  bool                      plotRaceTrack  = true;
+  bool                      writeDistances = true;
 
   spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
-  plt.rSettings().resolution = std::pair<std::size_t,std::size_t>(3000,2000);
+  plt.rSettings().resolution      = std::pair<std::size_t, std::size_t>( 3000, 2000 );
   plt.rSettings().keepAspectRatio = true;
   plt.rSettings().plain           = true;
 
@@ -633,7 +634,7 @@ int main( int argc, char* argv[] ) {
             unsafe = true;
           }
         }
-        if(unsafe) {
+        if ( unsafe ) {
           color = hypro::plotting::red;
         }
       }
@@ -642,6 +643,13 @@ int main( int argc, char* argv[] ) {
       plt.setFilename( "racetrack_" + ss.str() );
       plt.plot2d( hypro::PLOTTYPE::png, true );
       plt.clear();
+    }
+
+    if ( writeDistances ) {
+      std::ofstream fs;
+      fs.open( "minimal_distances" );
+      fs << iteration_count << ", " << track.getDistanceToBoundary( executor.mLastState.projectOn( { x, y } ) ) << "\n";
+      fs.close();
     }
   }
   for ( int i = 0; i < baseControllerInvocations.size(); ++i ) {

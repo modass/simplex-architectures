@@ -108,8 +108,24 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   auto b = carPosition - car_size * heading + car_size * offsetLeft;
   auto c = carPosition - car_size * 0.4 * heading;
   auto d = carPosition - car_size * heading - car_size * offsetLeft;
-  plt.addPolyline({a,b,c,d,a});
+  plt.addPolyline( { a, b, c, d, a } );
+}
 
+Number RaceTrack::getDistanceToBoundary( const Point& car ) {
+  for ( const auto& segment : roadSegments ) {
+    if ( segment.contains( car ) ) {
+      // create halfspaces for the boundaries to compute the distance
+      auto left  = hypro::Halfspace<Number>( std::vector<Point>{ segment.startLeft, segment.endLeft } );
+      auto right = hypro::Halfspace<Number>( std::vector<Point>{ segment.startRight, segment.endRight } );
+      // compute signed distance, take the absolute value since the constructor of the planes does not necessarily find
+      // the correct normal vector direction
+      auto dist_left  = std::abs( left.signedDistance( car.rawCoordinates() ) );
+      auto dist_right = std::abs( right.signedDistance( car.rawCoordinates() ) );
+      return std::min( dist_left, dist_right );
+    }
+  }
+  // if we reach here, none of the segments contained the car, i.e., the car is not in a valid position
+  throw std::logic_error( "The passed car is not contained in one of the track segments." );
 }
 
 }  // namespace simplexArchitectures
