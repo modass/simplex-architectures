@@ -19,9 +19,6 @@ CarBaseController<HybridAutomaton> generateCarBaseController( std::size_t theta_
                                              double stopZoneWidth, double borderAngle,
                                              const std::vector<GeneralRoadSegment>& segments, double velocity );
 
-// generate constraints for the theta interval that allows to cross AB from left to right.
-std::pair<double, double> crossingInterval( Point A, Point B, std::size_t theta_discretization );
-
 template<typename Location>
 void generateCrossingTransition( Location* origin, Location* target, Point borderA,
                                   Point borderB, std::size_t theta_discretization );

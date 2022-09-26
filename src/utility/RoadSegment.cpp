@@ -33,6 +33,9 @@ hypro::Condition<Number> GeneralRoadSegment::getRightZoneInvariant( double relat
   return pointsToCondition(pointA, pointB, pointC, pointD);
 }
 
+
+
+
 Number GeneralRoadSegment::getSegmentAngle() const {
   auto pointS = startLeft + (startRight - startLeft) * 0.5;
   auto pointE = endLeft + (endRight - endLeft) * 0.5;
@@ -86,6 +89,30 @@ Point GeneralRoadSegment::getCenterEndLeft(double relativeCenterZoneWidth) const
 Point GeneralRoadSegment::getCenterEndRight(double relativeCenterZoneWidth) const {
   auto relativeBorderZoneWidth = (1.0-relativeCenterZoneWidth) * 0.5;
   return endRight + (endLeft - endRight) * relativeBorderZoneWidth;
+}
+Point GeneralRoadSegment::getWarningLeftStartLeft( double relativeWarningZoneWidth ) const {
+  return startLeft + (startRight - startLeft) * -relativeWarningZoneWidth;
+}
+Point GeneralRoadSegment::getWarningLeftStartRight( double relativeWarningZoneWidth ) const {
+  return startLeft + (startRight - startLeft) * relativeWarningZoneWidth;
+}
+Point GeneralRoadSegment::getWarningLeftEndLeft( double relativeWarningZoneWidth ) const {
+  return endLeft + (endRight - endLeft) * -relativeWarningZoneWidth;
+}
+Point GeneralRoadSegment::getWarningLeftEndRight( double relativeWarningZoneWidth ) const {
+  return endLeft + (endRight - endLeft) * relativeWarningZoneWidth;
+}
+Point GeneralRoadSegment::getWarningRightStartLeft( double relativeWarningZoneWidth ) const {
+  return startRight + (startRight - startLeft) * -relativeWarningZoneWidth;
+}
+Point GeneralRoadSegment::getWarningRightStartRight( double relativeWarningZoneWidth ) const {
+  return startRight + (startRight - startLeft) * relativeWarningZoneWidth;;
+}
+Point GeneralRoadSegment::getWarningRightEndLeft( double relativeWarningZoneWidth ) const {
+  return endRight + (endRight - endLeft) * -relativeWarningZoneWidth;
+}
+Point GeneralRoadSegment::getWarningRightEndRight( double relativeWarningZoneWidth ) const {
+  return endRight + (endRight - endLeft) * relativeWarningZoneWidth;
 }
 
 }
