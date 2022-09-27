@@ -123,6 +123,7 @@ int main( int argc, char* argv[] ) {
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
   std::string               storagefilename{ "storage_car" };
   std::string               composedAutomatonFile{ "composedAutomaton.model" };
+  std::string               distancesFile{ "minimal_distances.txt" };
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
   std::size_t               trackID{ 0 };
@@ -148,44 +149,52 @@ int main( int argc, char* argv[] ) {
                 "the analysis terminates?" );
   CLI11_PARSE( app, argc, argv );
 
+  // preparation
+  if ( writeDistances ) {
+    std::fstream dFile;
+    dFile.open( distancesFile, std::fstream::out );
+    dFile << "# iteration, x-coordinate, y-coordinate, distance, usedAdvCtrl, usedTraining\n";
+    dFile.close();
+  }
+
   // Hard code Racetracks
 
+  RaceTrack track;
 
-  RaceTrack                track;
-
-  switch(trackID) {
+  switch ( trackID ) {
     case 0:
-      track.playground = createPlayground<Number>();
-      track.obstacles = createBadStates<hypro::HybridAutomaton<Number>>();
+      track.playground   = createPlayground<Number>();
+      track.obstacles    = createBadStates<hypro::HybridAutomaton<Number>>();
       track.roadSegments = createSegments<GeneralRoadSegment>();
-      track.waypoints = createWaypoints<Number>();
-//      track.waypoints = createOptimizedWaypoints<Number>();
-//      track.waypoints = createFaultyWaypoints<Number>();
+      track.waypoints    = createWaypoints<Number>();
+      //      track.waypoints = createOptimizedWaypoints<Number>();
+      //      track.waypoints = createFaultyWaypoints<Number>();
       // austria (mini?)
-//      track.startFinishX = 200.0;
-//      track.startFinishYlow = 65.0;
-//      track.startFinishYhigh = 85.0;
+      //      track.startFinishX = 200.0;
+      //      track.startFinishYlow = 65.0;
+      //      track.startFinishYhigh = 85.0;
       // simpleL
-      track.startFinishX = 30.0;
-      track.startFinishYlow = 15.0;
+      track.startFinishX     = 30.0;
+      track.startFinishYlow  = 15.0;
       track.startFinishYhigh = 30.0;
-//    case 0: // square-shaped track
-//      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
-//      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
-//      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 }, Point{ 1.5, 8.5 } };
-//
-//      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
-//                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
-//                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
-//                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
-//      track.roadSegments = { {Point{0, 3}, Point{0, 0}, Point{7, 3}, Point{7,0} },
-//                             {Point{7, 0}, Point{10,0}, Point{7, 7}, Point{10,7} },
-//                             {Point{10, 7}, Point{10,10}, Point{3, 7}, Point{3,10} },
-//                             {Point{3, 10}, Point{0,10}, Point{3, 3}, Point{0,3} } };
-//      track.roadSegments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
-//                             { 7.0, 0.0, 10.0, 7.0, BottomToTop },
-//                             { 3.0, 7.0, 10.0, 10.0, RightToLeft },
-//                             { 0.0, 3.0, 3.0, 10.0, TopToBottom } };
+      //    case 0: // square-shaped track
+      //      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
+      //      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
+      //      track.waypoints  = std::vector<Point>{ Point{ 1.5, 1.5 }, Point{ 8.5, 1.5 }, Point{ 8.5, 8.5 },
+      //      Point{ 1.5, 8.5 } };
+      //
+      //      track.roadSegments = { {Point{3, 3}, Point{0, 0}, Point{7, 3}, Point{10,0} },
+      //                             {Point{7, 3}, Point{10,0}, Point{7, 7}, Point{10,10} },
+      //                             {Point{7, 7}, Point{10,10}, Point{3, 7}, Point{0,10} },
+      //                             {Point{3, 7}, Point{0,10}, Point{3, 3}, Point{0,0} } };
+      //      track.roadSegments = { {Point{0, 3}, Point{0, 0}, Point{7, 3}, Point{7,0} },
+      //                             {Point{7, 0}, Point{10,0}, Point{7, 7}, Point{10,7} },
+      //                             {Point{10, 7}, Point{10,10}, Point{3, 7}, Point{3,10} },
+      //                             {Point{3, 10}, Point{0,10}, Point{3, 3}, Point{0,3} } };
+      //      track.roadSegments = { { 0.0, 0.0, 7.0, 3.0, LeftToRight },
+      //                             { 7.0, 0.0, 10.0, 7.0, BottomToTop },
+      //                             { 3.0, 7.0, 10.0, 10.0, RightToLeft },
+      //                             { 0.0, 3.0, 3.0, 10.0, TopToBottom } };
       break;
 //    case 1: // "L"-shaped track
 //      track.playground = Box{ IV{ I{ 0, 19 }, I{ 0, 15 } } };
@@ -463,8 +472,7 @@ int main( int argc, char* argv[] ) {
     }
     hypro::TRIBOOL advControllerSafe = sim.isSafe( advControllerInput );
     bool           advControllerUsed = true;
-
-
+    bool           trainingUsed      = false;
 
     // if all safe & last point in reach set, pointify resulting set, update initialstate, update monitor (current
     // point)
@@ -530,7 +538,8 @@ int main( int argc, char* argv[] ) {
       bool allSafe = false;
       if ( training ) {
         spdlog::info( "Start training for {} locations", sim.unknownSamples.size() );
-        allSafe = true;
+        trainingUsed = true;
+        allSafe      = true;
         for ( const auto& [loc, setVector] : sim.unknownSamples ) {
           for ( const auto& set : setVector ) {
             locationConditionMap initialConfigurations{};
@@ -658,9 +667,9 @@ int main( int argc, char* argv[] ) {
         car = car.projectOn( { x, y, theta } );
       }
       std::ofstream fs;
-      fs.open( "minimal_distances", std::fstream::app );
+      fs.open( distancesFile, std::fstream::app );
       fs << iteration_count << ", " << car.projectOn( { x } ) << ", " << car.projectOn( { y } ) << ", "
-         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << "\n";
+         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << ", " << trainingUsed << "\n";
       fs.close();
     }
   }
