@@ -117,6 +117,10 @@ Point GeneralRoadSegment::getWarningRightEndRight( double relativeWarningZoneWid
 }
 
 bool GeneralRoadSegment::contains( const Point& in ) const {
+  // auto condition = pointsToCondition( startLeft, endLeft, endRight, startRight );
+  // std::cout << "Points to condition, points: " << startLeft << ", " <<  endLeft << ", " <<  endRight << ", " <<
+  // startRight << ". Condition: " <<  condition << std::endl; std::cout << "Condition matrix: " <<
+  // condition.getMatrix() << std::endl;
   return pointsToCondition( startLeft, endLeft, endRight, startRight ).contains( in );
 }
 

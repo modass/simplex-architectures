@@ -469,6 +469,7 @@ int main( int argc, char* argv[] ) {
     // if all safe & last point in reach set, pointify resulting set, update initialstate, update monitor (current
     // point)
     if (alwaysUseBC) {
+      advControllerUsed = false;
       Point bcInput = bc.generateInput( executor.mLastState );
       executeWithLapCount( executor, bcInput, lapCounter, track );
       if ( baseControllerInvocations.size() <= lapCounter ) {
@@ -480,6 +481,7 @@ int main( int argc, char* argv[] ) {
       }
       computeAdaptation[lapCounter].push_back( false );
     } else if (alwaysUseAC) {
+      advControllerUsed = true;
       executeWithLapCount( executor, advControllerInput, lapCounter, track );
       if ( baseControllerInvocations.size() <= lapCounter ) {
         baseControllerInvocations.emplace_back( std::vector<bool>{} );
@@ -576,6 +578,7 @@ int main( int argc, char* argv[] ) {
           ss << advControllerInput;
           spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
         }
+        advControllerUsed = true;
         executeWithLapCount( executor, advControllerInput, lapCounter, track );
         sim.update( advControllerInput, executor.mLastState );
         if ( computeAdaptation.size() <= lapCounter ) {
@@ -647,8 +650,11 @@ int main( int argc, char* argv[] ) {
 
     if ( writeDistances ) {
       std::ofstream fs;
-      fs.open( "minimal_distances" );
-      fs << iteration_count << ", " << track.getDistanceToBoundary( executor.mLastState.projectOn( { x, y } ) ) << "\n";
+      fs.open( "minimal_distances", std::fstream::app );
+      fs << iteration_count << ", " << executor.mLastState.projectOn( { x } ) << ", "
+         << executor.mLastState.projectOn( { y } ) << ", "
+         << track.getDistanceToBoundary( executor.mLastState.projectOn( { x, y, theta } ) ) << ", " << advControllerUsed
+         << "\n";
       fs.close();
     }
   }
