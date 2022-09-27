@@ -119,8 +119,8 @@ Number RaceTrack::getDistanceToBoundary( const Point& car ) {
       auto right = hypro::Halfspace<Number>( std::vector<Point>{ segment.startRight, segment.endRight } );
       // compute signed distance, take the absolute value since the constructor of the planes does not necessarily find
       // the correct normal vector direction
-      auto dist_left  = std::abs( left.signedDistance( car.rawCoordinates() ) );
-      auto dist_right = std::abs( right.signedDistance( car.rawCoordinates() ) );
+      auto dist_left  = std::abs( left.signedDistance( car.projectOn( { 0, 1 } ).rawCoordinates() ) );
+      auto dist_right = std::abs( right.signedDistance( car.projectOn( { 0, 1 } ).rawCoordinates() ) );
       return std::min( dist_left, dist_right );
     }
   }

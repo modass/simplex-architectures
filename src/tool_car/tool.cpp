@@ -649,12 +649,18 @@ int main( int argc, char* argv[] ) {
     }
 
     if ( writeDistances ) {
+      // ensure that the point representing the car has the correct dimension (3)
+      auto car = executor.mLastState;
+      if ( car.dimension() < 3 ) {
+        car.appendZeroes( 3 - car.dimension() );
+      }
+      if ( car.dimension() > 3 ) {
+        car = car.projectOn( { x, y, theta } );
+      }
       std::ofstream fs;
       fs.open( "minimal_distances", std::fstream::app );
-      fs << iteration_count << ", " << executor.mLastState.projectOn( { x } ) << ", "
-         << executor.mLastState.projectOn( { y } ) << ", "
-         << track.getDistanceToBoundary( executor.mLastState.projectOn( { x, y, theta } ) ) << ", " << advControllerUsed
-         << "\n";
+      fs << iteration_count << ", " << car.projectOn( { x } ) << ", " << car.projectOn( { y } ) << ", "
+         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << "\n";
       fs.close();
     }
   }

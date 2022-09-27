@@ -13,26 +13,27 @@ namespace simplexArchitectures {
 
 template<typename HybridAutomaton>
 Point CarBaseController<HybridAutomaton>::generateInput( Point state ) {
-  spdlog::trace("Get Base Controller output for state {}",state);
+  spdlog::trace( "Get Base Controller output for state {}", state );
   auto numberOfSegments = segments.size();
 
   // find the correct segment and zone
-  std::size_t is = 0;
-  std::size_t iz = 0;
-  auto        segment = segments[0];
-  bool foundZoneAndSegment = false;
+  std::size_t is                  = 0;
+  std::size_t iz                  = 0;
+  auto        segment             = segments[0];
+  bool        foundZoneAndSegment = false;
+  auto        projectedState      = state.projectOn( { 0, 1, 2 } );
   for ( ; is < numberOfSegments; ++is ) {
     segment = segments[is];
-    if(segment.getLeftZoneInvariant(stopZoneWidth).contains(state)) {
-      iz = 0;
+    if ( segment.getLeftZoneInvariant( stopZoneWidth ).contains( projectedState ) ) {
+      iz                  = 0;
       foundZoneAndSegment = true;
       break;
-    } else if(segment.getCenterZoneInvariant(stopZoneWidth).contains(state)) {
-      iz = 1;
+    } else if ( segment.getCenterZoneInvariant( stopZoneWidth ).contains( projectedState ) ) {
+      iz                  = 1;
       foundZoneAndSegment = true;
       break;
-    } else if(segment.getRightZoneInvariant(stopZoneWidth).contains(state)) {
-      iz = 2;
+    } else if ( segment.getRightZoneInvariant( stopZoneWidth ).contains( projectedState ) ) {
+      iz                  = 2;
       foundZoneAndSegment = true;
       break;
     }
