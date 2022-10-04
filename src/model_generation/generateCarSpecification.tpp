@@ -14,15 +14,19 @@ HybridAutomaton generateCarSpecification( std::size_t theta_discretization,
   constexpr Eigen::Index         x     = 0;  // global position x
   constexpr Eigen::Index         y     = 1;  // global position y
   constexpr Eigen::Index         theta = 2;  // global theta heading
-  constexpr Eigen::Index         clock = 3;  // global theta heading
+  constexpr Eigen::Index         timer = 3;  // spec timer
   constexpr Eigen::Index         C     = 4;  // constants
 
-  std::vector<std::string> variableNames{ "x", "y", "theta", "clock" };
+  std::vector<std::string> variableNames{ "x", "y", "theta", "timer" };
   res.setVariables( variableNames );
 
 
   const auto numberOfSegments = segments.size();
   std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*> buckets;
+
+  Matrix flowmatrixTimerRunning = Matrix::Zero( variableNames.size() + 1, C + 1 );
+  flowmatrixTimerRunning(timer, C) = 1.0;
+  Matrix flowmatrixTimerPaused = Matrix::Zero( variableNames.size() + 1, C + 1 );
 
   // create locations
   for ( std::size_t is = 0; is < numberOfSegments; ++is ) {
@@ -30,20 +34,55 @@ HybridAutomaton generateCarSpecification( std::size_t theta_discretization,
 
     auto locLeft = res.createLocation();
     buckets.emplace( std::make_tuple( is, 0 ), locLeft );
-    locLeft->setName( "warning_L"+std::to_string( is ));
-    auto invLeft = leftWarningInvariant(segment, warningZoneWidth, maxIncursionTime);
-    locLeft->setInvariant(invLeft);
+    locLeft->setName( "warning_L" + std::to_string( is ) );
+    auto invLeft = leftWarningInvariant( segment, warningZoneWidth );
+    locLeft->setInvariant( invLeft );
+    locLeft->setFlow( hypro::linearFlow<double>( flowmatrixTimerRunning ) );
+    {
+      auto stop = locLeft->createTransition( locLeft );
+      stop->addLabel( hypro::Label( "stop" ) );
+      for ( std::size_t it = 0; it < theta_discretization; ++it ) {
+        // theta change
+        auto changeTheta = locLeft->createTransition( locLeft );
+        // label for controller synchronisation
+        changeTheta->addLabel( hypro::Label( "set_theta_" + std::to_string( it ) ) );
+      }
+    }
 
     auto locCenter = res.createLocation();
     buckets.emplace( std::make_tuple( is, 1 ), locCenter );
     locCenter->setName( "warning_C"+std::to_string( is ));
     locCenter->setInvariant(centerWarningInvariant(segment, warningZoneWidth));
+    locCenter->setFlow( hypro::linearFlow<double>( flowmatrixTimerPaused ) );
+
+    {
+      auto stop = locCenter->createTransition( locCenter );
+      stop->addLabel( hypro::Label( "stop" ) );
+      for ( std::size_t it = 0; it < theta_discretization; ++it ) {
+        // theta change
+        auto changeTheta = locCenter->createTransition( locCenter );
+        // label for controller synchronisation
+        changeTheta->addLabel( hypro::Label( "set_theta_" + std::to_string( it ) ) );
+      }
+    }
 
     auto locRight = res.createLocation();
     buckets.emplace( std::make_tuple( is, 2 ), locRight );
     locRight->setName( "warning_R"+std::to_string( is ));
-    auto invRight = rightWarningInvariant(segment, warningZoneWidth, maxIncursionTime);
+    auto invRight = rightWarningInvariant(segment, warningZoneWidth);
     locRight->setInvariant(invRight);
+    locRight->setFlow( hypro::linearFlow<double>( flowmatrixTimerRunning ) );
+
+    {
+      auto stop = locRight->createTransition( locRight );
+      stop->addLabel( hypro::Label( "stop" ) );
+      for ( std::size_t it = 0; it < theta_discretization; ++it ) {
+        // theta change
+        auto changeTheta = locRight->createTransition( locRight );
+        // label for controller synchronisation
+        changeTheta->addLabel( hypro::Label( "set_theta_" + std::to_string( it ) ) );
+      }
+    }
   }
 
 
@@ -108,6 +147,14 @@ HybridAutomaton generateCarSpecification( std::size_t theta_discretization,
       }
     }
 
+    Matrix constraints  = Matrix::Zero( 1, variableNames.size() );
+    Vector constants    = Vector::Zero( 1 );
+
+    constraints( 0, timer ) = -1;
+    constants( 0 )      = -maxIncursionTime;
+
+    res.addGlobalBadStates({constraints, constants});
+
     return res;
 
 }
@@ -120,10 +167,10 @@ void generateWarningCrossingTransition( Location* origin, Location* target, Poin
   constexpr Eigen::Index         x     = 0;  // global position x
   constexpr Eigen::Index         y     = 1;  // global position y
   constexpr Eigen::Index         theta = 2;  // global theta heading
-  constexpr Eigen::Index         clock = 3;  // spec clock
+  constexpr Eigen::Index         timer = 3;  // spec clock
   constexpr Eigen::Index         C     = 4;  // constants
 
-  std::vector<std::string> variableNames{ "x", "y", "clock" "theta" };
+  std::vector<std::string> variableNames{ "x", "y", "theta", "timer" };
 
   auto [angleLower, angleUpper] = crossingInterval(borderA, borderB, theta_discretization);
 
@@ -131,7 +178,7 @@ void generateWarningCrossingTransition( Location* origin, Location* target, Poin
 
   Matrix reset_matrix        = Matrix::Identity( variableNames.size(), variableNames.size() );
   Vector reset_vector        = Vector::Zero( variableNames.size() );
-  reset_matrix( clock, clock ) = 0;
+  reset_matrix( timer, timer ) = 0;
 
   if (angleLower < angleUpper) {
     auto transition = origin->createTransition( target );

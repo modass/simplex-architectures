@@ -41,6 +41,7 @@
 #include "ctrlConversion.h"
 #include "model_generation/generateCarModel.h"
 #include "model_generation/generateCarBaseController.h"
+#include "model_generation/generateCarSpecification.h"
 #include "simulation/Executor.h"
 #include "simulation/SamplingUtility.h"
 #include "simulation/Simulator.h"
@@ -67,11 +68,12 @@
 //#include "../../racetracks/austria/faulty_waypoints.h"
 
 #include "../../racetracks/simpleL/bad_states.h"
+#include "../../racetracks/simpleL/playground.h"
 #include "../../racetracks/simpleL/segments.h"
 #include "../../racetracks/simpleL/waypoints.h"
-#include "../../racetracks/simpleL/playground.h"
 
-//#include "../../racetracks/gb_mini/bad_states.h"
+
+// #include "../../racetracks/gb_mini/bad_states.h"
 //#include "../../racetracks/gb_mini/segments.h"
 //#include "../../racetracks/gb_mini/waypoints.h"
 //#include "../../racetracks/gb_mini/playground.h"
@@ -91,8 +93,10 @@ constexpr Eigen::Index                y     = 1;
 constexpr Eigen::Index                theta = 2;
 constexpr Eigen::Index                tick  = 3;
 constexpr Eigen::Index                v     = 4;
-constexpr Eigen::Index                C     = 5;
-static const std::vector<std::size_t> interesting_dimensions{ x, y };
+constexpr Eigen::Index                timer = 5;
+constexpr Eigen::Index                C     = 6;
+constexpr size_t model_dimensions           = 6;
+static const std::vector<std::size_t> interesting_dimensions{ x, y, timer };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
@@ -127,12 +131,14 @@ int main( int argc, char* argv[] ) {
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
   std::size_t               trackID{ 0 };
+  Number                    maxIncursionTime{ 2 };
+  double                    relativeWarningBorderWidth{ 0.1 };
   bool                      plotSets       = false;
   bool                      plotPosition   = false;
-  bool                      plotRaceTrack  = true;
+  bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
-  spdlog::set_level( spdlog::level::info );
+  spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
@@ -243,13 +249,13 @@ int main( int argc, char* argv[] ) {
   Number acVelocity        = 5;           // 2,1;
   Number acLookahead       = 10.0;
   Number acScaling         = 0.55;  // 0.55,0.8;
-  Number initialTheta      = 3.2; // 3.2 (L/at_mini)  0.1 (at)    6.2 (gb)
+  Number initialTheta      = normalizeAngle( atan2((track.waypoints[1] - track.waypoints[0])[1], (track.waypoints[1] - track.waypoints[0])[0]) );
   Point  initialPosition   = track.waypoints[0] + (track.waypoints[1] - track.waypoints[0])*0.5;
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
-  Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
-  IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
+  Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity, 0 } );
+  IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity }, I{ 0 } };
 
-  // parse model
+  // car model
   hypro::ReachabilitySettings reachSettings;
   auto carModel          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity );
   carModel.setGlobalBadStates( track.createSafetySpecification() );
@@ -289,6 +295,20 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
+  // spec
+  auto specAtm = simplexArchitectures::generateCarSpecification<hypro::HybridAutomaton<Number>>(theta_discretization, relativeWarningBorderWidth, maxIncursionTime, track.roadSegments);
+  auto initialSpecState = Point{initialCarState[0], initialCarState[1], initialCarState[2], 0};
+  auto locCandidatesSpec= getLocationsForState( initialSpecState, specAtm );
+  if ( locCandidatesSpec.size() != 1 ) {
+    throw std::logic_error( "Something went wrong when initializing the specification." );
+  }
+  auto startingLocationSpec = locCandidatesSpec.front();
+  hypro::HybridAutomaton<Number>::locationConditionMap initialStatesSpec;
+  IV initialValuationsSpec{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 3 ) };
+  initialStatesSpec.emplace( std::make_pair( startingLocationSpec, hypro::conditionFromIntervals( initialValuationsSpec ) ) );
+  specAtm.setInitialStates( initialStatesSpec );
+
+  // bc
   auto bc = simplexArchitectures::generateCarBaseController<hypro::HybridAutomaton<Number>>( theta_discretization, bcMaxTurn, bcStopZoneWidth,
                                                                 bcBorderAngle, track.roadSegments, bcVelocity );
   auto& bcAtm = bc.mAutomaton;
@@ -323,8 +343,10 @@ int main( int argc, char* argv[] ) {
   auto start = std::chrono::steady_clock::now();
   automaton.addAutomaton( std::move( carModel ) );
   automaton.addAutomaton( std::move( bcAtm ) );
+  automaton.addAutomaton(std::move(specAtm));
   // the car model dictates all dynamics
   automaton.makeComponentMaster( 0 );
+  automaton.makeComponentMasterForVariable(2, "timer");
   spdlog::trace("Composed automaton has {} variables",automaton.dimension());
   // hypro::parallelCompose( carModel, bcAtm, variableMap, reduceAutomaton );
   auto end = std::chrono::steady_clock::now();
@@ -347,8 +369,28 @@ int main( int argc, char* argv[] ) {
     decltype( tmp )::locationConditionMap initialStates;
     initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
     tmp.setInitialStates( initialStates );
+
+
+    // spec
+    auto specAtm2 = simplexArchitectures::generateCarSpecification<hypro::HybridAutomaton<Number>>(theta_discretization, relativeWarningBorderWidth, maxIncursionTime, track.roadSegments);
+    auto initialSpecState = Point{initialCarState[0], initialCarState[1], initialCarState[2], 0};
+    auto locCandidatesSpec= getLocationsForState( initialSpecState, specAtm2 );
+    if ( locCandidatesSpec.size() != 1 ) {
+      throw std::logic_error( "Something went wrong when initializing the specification." );
+    }
+    auto startingLocationSpec = locCandidatesSpec.front();
+    hypro::HybridAutomaton<Number>::locationConditionMap initialStatesSpec;
+    IV initialValuationsSpec{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 3 ) };
+    initialStatesSpec.emplace( std::make_pair( startingLocationSpec, hypro::conditionFromIntervals( initialValuationsSpec ) ) );
+    specAtm2.setInitialStates( initialStatesSpec );
+
+
     // initialize simulation automaton
     simulationAutomaton.addAutomaton( std::move( tmp ) );
+    simulationAutomaton.addAutomaton(std::move(specAtm2));
+    simulationAutomaton.makeComponentMaster(0);
+    simulationAutomaton.makeComponentMasterForVariable(1, "timer");
+
   }
 
   // reachability analysis settings, here only used for simulation
@@ -363,10 +405,11 @@ int main( int argc, char* argv[] ) {
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
 
   // Storage for trained sets
-  auto storagesettings = StorageSettings{ interesting_dimensions, Box{ track.playground.intervals() } };
+  auto intervals = track.playground.intervals();
+  auto storagesettings = StorageSettings{ interesting_dimensions, Box{ {intervals[0], intervals[1], I{0.0, maxIncursionTime}} } };
   // filter only sets wherer the time is the tick-time
   // TODO get dimensions from some variables defined before
-  Matrix constraints     = Matrix::Zero( 2, 5 );
+  Matrix constraints     = Matrix::Zero( 2, model_dimensions );
   constraints( 0, tick ) = 1;
   constraints( 1, tick ) = -1;
   Vector constants       = Vector::Zero( 2 );
@@ -392,21 +435,30 @@ int main( int argc, char* argv[] ) {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     // for now hardcode 0 (theta in ctrl-output)
     auto candidates = getLocationForTheta( p[0], theta_discretization, simulationAutomaton.getLocations() );
-    if ( candidates.size() > 2 || candidates.empty() ) {
-      std::cout << "Candidates:\n";
-      for ( const auto* candidate : candidates ) {
-        std::cout << candidate->getName() << "\n";
+    const std::regex oldSegmentZoneRegex("warning_(L|C|R)([[:digit:]]+)$");
+    std::smatch matches;
+    const std::string tmp(l->getName());
+    std::regex_search(tmp,matches,oldSegmentZoneRegex);
+    std::string oldSegmentZoneSubstring = matches[0];
+
+    LocPtr newLocation = nullptr;
+    for(const auto* candidate : candidates) {
+      if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
+        //spdlog::trace("Found new location candidate: {}", candidate->getName());
+        newLocation = candidate;
+        break;
       }
-      std::cout << std::flush;
-      throw std::logic_error( "Number of control-location candidates (" + std::to_string( candidates.size() ) +
-                              ") is invalid." );
     }
-    return candidates.front();
+    if(newLocation == nullptr) {
+      throw std::logic_error("New location not found");
+    }
+    return newLocation;
+
   };
   auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
-    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)$");
+    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$");
     std::smatch matches;
     const std::string tmp(l->getName());
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
@@ -449,7 +501,8 @@ int main( int argc, char* argv[] ) {
     initialStates.emplace( std::make_pair(
         automaton.getInitialStates().begin()->first,
         hypro::Condition<Number>( widenSample( initialState, widening, trainingSettings.wideningDimensions ) ) ) );
-    trainer.run( settings, initialStates );
+    auto res = trainer.run( settings, initialStates );
+    assert(res);
 //     storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 

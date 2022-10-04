@@ -24,14 +24,15 @@ template<typename Location>
 void generateWarningCrossingTransition( Location* origin, Location* target, Point borderA,
                                  Point borderB, std::size_t theta_discretization, bool resetClock );
 
-hypro::Condition<Number> leftWarningInvariant(GeneralRoadSegment segment, double relativeWarningZoneWidth, double clockMax = -1);
+hypro::Condition<Number> leftWarningInvariant(GeneralRoadSegment segment, double relativeWarningZoneWidth);
 hypro::Condition<Number> centerWarningInvariant(GeneralRoadSegment segment, double relativeWarningZoneWidth);
-hypro::Condition<Number> rightWarningInvariant(GeneralRoadSegment segment, double relativeWarningZoneWidth, double clockMax = -1);
+hypro::Condition<Number> rightWarningInvariant(GeneralRoadSegment segment, double relativeWarningZoneWidth);
 
-static hypro::Condition<Number> pointsToWarningCondition( Point pointA, Point pointB, Point pointC, Point pointD, double clockMax );
+static hypro::Condition<Number> pointsToWarningCondition( Point pointA, Point pointB, Point pointC, Point pointD );
 
 
 }
 
+#include "generateCarSpecification.tpp"
 
 #endif  // SIMPLEXARCHITECTURES_GENERATECARSPECIFICATION_H
