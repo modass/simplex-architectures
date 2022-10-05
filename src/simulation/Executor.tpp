@@ -43,10 +43,15 @@ Point simplexArchitectures::Executor<Automaton>::execute( const Point& ctrlInput
     roots.emplace_back( std::move( sr ) );
   }
 
-  mSettings.rFixedParameters().globalTimeHorizon = 0.2;
-  mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( 1.1 * mCycleTime );
+  mSettings.rFixedParameters().globalTimeHorizon = mCycleTime * 1.5;
+  mSettings.rFixedParameters().localTimeHorizon  = carl::convert<double, hypro::tNumber>( mCycleTime );
   mSettings.rFixedParameters().jumpDepth =
       2 * std::ceil( mCycleTime / carl::convert<hypro::tNumber, double>( mSettings.strategy().front().timeStep ) );
+  mSettings.rStrategy().front().detectJumpFixedPoints              = false;
+  mSettings.rStrategy().front().detectContinuousFixedPointsLocally = false;
+  mSettings.rStrategy().front().detectFixedPointsByCoverage        = false;
+  mSettings.rStrategy().front().numberSetsForContinuousCoverage    = 0;
+  mSettings.rStrategy().front().detectZenoBehavior                 = true;
 
   auto reacher = ReachabilityAnalyzer( mAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), roots );
   auto isSafe  = reacher.computeForwardReachability();

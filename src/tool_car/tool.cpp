@@ -131,11 +131,11 @@ int main( int argc, char* argv[] ) {
   Number                    timeStepSize{ 0.01 };
   Number                    cycleTime{ 0.1 };
   std::size_t               trackID{ 0 };
-  Number                    maxIncursionTime{ 2 };
+  Number                    maxIncursionTime{ 2.0 };
   double                    relativeWarningBorderWidth{ 0.1 };
   bool                      plotSets       = false;
   bool                      plotPosition   = false;
-  bool                      plotRaceTrack  = false;
+  bool                      plotRaceTrack  = true;
   bool                      writeDistances = true;
 
   spdlog::set_level( spdlog::level::trace );
@@ -159,7 +159,7 @@ int main( int argc, char* argv[] ) {
   if ( writeDistances ) {
     std::fstream dFile;
     dFile.open( distancesFile, std::fstream::out );
-    dFile << "# iteration, x-coordinate, y-coordinate, distance, usedAdvCtrl, usedTraining\n";
+    dFile << "# iteration, x-coordinate, y-coordinate, distance, usedAdvCtrl, usedTraining, incursionTime\n";
     dFile.close();
   }
 
@@ -485,6 +485,7 @@ int main( int argc, char* argv[] ) {
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
   executor.mLocationUpdate    = updateFunctionExecutor;
+  executor.mCycleTime = cycleTime;
 
   // monitor/simulator, runs on the car model
   Simulator sim{ automaton, settings, storage, controller_dimensions };
@@ -719,10 +720,17 @@ int main( int argc, char* argv[] ) {
       if ( car.dimension() > 3 ) {
         car = car.projectOn( { x, y, theta } );
       }
+      double incursionTimer = 0;
+      for (auto s : sim.mLastStates) {
+        for (auto p : s.second) {
+          incursionTimer = std::max(incursionTimer, p[timer]);
+        }
+      }
+
       std::ofstream fs;
       fs.open( distancesFile, std::fstream::app );
       fs << iteration_count << ", " << car.projectOn( { x } ) << ", " << car.projectOn( { y } ) << ", "
-         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << ", " << trainingUsed << "\n";
+         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << ", " << trainingUsed << ", "  << incursionTimer << "\n";
       fs.close();
     }
   }

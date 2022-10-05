@@ -44,9 +44,9 @@ struct Executor {
   bool              mPlot = true;
   std::function<LocPtr( Point, LocPtr )>
       mLocationUpdate;  ///< lambda-function that is used to update a location based on a ctrl-input
+  double                     mCycleTime = 1.0;
 
  private:
-  double                     mCycleTime = 1.0;
   std::vector<ReachTreeNode> roots;
   std::mt19937               mGenerator;
 };
