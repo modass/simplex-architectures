@@ -135,7 +135,7 @@ int main( int argc, char* argv[] ) {
   double                    relativeWarningBorderWidth{ 0.1 };
   bool                      plotSets       = false;
   bool                      plotPosition   = false;
-  bool                      plotRaceTrack  = true;
+  bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
   spdlog::set_level( spdlog::level::trace );
@@ -252,7 +252,9 @@ int main( int argc, char* argv[] ) {
   Number initialTheta      = normalizeAngle( atan2((track.waypoints[1] - track.waypoints[0])[1], (track.waypoints[1] - track.waypoints[0])[0]) );
   Point  initialPosition   = track.waypoints[0] + (track.waypoints[1] - track.waypoints[0])*0.5;
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
+  Point  initialCarModelState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
   Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity, 0 } );
+  IV initialCarModelValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
   IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity }, I{ 0 } };
 
   // car model
@@ -291,7 +293,7 @@ int main( int argc, char* argv[] ) {
     auto* startingLocation = startingLocationCandidates.front();
 
     typename decltype( carModel )::locationConditionMap initialStates;
-    initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+    initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialCarModelValuations ) ) );
     carModel.setInitialStates( initialStates );
   }
 
@@ -370,26 +372,8 @@ int main( int argc, char* argv[] ) {
     initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
     tmp.setInitialStates( initialStates );
 
-
-    // spec
-    auto specAtm2 = simplexArchitectures::generateCarSpecification<hypro::HybridAutomaton<Number>>(theta_discretization, relativeWarningBorderWidth, maxIncursionTime, track.roadSegments);
-    auto initialSpecState = Point{initialCarState[0], initialCarState[1], initialCarState[2], 0};
-    auto locCandidatesSpec= getLocationsForState( initialSpecState, specAtm2 );
-    if ( locCandidatesSpec.size() != 1 ) {
-      throw std::logic_error( "Something went wrong when initializing the specification." );
-    }
-    auto startingLocationSpec = locCandidatesSpec.front();
-    hypro::HybridAutomaton<Number>::locationConditionMap initialStatesSpec;
-    IV initialValuationsSpec{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 3 ) };
-    initialStatesSpec.emplace( std::make_pair( startingLocationSpec, hypro::conditionFromIntervals( initialValuationsSpec ) ) );
-    specAtm2.setInitialStates( initialStatesSpec );
-
-
     // initialize simulation automaton
     simulationAutomaton.addAutomaton( std::move( tmp ) );
-    simulationAutomaton.addAutomaton(std::move(specAtm2));
-    simulationAutomaton.makeComponentMaster(0);
-    simulationAutomaton.makeComponentMasterForVariable(1, "timer");
 
   }
 
@@ -435,24 +419,16 @@ int main( int argc, char* argv[] ) {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     // for now hardcode 0 (theta in ctrl-output)
     auto candidates = getLocationForTheta( p[0], theta_discretization, simulationAutomaton.getLocations() );
-    const std::regex oldSegmentZoneRegex("warning_(L|C|R)([[:digit:]]+)$");
-    std::smatch matches;
-    const std::string tmp(l->getName());
-    std::regex_search(tmp,matches,oldSegmentZoneRegex);
-    std::string oldSegmentZoneSubstring = matches[0];
-
-    LocPtr newLocation = nullptr;
-    for(const auto* candidate : candidates) {
-      if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
-        //spdlog::trace("Found new location candidate: {}", candidate->getName());
-        newLocation = candidate;
-        break;
+    if ( candidates.size() > 2 || candidates.empty() ) {
+      std::cout << "Candidates:\n";
+      for ( const auto* candidate : candidates ) {
+        std::cout << candidate->getName() << "\n";
       }
+      std::cout << std::flush;
+      throw std::logic_error( "Number of control-location candidates (" + std::to_string( candidates.size() ) +
+                              ") is invalid." );
     }
-    if(newLocation == nullptr) {
-      throw std::logic_error("New location not found");
-    }
-    return newLocation;
+    return candidates.front();
 
   };
   auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
@@ -480,7 +456,7 @@ int main( int argc, char* argv[] ) {
 
   // the executor runs on the car model only
   assert( simulationAutomaton.getInitialStates().size() == 1 );
-  Executor executor{ simulationAutomaton, simulationAutomaton.getInitialStates().begin()->first, initialState };
+  Executor executor{ simulationAutomaton, simulationAutomaton.getInitialStates().begin()->first, initialCarModelState };
   executor.mSettings          = settings;
   executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
   executor.mPlot              = false;
