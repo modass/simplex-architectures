@@ -247,6 +247,7 @@ int main( int argc, char* argv[] ) {
   double bcStopZoneWidth   = 0.2; // for the car bc this is relative to the width of the road
   double bcBorderAngle     = 0.87;        /* 50° */
   Number acVelocity        = 5;           // 2,1;
+  double acMaxAngleChange  = (2*M_PI / theta_discretization) * bcMaxTurn + (2*M_PI / theta_discretization) * 0.5; //derived from bcMaxTurn
   Number acLookahead       = 10.0;
   Number acScaling         = 0.55;  // 0.55,0.8;
   Number initialTheta      = normalizeAngle( atan2((track.waypoints[1] - track.waypoints[0])[1], (track.waypoints[1] - track.waypoints[0])[0]) );
@@ -268,7 +269,7 @@ int main( int argc, char* argv[] ) {
     fs.close();
   }
 
-  auto purePursuitCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling);
+  auto purePursuitCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling, acMaxAngleChange);
   purePursuitCtrl->track               = track;
   purePursuitCtrl->thetaDiscretization = theta_discretization;
   purePursuitCtrl->cycleTime           = cycleTime;
@@ -486,6 +487,7 @@ int main( int argc, char* argv[] ) {
   // for statistics: record in which iteration the base controller was needed
   std::vector<std::vector<bool>> baseControllerInvocations( 1 );
   std::vector<std::vector<bool>> computeAdaptation( 1 );
+  std::vector<std::vector<Point>> positionHistory( 1 );
   std::size_t                    lapCounter = 0;
   // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
   // number of iterations
@@ -631,6 +633,11 @@ int main( int argc, char* argv[] ) {
       }
     }
 
+    if ( positionHistory.size() <= lapCounter ) {
+      positionHistory.emplace_back( std::vector<Point>{} );
+    }
+    positionHistory[lapCounter].push_back( executor.mLastState.projectOn({x,y}) );
+
     std::stringstream ss;
     std::size_t       l = std::to_string( iterations ).size();
     ss << std::setw( l ) << std::setfill( '0' ) << iteration_count;
@@ -733,6 +740,30 @@ int main( int argc, char* argv[] ) {
   auto color                      = hypro::plotting::orange;
   track.addToPlotter( car, color );
   hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
+
+  plt.clear();
+
+  auto lastPoint = initialState.projectOn({x,y});
+  for ( int i = 0; i < baseControllerInvocations.size(); ++i ) {
+    auto positionHistoryLap = positionHistory[i];
+    auto baseControllerInvocationsLap = baseControllerInvocations[i];
+    for (int j = 0; j < baseControllerInvocationsLap.size(); ++j) {
+      std::vector<Point> line{lastPoint, positionHistoryLap[j]};
+      if ( !baseControllerInvocationsLap[j] ) {
+        hypro::Plotter<Number>::getInstance().addPolyline(line,
+                                                           hypro::plotting::colors[hypro::plotting::green]);
+      } else {
+        hypro::Plotter<Number>::getInstance().addPolyline(line,
+                                                           hypro::plotting::colors[hypro::plotting::orange]);
+      }
+      lastPoint = positionHistoryLap[j];
+    }
+  }
+
+  track.addToPlotter( car, color );
+  plt.setFilename( "race_history" );
+  plt.plot2d( hypro::PLOTTYPE::png, true );
+
 
   return 0;
 }
