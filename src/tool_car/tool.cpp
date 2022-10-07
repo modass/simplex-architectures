@@ -485,11 +485,11 @@ int main( int argc, char* argv[] ) {
 //     storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
-  if( false ) {
+  if( true ) {
     size_t segment_id = 0;
     for(auto segment : track.roadSegments) {
       spdlog::info("Creating training samples for segment {}", segment_id++);
-      auto trainingStates = generateTrainingSets(segment, 0.5, theta_discretization, 3, automaton, bcVelocity);
+      auto trainingStates = generateTrainingSets(segment, 1.5, theta_discretization, 4, automaton, bcVelocity);
       spdlog::info("{} samples generated; start training", trainingStates.size());
       for (const auto& s : trainingStates) {
         trainer.run( settings, s );

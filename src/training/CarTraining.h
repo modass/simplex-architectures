@@ -45,17 +45,19 @@ std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segm
 
   std::vector<locationConditionMap> res;
   res.reserve(points.size());
+  auto i = 0;
   for(auto p : points) {
     Point state = Point{p[0],p[1], 0, 0,bcVelocity,0};
     auto locs = getLocationsForState(state, atm);
     locationConditionMap conditionMap;
     for (auto h : headings) {
+      state = Point{p[0],p[1], h, 0,bcVelocity,0};
       auto locs_theta = getLocationForTheta(h, theta_discretization, locs);
       for (auto l : locs_theta) {
         conditionMap[l] = hypro::Condition<Number>{widenSample(state, widening, {0,1})};
       }
     }
-    res.push_back(conditionMap);
+    res.push_back( conditionMap );
   }
 
   return res;
