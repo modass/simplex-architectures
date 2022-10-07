@@ -37,8 +37,8 @@ hypro::Condition<Number> GeneralRoadSegment::getRightZoneInvariant( double relat
 
 
 Number GeneralRoadSegment::getSegmentAngle() const {
-  auto pointS = startLeft + (startRight - startLeft) * 0.5;
-  auto pointE = endLeft + (endRight - endLeft) * 0.5;
+  auto pointS = getStart();
+  auto pointE = getEnd();
   auto headingVector = pointE - pointS;
 
   auto angle = atan2(headingVector[1], headingVector[0]);
@@ -69,6 +69,24 @@ hypro::Condition<Number> GeneralRoadSegment::pointsToCondition(Point pointA, Poi
   constants( 3 )      = pointA[x] * pointD[y] - pointD[x] * pointA[y];
 
   return {constraints, constants};
+}
+
+Point GeneralRoadSegment::getStart() const {
+  return startLeft + (startRight - startLeft) * 0.5;
+}
+
+Point GeneralRoadSegment::getEnd() const {
+  return endLeft + (endRight - endLeft) * 0.5;
+}
+
+Number GeneralRoadSegment::getSegmentLength() const {
+  auto headingVector = getEnd() - getStart();
+  return sqrt(pow(headingVector[0],2.0) + pow(headingVector[1],2.0) );
+}
+
+Point GeneralRoadSegment::getNormalHeading() const {
+  auto headingVector = getEnd() - getStart();
+  return headingVector * (1.0/getSegmentLength());
 }
 
 Point GeneralRoadSegment::getCenterStartLeft(double relativeCenterZoneWidth) const {

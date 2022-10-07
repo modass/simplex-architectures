@@ -52,6 +52,7 @@
 #include "utility/StorageSettings.h"
 #include "utility/reachTreeUtility.h"
 #include "utility/treeSerialization.h"
+#include "training/CarTraining.h"
 
 //#include "../../racetracks/austria_miniature/bad_states.h"
 //#include "../../racetracks/austria_miniature/segments.h"
@@ -118,11 +119,11 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 200;
+  std::size_t               maxJumps             = 50;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening    = 0.5;
-  bool                      training    = true;
+  bool                      training    = false;
   bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
   std::string               storagefilename{ "storage_car" };
@@ -138,7 +139,7 @@ int main( int argc, char* argv[] ) {
   bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::debug );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
@@ -473,7 +474,7 @@ int main( int argc, char* argv[] ) {
   // initialize simulator
   sim.mLastStates.emplace( std::make_pair( automaton.getInitialStates().begin()->first, std::set<Point>{ initialState } ) );
 
-  if ( training ) {
+  if ( training && false ) {
     assert( automaton.getInitialStates().size() == 1 );
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace( std::make_pair(
@@ -482,6 +483,20 @@ int main( int argc, char* argv[] ) {
     auto res = trainer.run( settings, initialStates );
     assert(res);
 //     storage.plotCombined( "storage_post_initial_training_combined", true );
+  }
+
+  if( false ) {
+    size_t segment_id = 0;
+    for(auto segment : track.roadSegments) {
+      spdlog::info("Creating training samples for segment {}", segment_id++);
+      auto trainingStates = generateTrainingSets(segment, 0.5, theta_discretization, 3, automaton, bcVelocity);
+      spdlog::info("{} samples generated; start training", trainingStates.size());
+      for (const auto& s : trainingStates) {
+        trainer.run( settings, s );
+      }
+      spdlog::info("training done");
+    }
+    storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
   // for statistics: record in which iteration the base controller was needed
