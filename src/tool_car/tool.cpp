@@ -54,10 +54,10 @@
 #include "utility/treeSerialization.h"
 #include "training/CarTraining.h"
 
-//#include "../../racetracks/austria_miniature/bad_states.h"
-//#include "../../racetracks/austria_miniature/segments.h"
-//#include "../../racetracks/austria_miniature/waypoints.h"
-//#include "../../racetracks/austria_miniature/playground.h"
+#include "../../racetracks/austria_miniature/bad_states.h"
+#include "../../racetracks/austria_miniature/segments.h"
+#include "../../racetracks/austria_miniature/waypoints.h"
+#include "../../racetracks/austria_miniature/playground.h"
 //#include "../../racetracks/austria_miniature/optimized_waypoints.h"
 //#include "../../racetracks/austria_miniature/faulty_waypoints.h"
 
@@ -68,10 +68,10 @@
 //#include "../../racetracks/austria/optimized_waypoints.h"
 //#include "../../racetracks/austria/faulty_waypoints.h"
 
-#include "../../racetracks/simpleL/bad_states.h"
-#include "../../racetracks/simpleL/playground.h"
-#include "../../racetracks/simpleL/segments.h"
-#include "../../racetracks/simpleL/waypoints.h"
+//#include "../../racetracks/simpleL/bad_states.h"
+//#include "../../racetracks/simpleL/playground.h"
+//#include "../../racetracks/simpleL/segments.h"
+//#include "../../racetracks/simpleL/waypoints.h"
 
 
 // #include "../../racetracks/gb_mini/bad_states.h"
@@ -119,11 +119,12 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 50;
+  std::size_t               maxJumps             = 20;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
-  Number                    widening    = 0.5;
+  Number                    widening    = 1.0;
   bool                      training    = false;
+  bool                      extensiveInitialTraining = false;
   bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
   std::string               storagefilename{ "storage_car" };
@@ -177,13 +178,13 @@ int main( int argc, char* argv[] ) {
       //      track.waypoints = createOptimizedWaypoints<Number>();
       //      track.waypoints = createFaultyWaypoints<Number>();
       // austria (mini?)
-      //      track.startFinishX = 200.0;
-      //      track.startFinishYlow = 65.0;
-      //      track.startFinishYhigh = 85.0;
+            track.startFinishX = 200.0;
+            track.startFinishYlow = 65.0;
+            track.startFinishYhigh = 85.0;
       // simpleL
-      track.startFinishX     = 30.0;
-      track.startFinishYlow  = 15.0;
-      track.startFinishYhigh = 30.0;
+//      track.startFinishX     = 30.0;
+//      track.startFinishYlow  = 15.0;
+//      track.startFinishYhigh = 30.0;
       //    case 0: // square-shaped track
       //      track.playground = Box{ IV{ I{ 0, 10 }, I{ 0, 10 } } };
       //      track.obstacles  = std::vector<Box>{ Box{ IV{ I{ 3, 7 }, I{ 3, 7 } } } };
@@ -474,7 +475,7 @@ int main( int argc, char* argv[] ) {
   // initialize simulator
   sim.mLastStates.emplace( std::make_pair( automaton.getInitialStates().begin()->first, std::set<Point>{ initialState } ) );
 
-  if ( training && false ) {
+  if ( training ) {
     assert( automaton.getInitialStates().size() == 1 );
     auto initialStates = std::map<LocPtr, hypro::Condition<Number>>{};
     initialStates.emplace( std::make_pair(
@@ -485,16 +486,18 @@ int main( int argc, char* argv[] ) {
 //     storage.plotCombined( "storage_post_initial_training_combined", true );
   }
 
-  if( true ) {
+  if( extensiveInitialTraining ) {
     size_t segment_id = 0;
+    spdlog::info("# road segments: {}", track.roadSegments.size());
     for(auto segment : track.roadSegments) {
-      spdlog::info("Creating training samples for segment {}", segment_id++);
-      auto trainingStates = generateTrainingSets(segment, 1.5, theta_discretization, 4, automaton, bcVelocity);
+      spdlog::info("Creating training samples for segment {}", segment_id);
+      auto trainingStates = generateTrainingSets(segment, segment_id, 2.0, theta_discretization, 2, automaton, bcVelocity);
       spdlog::info("{} samples generated; start training", trainingStates.size());
       for (const auto& s : trainingStates) {
         trainer.run( settings, s );
       }
       spdlog::info("training done");
+      segment_id++;
     }
     storage.plotCombined( "storage_post_initial_training_combined", true );
   }
