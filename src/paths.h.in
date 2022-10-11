@@ -16,5 +16,10 @@ std::string getNetworksPath()
 {
   return "@CMAKE_SOURCE_DIR@/networks/";
 }
+/// get input files path for racetracks
+std::string getRacetracksPath()
+{
+  return "@CMAKE_SOURCE_DIR@/racetracks/";
+}
 
 } // namespace simplexArchitectures

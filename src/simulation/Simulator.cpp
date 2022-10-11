@@ -112,7 +112,14 @@ namespace simplexArchitectures {
       if (safe == hypro::TRIBOOL::NSET) {
         spdlog::warn("Simulator updated with input that might visit unexplored states!");
         // This can only happen, if isSafe() ends in states that are not in the storage yet.
-        throw std::logic_error("Cannot detect new states during update.");
+        spdlog::warn("locations with unknown samples:");
+        for(auto u : unknownSamples) {
+          spdlog::warn("{}", u.first->getName());
+        }
+        spdlog::warn("The unknown samples are: {}", unknownSamples);
+//        throw std::logic_error("Cannot detect new states during update.");
+        // This seems to some times happen, most likely due to numerical impression.
+        // Show the warning, but continue with the execution.
       }
         for (auto &root: roots) {
             cutoffControllerJumps(&root);

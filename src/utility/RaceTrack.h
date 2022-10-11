@@ -16,19 +16,21 @@ namespace simplexArchitectures {
 struct RaceTrack {
   std::vector<Point>              waypoints;
   hypro::Box<double>              playground;
-  std::vector<hypro::Box<double>> obstacles;
-  std::vector<RoadSegment>        roadSegments;
-  double                          safetyMargin     = 0.2;
-  Number                          startFinishX     = 5.0;
-  Number                          startFinishYlow  = 0.0;
-  Number                          startFinishYhigh = 3.0;
+  std::vector<hypro::Condition<double>> obstacles;
+  std::vector<GeneralRoadSegment>       roadSegments;
+  double                                safetyMargin     = 0.2;
+  Number                                startFinishX     = 5.0;
+  Number                                startFinishYlow  = 0.0;
+  Number                                startFinishYhigh = 3.0;
 
-  std::vector<hypro::Condition<double>> createSafetySpecification() const;
+  std::vector<hypro::Condition<double>> createSafetySpecification() const { return obstacles; };
 
   void addToPlotter( std::optional<Point> car = std::nullopt, size_t color = hypro::plotting::red );
 
+  Number getDistanceToBoundary( const Point& car );
+
 #ifndef NDEBUG
-  inline bool is_sane() const { return waypoints.size() > 1 && !playground.empty();}
+  inline bool is_sane() const { return waypoints.size() > 1 && !playground.empty(); }
 #endif
 };
 

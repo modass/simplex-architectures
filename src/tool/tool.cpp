@@ -71,7 +71,7 @@ int main( int argc, char* argv[] ) {
   Number      widening = 0.1;
   bool        training = true;
   std::string modelfilename;
-  std::string storagefilename;
+  std::string storagefilename  = "storage_watertanks";
   bool        randomInitialSet = false;
   std::size_t seed             = 0;
   bool        plotIntermediate = false;
@@ -80,7 +80,7 @@ int main( int argc, char* argv[] ) {
 
   CLI::App app{ "Training application for simplex architectures project." };
   app.add_option( "-m,--model", modelfilename, "Path to the model file" )->required()->check( CLI::ExistingFile );
-  app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" )->required();
+  app.add_option( "-s,--storage", storagefilename, "Path to file with stored sets" );
   app.add_option( "-i,--iterations", iterations, "Number of iterations/steps" )->check( CLI::PositiveNumber );
   app.add_flag( "--learn", training,
                 "If given, the method will try to add new initial sets to the safe area, if they are safe. Otherwise "
@@ -91,7 +91,10 @@ int main( int argc, char* argv[] ) {
                 "If provided, intermediate states of the storage will be plotted." );
   CLI11_PARSE( app, argc, argv );
   // parse model
-  auto [automaton, reachSettings] = hypro::parseFlowstarFile<Number>( modelfilename );
+  auto [parsedAutomaton, reachSettings] = hypro::parseFlowstarFile<Number>( modelfilename );
+  // actual automaton
+  Automaton automaton;
+  automaton.addAutomaton( std::move( parsedAutomaton ) );
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
@@ -112,17 +115,17 @@ int main( int argc, char* argv[] ) {
   // AbstractController<Point, Point>* advCtrl = new RLController( abstractControllerFileName );
 
   // Experiment 2 AC = const 0
-  //AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
+  AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0 } );
 
   // Experiment 3 AC = const 0.0004
   // AbstractController<Point, Point>* advCtrl = new ConstantController<Point, Point>( Point{ 0.0004 } );
 
   // Experiment 4: random controller
-  AbstractController<Point, Point>* advCtrl = new RandomController();
+  // AbstractController<Point, Point>* advCtrl = new RandomController();
 
   // initialize Executor
-  std::optional<Point>           initialValuation = std::nullopt;
-  const hypro::Location<Number>* initialLoc       = automaton.getInitialStates().begin()->first;
+  std::optional<Point> initialValuation = std::nullopt;
+  auto*                initialLoc       = automaton.getInitialStates().begin()->first;
   // create random initial point, if required
   if ( randomInitialSet ) {
     std::mt19937                               rng( seed );
@@ -181,7 +184,7 @@ int main( int argc, char* argv[] ) {
   storage.plotCombined( "storage_post_loading_combined" );
   Trainer trainer{ automaton, trainingSettings, storage };
   // monitor
-  Simulator sim{ automaton, settings, storage };
+  Simulator sim{ automaton, settings, storage, controller_dimensions };
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
   if ( storage.size() == 0 ) {

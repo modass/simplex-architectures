@@ -8,6 +8,7 @@
 
 namespace simplexArchitectures {
 
+/*
 std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() const {
   assert(is_sane());
   std::vector<hypro::Condition<double>> res;
@@ -47,14 +48,15 @@ std::vector<hypro::Condition<double>> RaceTrack::createSafetySpecification() con
   res.emplace_back( hypro::conditionFromIntervals( intervals ) );
   intervals.clear();
   // all obstacles
-  for ( const auto& obstacle : obstacles ) {
-    std::vector<carl::Interval<double>> bloatedIntervals;
-    std::transform( obstacle.intervals().begin(), obstacle.intervals().end(), std::back_inserter( bloatedIntervals ),
-                    bloat );
-    res.emplace_back( hypro::conditionFromIntervals( bloatedIntervals ) );
-  }
+    for ( const auto& obstacle : obstacles ) {
+      std::vector<carl::Interval<double>> bloatedIntervals;
+      std::transform( obstacle.intervals().begin(), obstacle.intervals().end(), std::back_inserter( bloatedIntervals ),
+                      bloat );
+      res.emplace_back( hypro::conditionFromIntervals( bloatedIntervals ) );
+    }
   return res;
 }
+ */
 
 void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   assert(is_sane());
@@ -65,35 +67,67 @@ void RaceTrack::addToPlotter( std::optional<Point> car, size_t color ) {
   // add playground and obstacles
   plt.addObject( playground.vertices() );
   std::for_each( std::begin( obstacles ), std::end( obstacles ),
-                 [&plt]( const auto& obs ) { plt.addObject( obs.vertices() ); } );
+                 [&plt]( const auto& obs ) { auto tmp = hypro::HPolytope<double>{obs.getMatrix(), obs.getVector()}; plt.addObject( tmp.vertices() ); } );
   // add waypoints, in order
-  plt.addOrderedObject( waypoints );
+//  plt.addOrderedObject( waypoints );
   // add safety specification
   auto redSettings = plt.settings();
   redSettings.fill = true;
   for ( const auto& specCondition : createSafetySpecification() ) {
-    plt.addObject( hypro::Box<double>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
+    plt.addObject( hypro::HPolytope<Number>( specCondition.getMatrix(), specCondition.getVector() ).vertices(),
                    hypro::plotting::colors[color], redSettings );
   }
   // add start finish line
-  double startFinishWidth = 0.05;
+  double startFinishWidth = 1.0;
   plt.addObject({Point{startFinishX, startFinishYlow},
                        Point{startFinishX+startFinishWidth, startFinishYlow},
                        Point{startFinishX+startFinishWidth, startFinishYhigh},
                        Point{startFinishX, startFinishYhigh}},
                  hypro::plotting::colors[hypro::plotting::turquoise], redSettings);
 
+  // add track segments
+  auto segmentSettings = plt.settings();
+  segmentSettings.fill = false;
+  for(const auto& segment : roadSegments) {
+    plt.addObject({ segment.startLeft, segment.startRight, segment.endLeft, segment.endRight},
+                   hypro::plotting::colors[hypro::plotting::orange], segmentSettings);
+    // add zone boundaries
+//    plt.addPolyline({segment.getCenterStartLeft(0.2), segment.getCenterEndLeft(0.2)});
+//    plt.addPolyline({segment.getCenterStartRight(0.2), segment.getCenterEndRight(0.2)});
+  }
+
+
   // add car, if existing
   Point  carPosition{ car.value().at( 0 ), car.value().at( 1 ) };
   auto heading = Point{std::cos( car.value().at( 2 )), std::sin( car.value().at( 2 ))};
   auto offsetLeft = Point{std::cos( car.value().at( 2 ) + M_PI * 0.5), std::sin( car.value().at( 2 ) + M_PI * 0.5)};
 
-  auto a = carPosition + 0.1 * heading;
-  auto b = carPosition - 0.1 * heading + 0.1 * offsetLeft;
-  auto c = carPosition - 0.04 * heading;
-  auto d = carPosition - 0.1 * heading - 0.1 * offsetLeft;
-  plt.addPolyline({a,b,c,d,a});
+  double car_size = 1.0;
 
+  auto a = carPosition + car_size * heading;
+  auto b = carPosition - car_size * heading + car_size * offsetLeft;
+  auto c = carPosition - car_size * 0.4 * heading;
+  auto d = carPosition - car_size * heading - car_size * offsetLeft;
+  plt.addPolyline( { a, b, c, d, a } );
+}
+
+Number RaceTrack::getDistanceToBoundary( const Point& car ) {
+  for ( const auto& segment : roadSegments ) {
+    if ( segment.contains( car ) ) {
+      // create halfspaces for the boundaries to compute the distance
+      auto left  = hypro::Halfspace<Number>( std::vector<Point>{ segment.startLeft, segment.endLeft } );
+      auto right = hypro::Halfspace<Number>( std::vector<Point>{ segment.startRight, segment.endRight } );
+      // compute signed distance, take the absolute value since the constructor of the planes does not necessarily find
+      // the correct normal vector direction
+      auto dist_left =
+          std::abs( left.signedDistance( car.projectOn( { 0, 1 } ).rawCoordinates() ) ) / Eigen::norm( left.normal() );
+      auto dist_right = std::abs( right.signedDistance( car.projectOn( { 0, 1 } ).rawCoordinates() ) ) /
+                        Eigen::norm( right.normal() );
+      return std::min( dist_left, dist_right );
+    }
+  }
+  // if we reach here, none of the segments contained the car, i.e., the car is not in a valid position
+  throw std::logic_error( "The passed car is not contained in one of the track segments." );
 }
 
 }  // namespace simplexArchitectures

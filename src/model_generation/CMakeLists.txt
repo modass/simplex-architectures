@@ -1,4 +1,4 @@
-add_library(model_generation generateCarModel.cpp generateSimpleBaseController.tpp)
+add_library(model_generation generateCarModel.cpp generateCarSpecification.cpp)
 target_link_libraries(model_generation hypro-shared spdlog)
 target_include_directories(model_generation PUBLIC ./)
 

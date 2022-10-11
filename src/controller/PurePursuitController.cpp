@@ -21,7 +21,7 @@ Point PurePursuitController::generateInput( Point state ) {
 
   double distanceToTarget = sqrt( pow( target.at( 0 ), 2 ) + pow( target.at( 1 ), 2 ) );
   double l = std::min(maxLookahead, distanceToTarget);
-  if ( distanceToTarget < 1.0 ) {
+  if ( distanceToTarget < 3.0 ) {
     lastWaypoint = currentWaypoint;
     if(currentWaypoint != (track.waypoints.end()-1)) {
       spdlog::debug("Switch to next waypoint");
@@ -50,7 +50,17 @@ Point PurePursuitController::generateInput( Point state ) {
   auto& currentTheta = state[2];
   auto thetaprime = tan(delta) * velocity / wheelbase;
   // offset & rescaling (to time difference, scaling-factor is used to pick the theta at a certain point in time during the control cycle)
-  auto targetTheta = currentTheta + scalingFactor * cycleTime * thetaprime;
+  auto thetaPrimeScaled = scalingFactor * cycleTime * thetaprime;
+
+  //clip thetaPrimeScaled
+  if(thetaPrimeScaled > maxAngleChange) {
+    thetaPrimeScaled = maxAngleChange;
+  }
+  if(thetaPrimeScaled < -maxAngleChange) {
+    thetaPrimeScaled = -maxAngleChange;
+  }
+
+  auto targetTheta = currentTheta + thetaPrimeScaled;
   auto theta =  normalizeAngle(targetTheta);
 
   return Point( { theta, this->velocity } );

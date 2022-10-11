@@ -31,7 +31,6 @@ void Storage::add( std::string locationName, const hypro::Box<Number>& set ) {
       mTrees[locationName].add(filteredSet);
     }
   }
-  assert( isContained( locationName, set ) );
 }
 
 bool Storage::isContained( std::string locationName, const hypro::Box<Number>& set ) const {
@@ -63,17 +62,19 @@ void Storage::plot( const std::string& outfilename ) const {
 }
 
 void Storage::plotCombined(const std::string& outfilename, bool writeAndClear) const {
-  hypro::Plotter<Number>& plt    = hypro::Plotter<Number>::getInstance();
-  // Assumption: All trees have the same base container size (intervals & dimension)
-  plt.rSettings().xPlotInterval  = mTrees.begin()->second.getContainer().interval(0);
-  plt.rSettings().yPlotInterval  = mTrees.begin()->second.getContainer().interval(1);
-  plt.rSettings().dimensions = std::vector<std::size_t>{0,1};
-  plt.rSettings().overwriteFiles = true;
-  plt.setFilename(outfilename);
-  plotOctrees(mTrees,plt,true);
-  if(writeAndClear) {
-    plt.plot2d( hypro::PLOTTYPE::png, true );
-    plt.clear();
+  if ( !mTrees.empty() ) {
+    hypro::Plotter<Number>& plt = hypro::Plotter<Number>::getInstance();
+    // Assumption: All trees have the same base container size (intervals & dimension)
+    plt.rSettings().xPlotInterval  = mTrees.begin()->second.getContainer().interval( 0 );
+    plt.rSettings().yPlotInterval  = mTrees.begin()->second.getContainer().interval( 1 );
+    plt.rSettings().dimensions     = std::vector<std::size_t>{ 0, 1 };
+    plt.rSettings().overwriteFiles = true;
+    plt.setFilename( outfilename );
+    plotOctrees( mTrees, plt, true );
+    if ( writeAndClear ) {
+      plt.plot2d( hypro::PLOTTYPE::png, true );
+      plt.clear();
+    }
   }
 }
 
