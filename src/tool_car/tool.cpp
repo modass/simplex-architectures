@@ -94,10 +94,10 @@ constexpr Eigen::Index                y     = 1;
 constexpr Eigen::Index                theta = 2;
 constexpr Eigen::Index                tick  = 3;
 constexpr Eigen::Index                v     = 4;
-constexpr Eigen::Index                timer = 5;
-constexpr Eigen::Index                C     = 6;
-constexpr size_t model_dimensions           = 6;
-static const std::vector<std::size_t> interesting_dimensions{ x, y, timer };
+//constexpr Eigen::Index                timer = 5;
+constexpr Eigen::Index                C     = 5;
+constexpr size_t model_dimensions           = 5;
+static const std::vector<std::size_t> interesting_dimensions{ x, y };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
@@ -123,7 +123,7 @@ int main( int argc, char* argv[] ) {
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening    = 1.0;
-  bool                      training    = false;
+  bool                      training    = true;
   bool                      extensiveInitialTraining = false;
   bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
@@ -140,7 +140,7 @@ int main( int argc, char* argv[] ) {
   bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
-  spdlog::set_level( spdlog::level::info );
+  spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
@@ -260,9 +260,9 @@ int main( int argc, char* argv[] ) {
   Point  initialPosition   = track.waypoints[0] + (track.waypoints[1] - track.waypoints[0])*0.5;
   Point  initialCarState   = Point( { initialPosition[0], initialPosition[1], initialTheta } );
   Point  initialCarModelState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity } );
-  Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity, 0 } );
+  Point  initialState      = Point( { initialPosition[0], initialPosition[1], initialTheta, 0, bcVelocity/*, 0*/ } );
   IV initialCarModelValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity } };
-  IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity }, I{ 0 } };
+  IV initialValuations{ I{ initialPosition[0] }, I{ initialPosition[1] }, I{ initialTheta }, I{ 0 }, I{ bcVelocity }/*, I{ 0 }*/ };
 
   // car model
   hypro::ReachabilitySettings reachSettings;
@@ -352,10 +352,10 @@ int main( int argc, char* argv[] ) {
   auto start = std::chrono::steady_clock::now();
   automaton.addAutomaton( std::move( carModel ) );
   automaton.addAutomaton( std::move( bcAtm ) );
-  automaton.addAutomaton(std::move(specAtm));
+//  automaton.addAutomaton(std::move(specAtm));
   // the car model dictates all dynamics
   automaton.makeComponentMaster( 0 );
-  automaton.makeComponentMasterForVariable(2, "timer");
+//  automaton.makeComponentMasterForVariable(2, "timer");
   spdlog::trace("Composed automaton has {} variables",automaton.dimension());
   // hypro::parallelCompose( carModel, bcAtm, variableMap, reduceAutomaton );
   auto end = std::chrono::steady_clock::now();
@@ -397,7 +397,7 @@ int main( int argc, char* argv[] ) {
 
   // Storage for trained sets
   auto intervals = track.playground.intervals();
-  auto storagesettings = StorageSettings{ interesting_dimensions, Box{ {intervals[0], intervals[1], I{0.0, maxIncursionTime}} } };
+  auto storagesettings = StorageSettings{ interesting_dimensions, Box{ std::vector<carl::Interval<Number>>{intervals[0], intervals[1]/*, I{0.0, maxIncursionTime}*/} } };
   storagesettings.treeDepth = 4;
   // filter only sets wherer the time is the tick-time
   // TODO get dimensions from some variables defined before
@@ -442,7 +442,8 @@ int main( int argc, char* argv[] ) {
   auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
     auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
-    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$");
+//    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$");
+    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)$");
     std::smatch matches;
     const std::string tmp(l->getName());
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
@@ -726,17 +727,17 @@ int main( int argc, char* argv[] ) {
       if ( car.dimension() > 3 ) {
         car = car.projectOn( { x, y, theta } );
       }
-      double incursionTimer = 0;
-      for (auto s : sim.mLastStates) {
-        for (auto p : s.second) {
-          incursionTimer = std::max(incursionTimer, p[timer]);
-        }
-      }
+//      double incursionTimer = 0;
+//      for (auto s : sim.mLastStates) {
+//        for (auto p : s.second) {
+//          incursionTimer = std::max(incursionTimer, p[timer]);
+//        }
+//      }
 
       std::ofstream fs;
       fs.open( distancesFile, std::fstream::app );
       fs << iteration_count << ", " << car.projectOn( { x } ) << ", " << car.projectOn( { y } ) << ", "
-         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << ", " << trainingUsed << ", "  << incursionTimer << "\n";
+         << track.getDistanceToBoundary( car ) << ", " << advControllerUsed << ", " << trainingUsed << ", "  /*<< incursionTimer*/ << "\n";
       fs.close();
     }
   }
