@@ -7,13 +7,6 @@ namespace simplexArchitectures {
 template<typename Number>
 std::vector<hypro::Point<Number>> createOptimizedWaypoints() {
 	auto res = std::vector<hypro::Point<Number>>{
-	hypro::Point<Number>{  98.2490643 ,  243.5304791 },
-	hypro::Point<Number>{  112.0299581 ,  241.2959321 },
-	hypro::Point<Number>{  125.8776100 ,  239.1470255 },
-	hypro::Point<Number>{  139.6979684 ,  236.8800368 },
-	hypro::Point<Number>{  153.4947009 ,  234.4892327 },
-	hypro::Point<Number>{  167.2378146 ,  231.9733110 },
-	hypro::Point<Number>{  181.0295258 ,  229.7076115 },
 	hypro::Point<Number>{  194.9676053 ,  228.5157056 },
 	hypro::Point<Number>{  208.7054136 ,  229.8922274 },
 	hypro::Point<Number>{  223.0112178 ,  231.7072963 },
@@ -75,7 +68,14 @@ std::vector<hypro::Point<Number>> createOptimizedWaypoints() {
 	hypro::Point<Number>{  60.0189773 ,  236.8210533 },
 	hypro::Point<Number>{  66.8238200 ,  248.0894217 },
 	hypro::Point<Number>{  81.0727541 ,  247.8411512 },
-	hypro::Point<Number>{  94.3626268 ,  244.2394793 }};
+	hypro::Point<Number>{  94.3626268 ,  244.2394793 },
+	hypro::Point<Number>{  98.2490643 ,  243.5304791 },
+	hypro::Point<Number>{  112.0299581 ,  241.2959321 },
+	hypro::Point<Number>{  125.8776100 ,  239.1470255 },
+	hypro::Point<Number>{  139.6979684 ,  236.8800368 },
+	hypro::Point<Number>{  153.4947009 ,  234.4892327 },
+	hypro::Point<Number>{  167.2378146 ,  231.9733110 },
+	hypro::Point<Number>{  181.0295258 ,  229.7076115 }};
 	return res;
 }
 } // namespace

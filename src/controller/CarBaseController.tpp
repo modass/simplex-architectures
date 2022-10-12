@@ -81,7 +81,7 @@ Point CarBaseController<HybridAutomaton>::generateInput( Point state ) {
 
   size_t newThetaBucket;
 
-  auto maxStopDifference = theta_discretization/8;
+  auto maxStopDifference = 1; // theta_discretization/8;
   if (iz == 1 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
     spdlog::trace("Base controller stopped!");
     return Point{targetTheta, 0};
