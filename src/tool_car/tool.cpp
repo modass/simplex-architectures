@@ -123,7 +123,7 @@ int main( int argc, char* argv[] ) {
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening    = 1.0;
-  bool                      training    = false;
+  bool                      training    = true;
   bool                      extensiveInitialTraining = false;
   bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
@@ -140,7 +140,7 @@ int main( int argc, char* argv[] ) {
   bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
-  spdlog::set_level( spdlog::level::info );
+  spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
@@ -441,7 +441,9 @@ int main( int argc, char* argv[] ) {
   };
   auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
+    spdlog::trace("Start location update.");
     auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
+    spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
     const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$");
     std::smatch matches;
     const std::string tmp(l->getName());
@@ -459,6 +461,7 @@ int main( int argc, char* argv[] ) {
     if(newLocation == nullptr) {
       throw std::logic_error("New location not found");
     }
+    spdlog::trace("Location update complete.");
     return newLocation;
   };
 
