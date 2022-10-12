@@ -123,8 +123,8 @@ int main( int argc, char* argv[] ) {
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening    = 1.0;
-  bool                      training    = true;
-  bool                      extensiveInitialTraining = false;
+  bool                      training    = false;
+  bool                      extensiveInitialTraining = true;
   bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
   std::string               storagefilename{ "storage_car" };
@@ -140,7 +140,7 @@ int main( int argc, char* argv[] ) {
   bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
-  spdlog::set_level( spdlog::level::trace );
+  spdlog::set_level( spdlog::level::info );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
@@ -398,7 +398,7 @@ int main( int argc, char* argv[] ) {
   // Storage for trained sets
   auto intervals = track.playground.intervals();
   auto storagesettings = StorageSettings{ interesting_dimensions, Box{ std::vector<carl::Interval<Number>>{intervals[0], intervals[1]/*, I{0.0, maxIncursionTime}*/} } };
-  storagesettings.treeDepth = 4;
+  storagesettings.treeDepth = 0;
   // filter only sets wherer the time is the tick-time
   // TODO get dimensions from some variables defined before
   Matrix constraints     = Matrix::Zero( 2, model_dimensions );

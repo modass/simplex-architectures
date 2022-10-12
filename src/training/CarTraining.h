@@ -48,9 +48,9 @@ std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segm
 
   spdlog::info("creating points ({}) and headings ({}) completed", points.size(), headings.size());
 
-  auto location_postfix0 = "segment_"+std::to_string(segment_id)+"_zone_0_warning_C"+std::to_string(segment_id);
-  auto location_postfix1 = "segment_"+std::to_string(segment_id)+"_zone_1_warning_C"+std::to_string(segment_id);
-  auto location_postfix2 = "segment_"+std::to_string(segment_id)+"_zone_2_warning_C"+std::to_string(segment_id);
+  auto location_postfix0 = "segment_"+std::to_string(segment_id)+"_zone_0";
+  auto location_postfix1 = "segment_"+std::to_string(segment_id)+"_zone_1";
+  auto location_postfix2 = "segment_"+std::to_string(segment_id)+"_zone_2";
 
 
   std::vector<LocPtr> locs;
@@ -66,10 +66,10 @@ std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segm
   std::vector<locationConditionMap> res;
   res.reserve(points.size()*headings.size());
   for(auto p : points) {
-    Point state = Point{p[0],p[1], 0, 0,bcVelocity,0};
+    Point state = Point{p[0],p[1], 0, 0,bcVelocity};
 
     for (auto h : headings) {
-      state = Point{p[0],p[1], h, 0,bcVelocity,0};
+      state = Point{p[0],p[1], h, 0,bcVelocity};
       auto locs_theta = getLocationForTheta(h, theta_discretization, locs);
       for (auto l : locs_theta) {
         locationConditionMap conditionMap;
