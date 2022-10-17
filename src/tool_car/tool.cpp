@@ -450,6 +450,10 @@ int main( int argc, char* argv[] ) {
     std::regex_search(tmp,matches,oldSegmentZoneRegex);
     std::string oldSegmentZoneSubstring = matches[0];
 
+//    auto thetaBucket = getThetaBucket(p[0], theta_discretization);
+//    std::string  locationName = "theta_"+std::to_string(thetaBucket)+"_"+oldSegmentZoneSubstring;
+//    LocPtr  newLocation = automaton.getLocation(locationName); // this should use a (cashed) hash map for efficiency
+
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {
       if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
