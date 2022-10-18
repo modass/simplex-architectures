@@ -441,19 +441,20 @@ int main( int argc, char* argv[] ) {
   };
   auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
-    spdlog::trace("Start location update.");
-    auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
-    spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
-    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$");
-    std::smatch matches;
-    const std::string tmp(l->getName());
-    std::regex_search(tmp,matches,oldSegmentZoneRegex);
+    spdlog::trace( "Start location update." );
+    // auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
+    // spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
+    const std::regex oldSegmentZoneRegex( "segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$" );
+    std::smatch      matches;
+    const std::string tmp( l->getName() );
+    std::regex_search( tmp, matches, oldSegmentZoneRegex );
     std::string oldSegmentZoneSubstring = matches[0];
 
-//    auto thetaBucket = getThetaBucket(p[0], theta_discretization);
-//    std::string  locationName = "theta_"+std::to_string(thetaBucket)+"_"+oldSegmentZoneSubstring;
-//    LocPtr  newLocation = automaton.getLocation(locationName); // this should use a (cashed) hash map for efficiency
+    auto        thetaBucket  = getThetaBucket( p[0], theta_discretization );
+    std::string locationName = "theta_" + std::to_string( thetaBucket ) + "_" + oldSegmentZoneSubstring;
+    LocPtr newLocation = automaton.getLocation( locationName );  // this should use a (cashed) hash map for efficiency
 
+    /*
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {
       if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
@@ -462,6 +463,7 @@ int main( int argc, char* argv[] ) {
         break;
       }
     }
+     */
     if(newLocation == nullptr) {
       throw std::logic_error("New location not found");
     }
