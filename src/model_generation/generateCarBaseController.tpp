@@ -102,7 +102,7 @@ CarBaseController<HybridAutomaton> generateCarBaseController( std::size_t theta_
       auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization + targetThetaBucket - t;
       auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
 
-      auto maxStopDifference = theta_discretization/8;
+      auto maxStopDifference = 1; //theta_discretization/8;
       if (zone == 1 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
         auto stopTrans = source->createTransition( source );
         stopTrans->addLabel( hypro::Label( "stop" ) );

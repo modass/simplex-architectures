@@ -58,7 +58,7 @@
 #include "../../racetracks/austria_miniature/segments.h"
 #include "../../racetracks/austria_miniature/waypoints.h"
 #include "../../racetracks/austria_miniature/playground.h"
-//#include "../../racetracks/austria_miniature/optimized_waypoints.h"
+#include "../../racetracks/austria_miniature/optimized_waypoints.h"
 //#include "../../racetracks/austria_miniature/faulty_waypoints.h"
 
 //#include "../../racetracks/austria/bad_states.h"
@@ -108,7 +108,7 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
   auto new_pos   = executor.execute( advControllerInput );
   auto new_pos_x = new_pos[0];
   if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
-       old_pos_x > racetrack.startFinishX && racetrack.startFinishX >= new_pos_x ) {
+       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) {
     lapCounter++;
     spdlog::info( "Lap {}", lapCounter );
   }
@@ -119,11 +119,11 @@ int main( int argc, char* argv[] ) {
   // settings
   std::size_t               iterations{ 0 };
   std::size_t               iteration_count{ 0 };
-  std::size_t               maxJumps             = 20;
+  std::size_t               maxJumps             = 50;
   std::size_t               theta_discretization = 36;
   std::pair<double, double> delta_ranges{ -60, 60 };
   Number                    widening    = 1.0;
-  bool                      training    = false;
+  bool                      training    = true;
   bool                      extensiveInitialTraining = false;
   bool                      alwaysUseAC = false;  // use the ac even if it is unsafe
   bool                      alwaysUseBC = false;  // use the bc even if the AC is safe
@@ -140,7 +140,7 @@ int main( int argc, char* argv[] ) {
   bool                      plotRaceTrack  = false;
   bool                      writeDistances = true;
 
-  spdlog::set_level( spdlog::level::debug );
+  spdlog::set_level( spdlog::level::trace );
   // universal reference to the plotter
   auto& plt                       = hypro::Plotter<Number>::getInstance();
   plt.rSettings().overwriteFiles  = false;
@@ -178,9 +178,13 @@ int main( int argc, char* argv[] ) {
       //      track.waypoints = createOptimizedWaypoints<Number>();
       //      track.waypoints = createFaultyWaypoints<Number>();
       // austria (mini?)
-            track.startFinishX = 200.0;
-            track.startFinishYlow = 65.0;
-            track.startFinishYhigh = 85.0;
+//            track.startFinishX = 200.0;
+//            track.startFinishYlow = 65.0;
+//            track.startFinishYhigh = 85.0;
+
+            track.startFinishX = 205.0;
+            track.startFinishYlow = 220.0;
+            track.startFinishYhigh = 240.0;
       // simpleL
 //      track.startFinishX     = 30.0;
 //      track.startFinishYlow  = 15.0;
@@ -394,6 +398,7 @@ int main( int argc, char* argv[] ) {
   // Storage for trained sets
   auto intervals = track.playground.intervals();
   auto storagesettings = StorageSettings{ interesting_dimensions, Box{ {intervals[0], intervals[1], I{0.0, maxIncursionTime}} } };
+  storagesettings.treeDepth = 4;
   // filter only sets wherer the time is the tick-time
   // TODO get dimensions from some variables defined before
   Matrix constraints     = Matrix::Zero( 2, model_dimensions );
@@ -436,13 +441,20 @@ int main( int argc, char* argv[] ) {
   };
   auto updateFunctionSimulator = [&theta_discretization, &automaton]( Point p, LocPtr l ) -> LocPtr {
     // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
-    auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
-    const std::regex oldSegmentZoneRegex("segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$");
-    std::smatch matches;
-    const std::string tmp(l->getName());
-    std::regex_search(tmp,matches,oldSegmentZoneRegex);
+    spdlog::trace( "Start location update." );
+    // auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
+    // spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
+    const std::regex oldSegmentZoneRegex( "segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$" );
+    std::smatch      matches;
+    const std::string tmp( l->getName() );
+    std::regex_search( tmp, matches, oldSegmentZoneRegex );
     std::string oldSegmentZoneSubstring = matches[0];
 
+    auto        thetaBucket  = getThetaBucket( p[0], theta_discretization );
+    std::string locationName = "theta_" + std::to_string( thetaBucket ) + "_" + oldSegmentZoneSubstring;
+    LocPtr newLocation = automaton.getLocation( locationName );  // this should use a (cashed) hash map for efficiency
+
+    /*
     LocPtr newLocation = nullptr;
     for(const auto* candidate : candidates) {
       if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
@@ -451,9 +463,11 @@ int main( int argc, char* argv[] ) {
         break;
       }
     }
+     */
     if(newLocation == nullptr) {
       throw std::logic_error("New location not found");
     }
+    spdlog::trace("Location update complete.");
     return newLocation;
   };
 
@@ -499,7 +513,7 @@ int main( int argc, char* argv[] ) {
       spdlog::info("training done");
       segment_id++;
     }
-    storage.plotCombined( "storage_post_initial_training_combined", true );
+    storage.plotCombined( "storage_post_initial_training_combined", false );
   }
 
   // for statistics: record in which iteration the base controller was needed
@@ -757,7 +771,7 @@ int main( int argc, char* argv[] ) {
   auto car                        = executor.mLastState.projectOn( { 0, 1, 2 } );
   auto color                      = hypro::plotting::orange;
   track.addToPlotter( car, color );
-  hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, true );
+  hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, false );
 
   plt.clear();
 

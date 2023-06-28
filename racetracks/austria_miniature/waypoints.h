@@ -7,8 +7,6 @@ namespace simplexArchitectures {
 template<typename Number>
 std::vector<hypro::Point<Number>> createWaypoints() {
 	auto res = std::vector<hypro::Point<Number>>{
-	hypro::Point<Number>{ 98.32845 , 245.42700000000002 },
-	hypro::Point<Number>{ 123.411 , 240.661 },
 	hypro::Point<Number>{ 160.687 , 233.85750000000002 },
 	hypro::Point<Number>{ 194.8315 , 230.4105 },
 	hypro::Point<Number>{ 230.3 , 227.6775 },
@@ -41,7 +39,9 @@ std::vector<hypro::Point<Number>> createWaypoints() {
 	hypro::Point<Number>{ 101.4503 , 189.053 },
 	hypro::Point<Number>{ 59.85275 , 236.81900000000002 },
 	hypro::Point<Number>{ 57.90625 , 239.98 },
-	hypro::Point<Number>{ 62.4105 , 244.538 }};
+	hypro::Point<Number>{ 62.4105 , 244.538 },
+    hypro::Point<Number>{ 98.32845 , 245.42700000000002 },
+    hypro::Point<Number>{ 123.411 , 240.661 }};
 	return res;
 }
 } // namespace
