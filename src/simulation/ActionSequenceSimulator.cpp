@@ -53,6 +53,15 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
   mTimeStepNodes.resize(controllerActions.size());
 
 
+  Matrix constraints = Matrix::Zero( 2, mAutomaton.dimension() );
+  Vector constants = Vector::Zero( 2 );
+  // assign constraints:  tick = mCycleTime
+  // tick
+  constraints( 0, mCycleTimeDimension ) = 1;
+  constraints( 1, mCycleTimeDimension ) = -1;
+  constants( 0 ) = mCycleTime;
+  constants( 1 ) = -mCycleTime;
+
   // safe all states reachable after each time step
   for ( auto& r : mRoots ) {
     for ( auto& node : hypro::preorder( r ) ) {
@@ -62,7 +71,15 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
         for ( size_t k = 0; k < controllerActions.size(); ++k ) {
           auto traceK = "trace_"+std::to_string(k);
           if(locationName.find(traceK) != std::string::npos){
-            mTimeStepNodes[k].emplace_back(std::make_pair(node.getLocation(), node.getInitialSet()), controllerActions[k]);
+            mTimeStepNodes[k].emplace_back(node.getLocation(), node.getInitialSet());
+
+            if (k>0) {
+              auto flowpipe = node.getParent()->getFlowpipe();
+              Box  lastBox  = flowpipe.at( flowpipe.size() - 1 );
+              Box  box = lastBox.intersectHalfspaces( constraints, constants );
+              auto t   = std::make_tuple( node.getParent()->getLocation(), box, controllerActions[k-1] );
+              mPotentialActions[k-1].emplace_back( t );
+            }
             break;
           }
         }
@@ -81,7 +98,7 @@ int simplexArchitectures::ActionSequenceSimulator::storageReachedAtTime() {
   for (auto &timeStep : mTimeStepNodes) {
     bool allReached = true;
     for (const auto& p: timeStep) {
-      auto contained = mStorage.isContained(p.first.first->getName(), p.first.second);
+      auto contained = mStorage.isContained(p.first->getName(), p.second);
       if (!contained) {
         allReached = false;
       }
@@ -104,11 +121,11 @@ simplexArchitectures::ActionSequenceSimulator::getStateActionPairs() {
   assert(sequenceLength>=0);
 
   for ( int t = 0; t < sequenceLength; ++t ) {
-    auto stateActionPairs = mTimeStepNodes[t];
-    for (auto p: stateActionPairs) {
-      LocPtr originalLocation = mAutomaton.getLocation(extractOriginalLocationName(p.first.first->getName()));
-      Box box = p.first.second;
-      auto action = p.second;
+    auto stateActionPairs = mPotentialActions[t];
+    for (const auto& p: stateActionPairs) {
+      LocPtr originalLocation = mAutomaton.getLocation(extractOriginalLocationName(std::get<0>(p)->getName() ));
+      Box box = std::get<1>(p);
+      auto action = std::get<2>(p);
       result.emplace_back(std::make_pair( originalLocation, box), action);
     }
   }

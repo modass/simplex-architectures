@@ -39,8 +39,11 @@ struct ActionSequenceSimulator {
   Automaton&                        mAutomaton;  ///< environment + specification model
   Automaton                         mSimulationAutomaton;  ///< environment + specification model + trace
   hypro::Settings                   mSettings;
+  double                            mCycleTime = 1.0;
+  Eigen::Index                      mCycleTimeDimension = 3;
   std::vector<ReachTreeNode>        mRoots;
-  std::vector<std::vector<std::pair<std::pair<LocPtr, Box>, hypro::Label>>> mTimeStepNodes;
+  std::vector<std::vector<std::pair<LocPtr, Box>>> mTimeStepNodes;
+  std::vector<std::vector<std::tuple<LocPtr, Box, hypro::Label>>> mPotentialActions;
 
  private:
   static std::string extractOriginalLocationName(const std::string& composedLocationName);
