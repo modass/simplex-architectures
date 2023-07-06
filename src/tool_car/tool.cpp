@@ -465,7 +465,20 @@ int main( int argc, char* argv[] ) {
     }
      */
     if(newLocation == nullptr) {
-      throw std::logic_error("New location not found");
+      auto ls = automaton.getLocations();
+      spdlog::trace("Number of locations:" + std::to_string(ls.size()));
+      for (const auto* l : ls) {
+        if (l->getName() == locationName){
+          spdlog::trace("Location " + locationName + " found.");
+          break;
+        }
+      }
+      if ( automaton.getLocation( locationName ) == nullptr) {
+        spdlog::trace("Still not there");
+      } else {
+        spdlog::trace("Now it exists");
+      }
+      throw std::logic_error("New location (" + locationName + ") not found");
     }
     spdlog::trace("Location update complete.");
     return newLocation;
