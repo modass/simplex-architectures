@@ -46,7 +46,23 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
   mRoots = hypro::makeRoots<Representation>( mSimulationAutomaton );
   auto reacher =
       ReachabilityAnalyzer( mSimulationAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), mRoots );
+
+  // set up callbacks which are used by hypro to access the octree
+  std::size_t                                                   shortcuts = 0;
+  std::function<bool( const Representation&, const Location* )> callback  = [this, &shortcuts]( const auto& set,
+                                                                                               const auto  locptr ) {
+    if ( mStorage.isContained( locptr->getName(), set ) ) {
+      ++shortcuts;
+      return true;
+    }
+    return false;
+  };
+  hypro::ReachabilityCallbacks<Representation, Location> callbackStructure{ callback };
+  reacher.setCallbacks( callbackStructure );
   auto result = reacher.computeForwardReachability();
+  if ( shortcuts > 0 ) {
+    spdlog::trace( "Found {} fixed points by exploiting existing results.", shortcuts );
+  }
 
   std::vector<std::vector<std::pair<LocPtr, Box>>> timeStepNodes(controllerActions.size());
   mTimeStepNodes.clear();
