@@ -58,7 +58,7 @@ double convertDeltaToTheta(double delta, double currentTheta, double cycleTime, 
 
 std::size_t getThetaBucket(Number theta, std::size_t discretization) {
   if(theta < 0 || theta > 2 * M_PI) {
-    throw std::logic_error("Invalid theta-value, must be between 0 and 2*PI");
+    throw std::logic_error("Invalid theta-value ("+std::to_string(theta)+"), must be between 0 and 2*PI");
   }
   double theta_increment = ( 2 * M_PI ) / double( discretization );
   double theta_low = 0;

@@ -1,5 +1,6 @@
 /*
- * Created by Stefan Schupp <stefan.schupp@tuwien.ac.at> on 20.02.22.
+ * Created by Stefan
+         Schupp <stefan.schupp@tuwien.ac.at> on 20.02.22.
  */
 
 #include "Trainer.h"
@@ -52,7 +53,7 @@ bool Trainer::run(hypro::Settings settings, const locationConditionMap& initialS
   settings.rFixedParameters().globalTimeHorizon = -1;
   settings.rStrategy().front().detectZenoBehavior                 = true;
   settings.rFixedParameters().localTimeHorizon = 100;
-  settings.rFixedParameters().jumpDepth = 1000;
+  settings.rFixedParameters().jumpDepth = 200;
   settings.rStrategy().front().aggregation = hypro::AGG_SETTING::AGG;
   // run single iteration
   auto res = runIteration( settings, *generator );
@@ -80,6 +81,7 @@ locationConditionMap Trainer::generateInitialStates() const {
 void Trainer::updateOctree( const std::vector<ReachTreeNode>& roots ) {
   for ( const auto& r : roots ) {
     for ( const auto& node : hypro::preorder( r ) ) {
+      assert(node.hasTimelock() != hypro::TRIBOOL::TRUE);
       mStorage.add(node.getLocation()->getName(), node.getInitialSet());
     }
   }

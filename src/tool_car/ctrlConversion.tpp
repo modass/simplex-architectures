@@ -11,8 +11,10 @@ namespace simplexArchitectures {
 template <typename Automaton>
 std::vector<typename Automaton::LocationType*> getLocationsForState( const Point& in, const Automaton& automaton ) {
   std::vector<typename Automaton::LocationType*> res;
+  spdlog::trace("Get locations for point {}",in);
   for ( typename Automaton::LocationType* loc : automaton.getLocations() ) {
     if ( loc->getInvariant().contains( in ) ) {
+      spdlog::trace("Point {} is contained in the invariant of location {}",in,loc->getName());
       res.push_back( loc );
     }
   }
