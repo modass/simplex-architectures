@@ -2,6 +2,8 @@ add_library(SimplexArchitectures
         controller/Controller.cpp
         simulation/Simulator.cpp
         simulation/ActionSequenceSimulator.cpp
+        simulation/CarActionSequenceTemplate.cpp
+        simulation/CarRepairExplorer.cpp
         training/Trainer.cpp
         utility/octreePlotting.cpp
         utility/RaceTrack.cpp

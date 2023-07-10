@@ -23,10 +23,8 @@ using Matrix = hypro::matrix_t<Number>;
 using Vector = hypro::vector_t<Number>;
 
 struct ActionSequenceSimulator {
-  ActionSequenceSimulator( Automaton& automaton, const hypro::Settings& s, const Storage& storage)
-      : mAutomaton( automaton ), mSettings( s ), mStorage( storage ) {
-    mSimulationAutomaton = automaton;
-  }
+  ActionSequenceSimulator( Automaton& automaton, Automaton& simAutomaton, const hypro::Settings& s, const Storage& storage)
+      : mAutomaton( automaton ), mSimulationAutomaton( simAutomaton ), mSettings( s ), mStorage( storage ) {}
 
   //TODO mSimulationAutomaton should be a copy of automaton i.e. it should have its own cache!
 
@@ -34,10 +32,13 @@ struct ActionSequenceSimulator {
   int storageReachedAtTime();
   bool wasStorageReached();
   std::vector<std::pair<std::pair<LocPtr, Box>, hypro::Label>> getStateActionPairs();
+  std::vector<std::pair<LocPtr, Box>> getReachStates();
+  std::vector<std::pair<LocPtr, Box>> getAllStates();
+  void clear();
 
 
   Automaton&                        mAutomaton;  ///< environment + specification model
-  Automaton                         mSimulationAutomaton;  ///< environment + specification model + trace
+  Automaton&                         mSimulationAutomaton;  ///< environment + specification model + trace //TODO This should be a deep copy of mAutomaton
   hypro::Settings                   mSettings;
   double                            mCycleTime = 1.0;
   Eigen::Index                      mCycleTimeDimension = 3;

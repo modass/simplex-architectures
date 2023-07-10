@@ -14,7 +14,7 @@ namespace simplexArchitectures {
 
 using locationConditionMap = Automaton::locationConditionMap;
 
-std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segment, size_t segment_id, double widening, size_t theta_discretization, size_t trainingAngles, Automaton& atm, double bcVelocity) {
+std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segment, size_t segment_id, double widening, size_t theta_discretization, size_t trainingAngles, Automaton& atm, double bcVelocity, bool withBC = true) {
 
 
   auto startPoint = segment.getStart();
@@ -48,19 +48,27 @@ std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segm
 
   spdlog::info("creating points ({}) and headings ({}) completed", points.size(), headings.size());
 
-  auto location_postfix0 = "segment_"+std::to_string(segment_id)+"_zone_0_warning_C"+std::to_string(segment_id);
-  auto location_postfix1 = "segment_"+std::to_string(segment_id)+"_zone_1_warning_C"+std::to_string(segment_id);
-  auto location_postfix2 = "segment_"+std::to_string(segment_id)+"_zone_2_warning_C"+std::to_string(segment_id);
+  auto location_postfix0 = "segment-"+std::to_string(segment_id)+"-zone-0_warning-C"+std::to_string(segment_id);
+  auto location_postfix1 = "segment-"+std::to_string(segment_id)+"-zone-1_warning-C"+std::to_string(segment_id);
+  auto location_postfix2 = "segment-"+std::to_string(segment_id)+"-zone-2_warning-C"+std::to_string(segment_id);
 
+  auto location_postfix_noBC = "warning-C"+std::to_string(segment_id);
 
   std::vector<LocPtr> locs;
   locs.reserve(theta_discretization*2);
   for(const auto* candidate : atm.getLocations()) {
-    if(candidate->getName().find(location_postfix0) != std::string::npos ||
-       candidate->getName().find(location_postfix1) != std::string::npos ||
-       candidate->getName().find(location_postfix2) != std::string::npos) {
-      locs.push_back(candidate);
+    if(withBC) {
+      if(candidate->getName().find(location_postfix0) != std::string::npos ||
+           candidate->getName().find(location_postfix1) != std::string::npos ||
+           candidate->getName().find(location_postfix2) != std::string::npos){
+        locs.push_back(candidate);
+      }
+    } else {
+      if(candidate->getName().find(location_postfix_noBC) != std::string::npos){
+        locs.push_back(candidate);
+      }
     }
+
   }
 
   std::vector<locationConditionMap> res;

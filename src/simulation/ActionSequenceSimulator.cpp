@@ -8,11 +8,16 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
     LocPtr initialLocation,
     const hypro::Condition<Number>& initialBox  ) {
 
+  if (controllerActions.size() > mSettings.fixedParameters().jumpDepth) {
+    spdlog::warn("The trace passed to ActionSequenceSimulator is longer than the maximum jump depth!");
+  }
+
   // Construct an automaton of the trace
   hypro::HybridAutomaton<Number> traceAutomaton;
 
   //pseudo location to ensure that traceAutomaton contains all labels for synchronization
   auto dummyLocation = traceAutomaton.createLocation();
+  dummyLocation->setName("traceDummy");
   auto allLabels = mAutomaton.getLabels();
   for (const auto& l :  allLabels) {
     auto t = dummyLocation->createTransition(dummyLocation);
@@ -20,29 +25,37 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
   }
 
   auto loc0 = traceAutomaton.createLocation();
-  loc0->setName( "trace_" + std::to_string( 0 ) );
+  loc0->setName( "trace-" + std::to_string( 0 ) + "-" );
   auto previousLocation = loc0;
   size_t it = 1;
   for (const auto& action: controllerActions) {
     auto loc = traceAutomaton.createLocation();
-    loc->setName( "trace_" + std::to_string( it ) );
+    loc->setName( "trace-" + std::to_string( it ) + "-");
     auto t = previousLocation->createTransition(loc);
     t->addLabel(action);
     previousLocation = loc;
     it++;
   }
 
+  typename hypro::HybridAutomaton<Number>::locationConditionMap initialStatesTrace;
+  initialStatesTrace[loc0] = hypro::Condition<Number>::True();
+  traceAutomaton.setInitialStates( initialStatesTrace );
 
+  auto locationsOld = mSimulationAutomaton.getLocations();
 
   // build composition
   mSimulationAutomaton.addAutomaton(std::move(traceAutomaton));
 
-  auto initialLocationName = initialLocation->getName() + "_trace_0";
+  auto locations = mSimulationAutomaton.getLocations();
+
+  auto initialLocationName = initialLocation->getName() + "_trace-0-";
   auto newLocation = mSimulationAutomaton.getLocation(initialLocationName);
   typename Automaton::locationConditionMap initialStates;
   initialStates[newLocation] = initialBox;
   mSimulationAutomaton.setInitialStates( initialStates );
 
+  mSimulationAutomaton.getInitialStates(); //TODO This is a hack to get the initialState cache flag set, otherwise the states added by setInitialStates will be overwritten immediately.
+  mSimulationAutomaton.setInitialStates( initialStates );
   mRoots = hypro::makeRoots<Representation>( mSimulationAutomaton );
   auto reacher =
       ReachabilityAnalyzer( mSimulationAutomaton, mSettings.fixedParameters(), mSettings.strategy().front(), mRoots );
@@ -64,10 +77,10 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
     spdlog::trace( "Found {} fixed points by exploiting existing results.", shortcuts );
   }
 
-  std::vector<std::vector<std::pair<LocPtr, Box>>> timeStepNodes(controllerActions.size());
   mTimeStepNodes.clear();
   mTimeStepNodes.resize(controllerActions.size());
-
+  mPotentialActions.clear();
+  mPotentialActions.resize(controllerActions.size()-1);
 
   Matrix constraints = Matrix::Zero( 2, mAutomaton.dimension() );
   Vector constants = Vector::Zero( 2 );
@@ -78,14 +91,14 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
   constants( 0 ) = mCycleTime;
   constants( 1 ) = -mCycleTime;
 
-  // safe all states reachable after each time step
+  // save all states reachable after each time step
   for ( auto& r : mRoots ) {
     for ( auto& node : hypro::preorder( r ) ) {
       // This should capture all nodes that are reached by a sync transition or are root nodes
       if(node.getTransition() == nullptr || !node.getTransition()->getLabels().empty()){
         auto locationName = node.getLocation()->getName();
         for ( size_t k = 0; k < controllerActions.size(); ++k ) {
-          auto traceK = "trace_"+std::to_string(k);
+          auto traceK = "trace-"+std::to_string(k) + "-";
           if(locationName.find(traceK) != std::string::npos){
             mTimeStepNodes[k].emplace_back(node.getLocation(), node.getInitialSet());
 
@@ -103,6 +116,8 @@ hypro::TRIBOOL simplexArchitectures::ActionSequenceSimulator::simulate(
     }
   }
 
+
+
   if (result == hypro::REACHABILITY_RESULT::SAFE) {
     return hypro::TRIBOOL::TRUE;
   } else {
@@ -113,8 +128,12 @@ int simplexArchitectures::ActionSequenceSimulator::storageReachedAtTime() {
   int t = 0;
   for (auto &timeStep : mTimeStepNodes) {
     bool allReached = true;
+    if(timeStep.empty()){
+      return -2; //Simulation terminated before the end of the action trace
+    }
     for (const auto& p: timeStep) {
-      auto contained = mStorage.isContained(p.first->getName(), p.second);
+      auto baseName = extractOriginalLocationName(p.first->getName());
+      auto contained = mStorage.isContained(baseName, p.second);
       if (!contained) {
         allReached = false;
       }
@@ -150,6 +169,30 @@ simplexArchitectures::ActionSequenceSimulator::getStateActionPairs() {
 }
 std::string simplexArchitectures::ActionSequenceSimulator::extractOriginalLocationName(
     const std::string& composedLocationName ) {
-  auto pos = composedLocationName.find("_trace_");
+  auto pos = composedLocationName.find("_trace-");
   return composedLocationName.substr(0, pos);
+}
+void simplexArchitectures::ActionSequenceSimulator::clear() {
+  mSimulationAutomaton.removeAutomaton(2);
+  mTimeStepNodes.clear();
+  mPotentialActions.clear();
+  mRoots.clear();
+}
+std::vector<std::pair<LocPtr, Box>> simplexArchitectures::ActionSequenceSimulator::getReachStates() {
+  std::vector<std::pair<LocPtr, Box>> res;
+  for ( int k = 0; k < storageReachedAtTime(); ++k ) {
+    for (const auto& n : mTimeStepNodes[k]) {
+      res.emplace_back(mAutomaton.getLocation(extractOriginalLocationName(n.first->getName())), n.second);
+    }
+  }
+  return res;
+}
+std::vector<std::pair<LocPtr, Box>> simplexArchitectures::ActionSequenceSimulator::getAllStates() {
+  std::vector<std::pair<LocPtr, Box>> res;
+  for (const auto& nodes : mTimeStepNodes) {
+    for (const auto& n : nodes) {
+      res.emplace_back(mAutomaton.getLocation(extractOriginalLocationName(n.first->getName())), n.second);
+    }
+  }
+  return res;
 }

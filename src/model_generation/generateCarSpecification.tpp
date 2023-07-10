@@ -34,7 +34,7 @@ HybridAutomaton generateCarSpecification( std::size_t theta_discretization,
 
     auto locLeft = res.createLocation();
     buckets.emplace( std::make_tuple( is, 0 ), locLeft );
-    locLeft->setName( "warning_L" + std::to_string( is ) );
+    locLeft->setName( "warning-L" + std::to_string( is ) );
     auto invLeft = leftWarningInvariant( segment, warningZoneWidth );
     locLeft->setInvariant( invLeft );
     locLeft->setFlow( hypro::linearFlow<double>( flowmatrixTimerRunning ) );
@@ -51,7 +51,7 @@ HybridAutomaton generateCarSpecification( std::size_t theta_discretization,
 
     auto locCenter = res.createLocation();
     buckets.emplace( std::make_tuple( is, 1 ), locCenter );
-    locCenter->setName( "warning_C"+std::to_string( is ));
+    locCenter->setName( "warning-C"+std::to_string( is ));
     locCenter->setInvariant(centerWarningInvariant(segment, warningZoneWidth));
     locCenter->setFlow( hypro::linearFlow<double>( flowmatrixTimerPaused ) );
 
@@ -68,7 +68,7 @@ HybridAutomaton generateCarSpecification( std::size_t theta_discretization,
 
     auto locRight = res.createLocation();
     buckets.emplace( std::make_tuple( is, 2 ), locRight );
-    locRight->setName( "warning_R"+std::to_string( is ));
+    locRight->setName( "warning-R"+std::to_string( is ));
     auto invRight = rightWarningInvariant(segment, warningZoneWidth);
     locRight->setInvariant(invRight);
     locRight->setFlow( hypro::linearFlow<double>( flowmatrixTimerRunning ) );
