@@ -28,17 +28,17 @@ CarBaseController<HybridAutomaton> generateCarBaseController( std::size_t theta_
 
     auto locLeft = res.createLocation();
     buckets.emplace( std::make_tuple( is, 0 ), locLeft );
-    locLeft->setName( "segment_" + std::to_string( is ) + "_zone_0");
+    locLeft->setName( "segment-" + std::to_string( is ) + "-zone-0");
     locLeft->setInvariant(segment.getLeftZoneInvariant(stopZoneWidth));
 
     auto locCenter = res.createLocation();
     buckets.emplace( std::make_tuple( is, 1 ), locCenter );
-    locCenter->setName( "segment_" + std::to_string( is ) + "_zone_1");
+    locCenter->setName( "segment-" + std::to_string( is ) + "-zone-1");
     locCenter->setInvariant(segment.getCenterZoneInvariant(stopZoneWidth));
 
     auto locRight = res.createLocation();
     buckets.emplace( std::make_tuple( is, 2 ), locRight );
-    locRight->setName( "segment_" + std::to_string( is ) + "_zone_2");
+    locRight->setName( "segment-" + std::to_string( is ) + "-zone-2");
     locRight->setInvariant(segment.getRightZoneInvariant(stopZoneWidth));
   }
 
