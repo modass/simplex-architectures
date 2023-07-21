@@ -99,7 +99,7 @@ bool Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
                    newInitialStates.begin()->first->getName() );
     return true;
   }
-  spdlog::info( "Location {}, initial box {}.", newInitialStates.begin()->first->getName(), ss.str() );
+  spdlog::trace( "Location {}, initial box {}.", newInitialStates.begin()->first->getName(), ss.str() );
   // std::cout << "Initial set: " << Representation(newInitialStates.begin()->second.getMatrix(),
   // newInitialStates.begin()->second.getVector()).projectOn({0,1}) << std::endl;
   mAutomaton.setInitialStates( newInitialStates );

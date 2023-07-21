@@ -39,7 +39,7 @@ hypro::HybridAutomaton<double> generateCarModel(std::size_t theta_discretization
     auto loc = res.createLocation();
     buckets.emplace( it, loc );
     // set name
-    loc->setName( "theta_" + std::to_string( it ) );
+    loc->setName( "theta-" + std::to_string( it ) );
     // compute and set flow
     double dx              = cos( vtheta );
     double dy              = sin( vtheta );
