@@ -239,17 +239,15 @@ int main( int argc, char* argv[] ) {
 
     // Create initial state for testing
     Point state = Point{40,22.5, 0, 0,bcVelocity,0};
-    auto initialBox = hypro::Condition<Number>{widenSample(state, 0.5, {0,1})};
     auto initialLoc = automaton.getLocation("theta-16_warning-C0");
 
-    auto found = carRepairExplorer.findRepairSequence(initialLoc, initialBox);
+    auto found = carRepairExplorer.findRepairSequence(initialLoc, state);
     spdlog::info("Repair sequence found: "+std::to_string(found));
 
     Point state2 = Point{40,20, 0, 0,bcVelocity,0};
-    auto initialBox2 = hypro::Condition<Number>{widenSample(state, 0.5, {0,1})};
     auto initialLoc2 = automaton.getLocation("theta-15_warning-C0");
 
-    auto found2 = carRepairExplorer.findRepairSequence(initialLoc2, initialBox2);
+    auto found2 = carRepairExplorer.findRepairSequence(initialLoc2, state2);
     spdlog::info("Repair sequence found: "+std::to_string(found2));
 
 

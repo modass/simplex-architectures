@@ -7,6 +7,7 @@
 #include "CarActionSequenceTemplate.h"
 #include "ActionSequenceSimulator.h"
 #include "../tool_car/ctrlConversion.h"
+#include "SamplingUtility.h"
 
 #ifndef SIMPLEXARCHITECTURES_CARREPAIREXPLORER_H
 #define SIMPLEXARCHITECTURES_CARREPAIREXPLORER_H
@@ -21,8 +22,11 @@ struct CarRepairExplorer {
   Storage& mStorage;
   CarActionSequenceTemplate mTemplate;
   ActionSequenceSimulator mSimulator;
+  Number mBloating = 0.5;
+  std::vector<std::size_t> mBloatingDimensions = {0,1};
 
-  bool findRepairSequence(LocPtr initialLocation, const hypro::Condition<Number>& initialBox);
+
+  bool findRepairSequence(LocPtr initialLocation, const Point initialState);
 
  private:
   bool semiExhaustiveSearch(LocPtr initialLocation, const hypro::Condition<Number>& initialBox);
