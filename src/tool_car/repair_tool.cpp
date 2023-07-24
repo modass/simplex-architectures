@@ -40,6 +40,7 @@
 #include "training/CarTraining.h"
 
 #include "simulation/CarRepairExplorer.h"
+#include "utility/StateActionMap.h"
 
 #include "../../racetracks/simpleL/bad_states.h"
 #include "../../racetracks/simpleL/playground.h"
@@ -234,8 +235,10 @@ int main( int argc, char* argv[] ) {
 //    storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
 //  }
 
+    auto stateActionMap = StateActionMap<Box, hypro::Label>();
+    auto carRepairExplorer = CarRepairExplorer(theta_discretization, bcMaxTurn, automaton, simAutomaton, settings, storage, stateActionMap);
 
-    auto carRepairExplorer = CarRepairExplorer(theta_discretization, bcMaxTurn, automaton, simAutomaton, settings, storage);
+
 
     // Create initial state for testing
     Point state = Point{40,22.5, 0, 0,bcVelocity,0};
@@ -250,7 +253,13 @@ int main( int argc, char* argv[] ) {
     auto found2 = carRepairExplorer.findRepairSequence(initialLoc2, state2);
     spdlog::info("Repair sequence found: "+std::to_string(found2));
 
+    auto action = stateActionMap.getAction(initialLoc2->getName(), state2);
 
+    if(action.has_value()) {
+        spdlog::info("Action:" + action.value().getName());
+    } else {
+        spdlog::info("Action not found.");
+    }
     //    storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
 
 }

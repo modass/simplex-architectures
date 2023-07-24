@@ -11,11 +11,16 @@ bool CarRepairExplorer::findRepairSequence( LocPtr initialLocation, const Point 
   auto success = semiExhaustiveSearch(initialLocation, initialBox);
 
   if(success) {
+    auto stateActionPairs = mSimulator.getStateActionPairs();
+    for (const auto& sap: stateActionPairs) {
+      spdlog::info(sap.first.first->getName());
+      mStateActionMap.add(sap.first.first->getName(), sap.first.second, sap.second);
+    }
+
     auto safeStates = mSimulator.getReachStates();
     for (const auto& s : safeStates) {
       mStorage.add(s.first->getName(), s.second);
     }
-    //TODO: Extend base controller
   }
 
   return success;
