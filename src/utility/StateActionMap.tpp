@@ -21,7 +21,7 @@ namespace simplexArchitectures {
 
     template<typename ValueSet, typename Action>
     void StateActionMap<ValueSet, Action>::add(const Location &location, const ValueSet &values, const Action &action) {
-
+        mValuations[&location].push_back({values, action});
     }
 
 } // namespace
