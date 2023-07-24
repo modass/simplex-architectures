@@ -214,6 +214,7 @@ int main( int argc, char* argv[] ) {
   storagesettings.filter = hypro::Condition<Number>( constraints, constants );
 
   auto             storage = Storage( storagefilename, storagesettings );
+  auto stateActionMap = StateActionMap<Box, hypro::Label>();
 
 //  if( extensiveInitialTraining ) {
     size_t segment_id = 0;
@@ -227,6 +228,7 @@ int main( int argc, char* argv[] ) {
         for (const auto& l : s){
           auto box = Representation( l.second.getMatrix(), l.second.getVector() );
           storage.add(l.first->getName(), box);
+          stateActionMap.add(l.first->getName(), box, hypro::Label("stop"));
         }
     }
     spdlog::info("training done");
@@ -235,7 +237,7 @@ int main( int argc, char* argv[] ) {
 //    storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
 //  }
 
-    auto stateActionMap = StateActionMap<Box, hypro::Label>();
+
     auto carRepairExplorer = CarRepairExplorer(theta_discretization, bcMaxTurn, automaton, simAutomaton, settings, storage, stateActionMap);
 
 
@@ -260,6 +262,6 @@ int main( int argc, char* argv[] ) {
     } else {
         spdlog::info("Action not found.");
     }
-    //    storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
+//        storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
 
 }

@@ -13,7 +13,6 @@ bool CarRepairExplorer::findRepairSequence( LocPtr initialLocation, const Point 
   if(success) {
     auto stateActionPairs = mSimulator.getStateActionPairs();
     for (const auto& sap: stateActionPairs) {
-      spdlog::info(sap.first.first->getName());
       mStateActionMap.add(sap.first.first->getName(), sap.first.second, sap.second);
     }
 
