@@ -5,8 +5,9 @@
 #include "CarRepairExplorer.h"
 
 namespace simplexArchitectures {
-bool CarRepairExplorer::findRepairSequence( LocPtr initialLocation, const hypro::Condition<Number>& initialBox ) {
+bool CarRepairExplorer::findRepairSequence( LocPtr initialLocation, const Point initialState ) {
 
+  auto initialBox = hypro::Condition<Number>{widenSample(initialState, mBloating, mBloatingDimensions)};
   auto success = semiExhaustiveSearch(initialLocation, initialBox);
 
   if(success) {
