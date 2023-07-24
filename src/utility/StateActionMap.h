@@ -11,6 +11,8 @@ namespace simplexArchitectures {
 
     template<typename ValueSet, typename Action>
     struct ValueActionPair {
+        ValueActionPair(ValueSet v, Action a): values(v), action(a){};
+
         ValueSet values;
         Action action;
     };
@@ -26,18 +28,18 @@ namespace simplexArchitectures {
          * @param valuation The valuation, represented as a point
          * @return An optional either containing an action in case of success or nothing in case no action has been stored for the location-valuation pair
          */
-        std::optional<Action> getAction(const Location &location, const Point &valuation) const;
+        std::optional<Action> getAction(std::string locationName, const Point &valuation) const;
 
         /**
          * Add information to the mapping
-         * @param location The location
+         * @param locationName The location
          * @param values The set of valuation
          * @param action The targeted action for this state set
          */
-        void add(const Location &location, const ValueSet &values, const Action &action);
+        void add(std::string locationName, const ValueSet &values, const Action &action);
 
     protected:
-        std::map<Location *, std::vector<VAPair>> mValuations; ///< stores all information
+        std::map<std::string, std::vector<VAPair>> mValuations; ///< stores all information
     };
 
 } // namespace

@@ -18,7 +18,7 @@ LocPtr convertCtrlToLocation( const Point& in, const Automaton& automaton, LocPt
   // Simple approach: string-comparison
   // 1 find all locations for which the theta-component matches, should be |delta_discretization| many
   std::string theta_substring =
-      lastLocation->getName().substr( lastLocation->getName().find( "theta_" ), std::string::npos );
+      lastLocation->getName().substr( lastLocation->getName().find( "theta-" ), std::string::npos );
   std::vector<LocPtr> candidates;
   for ( const auto* lptr : automaton.getLocations() ) {
     if ( lptr->getName().find( theta_substring ) != std::string::npos ) {
@@ -27,7 +27,7 @@ LocPtr convertCtrlToLocation( const Point& in, const Automaton& automaton, LocPt
   }
   // 2 select the candidate with the correct delta-bucket
   std::size_t delta_bucket_index = getDeltaBucket( in[0], delta_ranges, delta_discretization );
-  std::string delta_substring    = "delta_" + std::to_string( delta_bucket_index );
+  std::string delta_substring    = "delta-" + std::to_string( delta_bucket_index );
   for ( const auto* lptr : candidates ) {
     if ( lptr->getName().find( delta_substring ) != std::string::npos ) {
       return lptr;
@@ -41,7 +41,7 @@ LocPtr convertCtrlToLocationSimple( double theta, const Automaton& automaton, st
   LocPtr res = nullptr;
 
   std::size_t theta_bucket_index = getThetaBucket( theta, theta_discretization );
-  std::string theta_substring    = "theta_" + std::to_string( theta_bucket_index );
+  std::string theta_substring    = "theta-" + std::to_string( theta_bucket_index );
   for ( const auto* lptr : automaton.getLocations() ) {
     if ( lptr->getName().find( theta_substring ) != std::string::npos ) {
       return lptr;
@@ -133,6 +133,17 @@ std::size_t getYBucket( Number y, double y_min, double y_max, double y_interval_
 double getRepresentativeForThetaBucket( std::size_t theta_bucket, std::size_t discretization ) {
   double theta_increment = ( 2 * M_PI ) / double( discretization );
   return 0.5 * theta_increment + ( double( theta_bucket ) * theta_increment );
+}
+std::size_t getThetaBucketForLocation(LocPtr location, std::size_t theta_discretization ) {
+  auto name = location->getName();
+
+  for (size_t t = 0; t<theta_discretization; ++t) {
+    std::string theta_substring    = "theta-" + std::to_string( t )+"_";
+    if ( name.find( theta_substring ) != std::string::npos ) {
+      return t;
+    }
+  }
+  throw std::logic_error( "Value out of range" );
 }
 
 } // namespace

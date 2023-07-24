@@ -444,14 +444,14 @@ int main( int argc, char* argv[] ) {
     spdlog::trace( "Start location update." );
     // auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
     // spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
-    const std::regex oldSegmentZoneRegex( "segment_([[:digit:]]+)_zone_([[:digit:]]+)_warning_(L|C|R)([[:digit:]]+)$" );
+    const std::regex oldSegmentZoneRegex( "segment-([[:digit:]]+)-zone-([[:digit:]]+)_warning-(L|C|R)([[:digit:]]+)$" );
     std::smatch      matches;
     const std::string tmp( l->getName() );
     std::regex_search( tmp, matches, oldSegmentZoneRegex );
     std::string oldSegmentZoneSubstring = matches[0];
 
     auto        thetaBucket  = getThetaBucket( p[0], theta_discretization );
-    std::string locationName = "theta_" + std::to_string( thetaBucket ) + "_" + oldSegmentZoneSubstring;
+    std::string locationName = "theta-" + std::to_string( thetaBucket ) + "_" + oldSegmentZoneSubstring;
     LocPtr newLocation = automaton.getLocation( locationName );  // this should use a (cashed) hash map for efficiency
 
     /*
@@ -465,7 +465,20 @@ int main( int argc, char* argv[] ) {
     }
      */
     if(newLocation == nullptr) {
-      throw std::logic_error("New location not found");
+      auto ls = automaton.getLocations();
+      spdlog::trace("Number of locations:" + std::to_string(ls.size()));
+      for (const auto* l : ls) {
+        if (l->getName() == locationName){
+          spdlog::trace("Location " + locationName + " found.");
+          break;
+        }
+      }
+      if ( automaton.getLocation( locationName ) == nullptr) {
+        spdlog::trace("Still not there");
+      } else {
+        spdlog::trace("Now it exists");
+      }
+      throw std::logic_error("New location (" + locationName + ") not found");
     }
     spdlog::trace("Location update complete.");
     return newLocation;

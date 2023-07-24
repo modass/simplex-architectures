@@ -42,6 +42,8 @@ template <typename Location>
 std::vector<Location*> getLocationForTheta( Number theta, std::size_t discretization,
                                             const std::vector<Location*>& in );
 
+std::size_t getThetaBucketForLocation(LocPtr location, std::size_t theta_discretization);
+
 } // namespace
 
 #include "ctrlConversion.tpp"
