@@ -14,6 +14,7 @@ add_library(SimplexArchitectures
         controller/RLController.cpp
         controller/PurePursuitController.cpp
         controller/RandomCarController.cpp
+        controller/StateActionMapController.cpp
         utility/RoadSegment.cpp
         )
 

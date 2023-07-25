@@ -23,6 +23,7 @@
 #include "controller/BicycleBaseController.h"
 #include "controller/PurePursuitController.h"
 #include "controller/RandomCarController.h"
+#include "controller/StateActionMapController.h"
 #include "ctrlConversion.h"
 #include "model_generation/generateCarModel.h"
 #include "model_generation/generateCarBaseController.h"
@@ -69,13 +70,28 @@ static const std::vector<std::size_t> interesting_dimensions{ x, y, timer };
 // TODO
 static const std::vector<std::size_t> controller_dimensions{ theta, v };
 
+
+Point executeWithLapCount( Executor<Automaton>& executor, const Point& advControllerInput, size_t& lapCounter,
+                           const RaceTrack& racetrack ) {
+  auto old_pos_x = executor.mLastState[0];
+  auto old_pos_y = executor.mLastState[1];
+  auto new_pos   = executor.execute( advControllerInput );
+  auto new_pos_x = new_pos[0];
+  if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
+       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) {
+    lapCounter++;
+    spdlog::info( "Lap {}", lapCounter );
+  }
+  return new_pos;
+}
+
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t iterations{ 0 };
+  std::size_t iterations{ 100 };
   std::size_t iteration_count{ 0 };
   std::size_t maxJumps             = 50;
   std::size_t theta_discretization = 36;
-  Number      widening    = 1.0;
+  Number      widening    = 0.5;
 
   RaceTrack track;
   track.playground   = createPlayground<Number>();
@@ -108,6 +124,7 @@ int main( int argc, char* argv[] ) {
   double                    relativeWarningBorderWidth{ 0.1 };
   std::string               storagefilename{ "storage_car_repair" };
 
+  spdlog::set_level( spdlog::level::debug );
 
   hypro::ReachabilitySettings reachSettings;
   auto carModel          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity );
@@ -129,6 +146,24 @@ int main( int argc, char* argv[] ) {
     carModel.setInitialStates( initialStates );
   }
 
+  auto carModelSimulator          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity, false );
+  carModelSimulator.setGlobalBadStates( track.createSafetySpecification() );
+  // determine correct starting location in two steps: (i) chose correct theta-bucket, (ii) modify delta_bucket to match
+  // control output
+  {
+    auto startingLocationCandidates =
+        getLocationForTheta( initialTheta, theta_discretization, carModelSimulator.getLocations() );
+    if ( startingLocationCandidates.size() != 1 ) {
+      throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
+    }
+    auto* startingLocation = startingLocationCandidates.front();
+
+    typename decltype( carModelSimulator )::locationConditionMap initialStates;
+    initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialCarModelValuations ) ) );
+    carModelSimulator.setInitialStates( initialStates );
+  }
+
+
 
   // spec
   auto specAtm = simplexArchitectures::generateCarSpecification<hypro::HybridAutomaton<Number>>(theta_discretization, relativeWarningBorderWidth, maxIncursionTime, track.roadSegments);
@@ -143,37 +178,24 @@ int main( int argc, char* argv[] ) {
   initialStatesSpec.emplace( std::make_pair( startingLocationSpec, hypro::conditionFromIntervals( initialValuationsSpec ) ) );
   specAtm.setInitialStates( initialStatesSpec );
 
-  // bc
-  auto bc = simplexArchitectures::generateCarBaseController<hypro::HybridAutomaton<Number>>( theta_discretization, bcMaxTurn, bcStopZoneWidth,
-                                                                                             bcBorderAngle, track.roadSegments, bcVelocity );
-  auto& bcAtm = bc.mAutomaton;
-
-  IV initialValuationsBC{ std::begin( initialValuations ), std::next( std::begin( initialValuations ), 2 ) };
-
-  auto locCandidates = getLocationsForState( initialCarState, bcAtm );
-  if ( locCandidates.size() != 1 ) {
-    throw std::logic_error( "Something went wrong in the design of the BC." );
-  }
-  auto startingLocationBC = locCandidates.front();
-
-  hypro::HybridAutomaton<Number>::locationConditionMap initialStatesBC;
-  initialStatesBC.emplace( std::make_pair( startingLocationBC, hypro::conditionFromIntervals( initialValuationsBC ) ) );
-  bcAtm.setInitialStates( initialStatesBC );
-
-  // Automata compostion:
-  auto                                                         mainLocations = carModel.getLocations();
-  auto                                                         variables     = carModel.getVariables();
-  std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
-  for ( const auto& var : variables ) {
-    variableMap[var] = mainLocations;
-  }
+//  // Automata compostion:
+//  auto                                                         mainLocations = carModel.getLocations();
+//  auto                                                         variables     = carModel.getVariables();
+//  std::map<std::string, std::vector<hypro::Location<Number>*>> variableMap;
+//  for ( const auto& var : variables ) {
+//    variableMap[var] = mainLocations;
+//  }
 
 
-  hypro::HybridAutomaton<Number> carModel2(carModel);
-  hypro::HybridAutomaton<Number> specAtm2(specAtm);
+  hypro::HybridAutomaton<Number> carModelTrace(carModel);
+  hypro::HybridAutomaton<Number> specAtmTrace(specAtm);
+  hypro::HybridAutomaton<Number> specAtmSimulator(specAtm);
+
 
   Automaton automaton;
-  Automaton simAutomaton;
+  Automaton traceAutomaton;
+  Automaton executorAutomaton;
+  Automaton simulatorAutomaton;
 
   // Automata compostion:
   automaton.addAutomaton( std::move( carModel ) );
@@ -182,12 +204,36 @@ int main( int argc, char* argv[] ) {
   automaton.makeComponentMaster( 0 );
   automaton.makeComponentMasterForVariable(1, "timer");
 
-  simAutomaton.addAutomaton( std::move( carModel2 ) );
-  simAutomaton.addAutomaton(std::move(specAtm2));
+  traceAutomaton.addAutomaton( std::move( carModelTrace ) );
+  traceAutomaton.addAutomaton(std::move( specAtmTrace ));
   // the car model dictates all dynamics
-  simAutomaton.makeComponentMaster( 0 );
-  simAutomaton.makeComponentMasterForVariable(1, "timer");
-  simAutomaton.setLazy(false);
+  traceAutomaton.makeComponentMaster( 0 );
+  traceAutomaton.makeComponentMasterForVariable(1, "timer");
+  traceAutomaton.setLazy(false);
+
+  // create model for execution: includes locations for all theta buckets, but only stop transitions
+  // that do not change theta and reduce the speed to zero.
+  // This should terminate the simulation after the first jump with finding a fixed point.
+  {
+    auto tmp = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity, false );
+    auto startingLocationCandidates = getLocationForTheta( initialTheta, theta_discretization, tmp.getLocations() );
+    if ( startingLocationCandidates.size() != 1 ) {
+      throw std::logic_error( "Something went wrong during the starting location detection for the car model." );
+    }
+    auto startingLocation = startingLocationCandidates.front();
+
+    decltype( tmp )::locationConditionMap initialStates;
+    initialStates.emplace( std::make_pair( startingLocation, hypro::conditionFromIntervals( initialValuations ) ) );
+    tmp.setInitialStates( initialStates );
+
+    // initialize simulation automaton
+    executorAutomaton.addAutomaton( std::move( tmp ) );
+
+  }
+
+  simulatorAutomaton.addAutomaton(std::move(carModelSimulator));
+  simulatorAutomaton.addAutomaton(std::move(specAtmSimulator));
+
 
   // reachability analysis settings, here only used for simulation
   auto settings                                                   = hypro::convert( reachSettings );
@@ -219,8 +265,7 @@ int main( int argc, char* argv[] ) {
 //  if( extensiveInitialTraining ) {
     size_t segment_id = 0;
     spdlog::info("# road segments: {}", track.roadSegments.size());
-//    for(auto segment : track.roadSegments) {
-    auto segment = track.roadSegments[0];
+    for(auto segment : track.roadSegments) {
     spdlog::info("Creating samples for segment {}", segment_id);
     auto trainingStates = generateTrainingSets(segment, segment_id, 2.0, theta_discretization, 2, automaton, bcVelocity, false);
     spdlog::info("{} samples generated; insert into storage", trainingStates.size());
@@ -233,35 +278,240 @@ int main( int argc, char* argv[] ) {
     }
     spdlog::info("training done");
     segment_id++;
-//    }
+    }
 //    storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
 //  }
 
 
-    auto carRepairExplorer = CarRepairExplorer(theta_discretization, bcMaxTurn, automaton, simAutomaton, settings, storage, stateActionMap);
+    // set location-update functions
+    auto updateFunctionExecutor = [&theta_discretization, &executorAutomaton]( Point p, LocPtr l ) -> LocPtr {
+      // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
+      // for now hardcode 0 (theta in ctrl-output)
+      auto candidates = getLocationForTheta( p[0], theta_discretization, executorAutomaton.getLocations() );
+      if ( candidates.size() > 2 || candidates.empty() ) {
+        std::cout << "Candidates:\n";
+        for ( const auto* candidate : candidates ) {
+          std::cout << candidate->getName() << "\n";
+        }
+        std::cout << std::flush;
+        throw std::logic_error( "Number of control-location candidates (" + std::to_string( candidates.size() ) +
+                                ") is invalid." );
+      }
+      return candidates.front();
+
+    };
+    auto updateFunctionSimulator = [&theta_discretization, &simulatorAutomaton]( Point p, LocPtr l ) -> LocPtr {
+      // TODO to make this more generic, we should keep a mapping from controller-output to actual state-space dimensions,
+      spdlog::trace( "Start location update." );
+      // auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
+      // spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
+      const std::regex oldSegmentZoneRegex( "warning-(L|C|R)([[:digit:]]+)$" );
+      std::smatch      matches;
+      const std::string tmp( l->getName() );
+      std::regex_search( tmp, matches, oldSegmentZoneRegex );
+      std::string oldSegmentZoneSubstring = matches[0];
+
+      auto        thetaBucket  = getThetaBucket( p[0], theta_discretization );
+      std::string locationName = "theta-" + std::to_string( thetaBucket ) + "_" + oldSegmentZoneSubstring;
+      LocPtr newLocation = simulatorAutomaton.getLocation( locationName );  // this should use a (cashed) hash map for efficiency
+
+      /*
+      LocPtr newLocation = nullptr;
+      for(const auto* candidate : candidates) {
+        if(candidate->getName().find(oldSegmentZoneSubstring) != std::string::npos) {
+          //spdlog::trace("Found new location candidate: {}", candidate->getName());
+          newLocation = candidate;
+          break;
+        }
+      }
+       */
+      if(newLocation == nullptr) {
+        auto ls = simulatorAutomaton.getLocations();
+        spdlog::trace("Number of locations:" + std::to_string(ls.size()));
+        for (const auto* l : ls) {
+          if (l->getName() == locationName){
+            spdlog::trace("Location " + locationName + " found.");
+            break;
+          }
+        }
+        if ( simulatorAutomaton.getLocation( locationName ) == nullptr) {
+          spdlog::trace("Still not there");
+        } else {
+          spdlog::trace("Now it exists");
+        }
+        throw std::logic_error("New location (" + locationName + ") not found");
+      }
+      spdlog::trace("Location update complete.");
+      return newLocation;
+    };
+
+    // the executor runs on the car model only
+    assert( executorAutomaton.getInitialStates().size() == 1 );
+    Executor executor{ executorAutomaton, executorAutomaton.getInitialStates().begin()->first, initialCarModelState };
+    executor.mSettings          = settings;
+    executor.mExecutionSettings = ExecutionSettings{ 3, { theta, v } };
+    executor.mPlot              = false;
+    executor.mLocationUpdate    = updateFunctionExecutor;
+    executor.mCycleTime = cycleTime;
+
+    // monitor/simulator, runs on the car model
+    Simulator sim{ simulatorAutomaton, settings, storage, controller_dimensions };
+    sim.mLocationUpdate = updateFunctionSimulator;
+    sim.mCycleTimeDimension = tick;
+    sim.mCycleTime = cycleTime;
+    sim.mObservationDimensions = std::vector<Eigen::Index>({x,y});
+    // initialize simulator
+    sim.mLastStates.emplace( simulatorAutomaton.getInitialStates().begin()->first, std::set<Point>{ initialState } );
 
 
+    // ===== Advanced controller ======
 
-    // Create initial state for testing
-    Point state = Point{40,22.5, 0, 0,bcVelocity,0};
-    auto initialLoc = automaton.getLocation("theta-16_warning-C0");
+    auto purePursuitCtrl                 = new PurePursuitController(acVelocity, wheelbase, acLookahead, acScaling, acMaxAngleChange);
+    purePursuitCtrl->track               = track;
+    purePursuitCtrl->thetaDiscretization = theta_discretization;
+    purePursuitCtrl->cycleTime           = cycleTime;
+    purePursuitCtrl->lastWaypoint        = purePursuitCtrl->track.waypoints.begin();
+    purePursuitCtrl->currentWaypoint     = std::next( purePursuitCtrl->lastWaypoint );
 
-    auto found = carRepairExplorer.findRepairSequence(initialLoc, state);
-    spdlog::info("Repair sequence found: "+std::to_string(found));
+    auto randomCtrl = new RandomCarController(acVelocity, bcMaxTurn, theta_discretization);
 
-    Point state2 = Point{40,20, 0, 0,bcVelocity,0};
-    auto initialLoc2 = automaton.getLocation("theta-15_warning-C0");
+    AbstractController<Point, Point>* advCtrl = purePursuitCtrl;
 
-    auto found2 = carRepairExplorer.findRepairSequence(initialLoc2, state2);
-    spdlog::info("Repair sequence found: "+std::to_string(found2));
+    // use first controller output to determine the starting location
+    Point ctrlInput = advCtrl->generateInput( initialCarState );
 
-    auto action = stateActionMap.getAction(initialLoc2->getName(), state2);
+    // ===== Base controller ======
 
-    if(action.has_value()) {
-        spdlog::info("Action:" + action.value().getName());
-    } else {
-        spdlog::info("Action not found.");
+    auto carRepairExplorer = CarRepairExplorer(theta_discretization, bcMaxTurn, automaton, traceAutomaton, settings, storage, stateActionMap);
+    auto bc = StateActionMapController(bcVelocity, theta_discretization, stateActionMap, automaton);
+
+
+    // ================ MAIN LOOP ================
+
+    // for statistics: record in which iteration the base controller was needed
+    std::vector<std::vector<bool>> baseControllerInvocations( 1 );
+    std::vector<std::vector<bool>> computeAdaptation( 1 );
+    std::vector<std::vector<Point>> positionHistory( 1 );
+    std::size_t                    lapCounter = 0;
+    // main loop which alternatingly invokes the controller and if necessary the analysis (training phase) for a bounded
+    // number of iterations
+    while ( iteration_count++ < iterations ) {
+        spdlog::info( "Iteration {}", iteration_count );
+        // get AC Controller input
+        Point advControllerInput = advCtrl->generateInput( executor.mLastState );
+
+        // 1 simulation advanced controller, starting from initialvalue & location
+        {
+          std::stringstream s;
+          s << advControllerInput;
+          spdlog::info( "Start advanced controller simulation with controller output {}", s.str() );
+        }
+        hypro::TRIBOOL advControllerSafe = sim.isSafe( advControllerInput );
+        bool           advControllerUsed = true;
+        bool           trainingUsed      = false;
+
+
+        if ( advControllerSafe == hypro::TRIBOOL::TRUE ) {
+          {
+            std::stringstream ss;
+            ss << advControllerInput;
+            spdlog::debug( "Advanced controller is safe and traces end in known safe area, run with output {}", ss.str() );
+          }
+          executeWithLapCount( executor, advControllerInput, lapCounter, track );
+          sim.update( advControllerInput, executor.mLastState );
+          if ( baseControllerInvocations.size() <= lapCounter ) {
+            baseControllerInvocations.emplace_back( std::vector<bool>{} );
+          }
+          baseControllerInvocations[lapCounter].push_back( false );
+          if ( computeAdaptation.size() <= lapCounter ) {
+            computeAdaptation.emplace_back( std::vector<bool>{} );
+          }
+          computeAdaptation[lapCounter].push_back( false );
+        } else if ( advControllerSafe == hypro::TRIBOOL::FALSE ) {
+          Point bcInput = bc.generateInput( executor.mLastState );
+          {
+            std::stringstream ss;
+            ss << bcInput;
+            spdlog::debug( "Advanced controller is unsafe, use base controller with output {}", ss.str() );
+          }
+          executeWithLapCount( executor, bcInput, lapCounter, track );
+          sim.update( bcInput, executor.mLastState );
+          advControllerUsed = false;
+          if ( baseControllerInvocations.size() <= lapCounter ) {
+            baseControllerInvocations.emplace_back( std::vector<bool>{} );
+          }
+          baseControllerInvocations[lapCounter].push_back( true );
+          if ( computeAdaptation.size() <= lapCounter ) {
+            computeAdaptation.emplace_back( std::vector<bool>{} );
+          }
+          computeAdaptation[lapCounter].push_back( false );
+        } else {
+          spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
+          bool allSafe = false;
+
+            spdlog::info( "Start training for {} locations", sim.unknownSamples.size() );
+            trainingUsed = true;
+            allSafe      = true;
+            for ( const auto& [loc, setVector] : sim.unknownSamples ) {
+              for ( const auto& set : setVector ) {
+                locationConditionMap initialConfigurations{};
+                auto                 setIntervals = set.intervals();
+//                setIntervals[0].bloat_by( widening );
+//                setIntervals[1].bloat_by( widening );
+                auto safe = carRepairExplorer.findRepairSequence(loc, hypro::Condition( setIntervals ));
+                {
+                  // TODO remove for performance reasons
+                  auto tmp = Representation(setIntervals);
+                  spdlog::debug( "Training result for location {} and set {}: {}", loc->getName(), tmp, safe );
+                }
+                allSafe = allSafe && safe;
+              }
+            }
+
+
+          if ( !allSafe ) {
+            Point bcInput = bc.generateInput( executor.mLastState );
+            {
+              std::stringstream ss;
+              ss << bcInput;
+              spdlog::debug( "Not all sets were safe (unbounded time), run base controller with output {}", ss.str() );
+            }
+            executeWithLapCount( executor, bcInput, lapCounter, track );
+            sim.update( bcInput, executor.mLastState );
+            advControllerUsed = false;
+            if ( computeAdaptation.size() <= lapCounter ) {
+              computeAdaptation.emplace_back( std::vector<bool>{} );
+            }
+            computeAdaptation[lapCounter].push_back( false );
+            if ( baseControllerInvocations.size() <= lapCounter ) {
+              baseControllerInvocations.emplace_back( std::vector<bool>{} );
+            }
+            baseControllerInvocations[lapCounter].push_back( true );
+          } else {
+            {
+              std::stringstream ss;
+              ss << advControllerInput;
+              spdlog::debug( "All sets were safe (unbounded time), run advanced controller with output {}", ss.str() );
+            }
+            advControllerUsed = true;
+            executeWithLapCount( executor, advControllerInput, lapCounter, track );
+            sim.update( advControllerInput, executor.mLastState );
+            if ( computeAdaptation.size() <= lapCounter ) {
+              computeAdaptation.emplace_back( std::vector<bool>{} );
+            }
+            computeAdaptation[lapCounter].push_back( true );
+            if ( baseControllerInvocations.size() <= lapCounter ) {
+              baseControllerInvocations.emplace_back( std::vector<bool>{} );
+            }
+            baseControllerInvocations[lapCounter].push_back( false );
+          }
+        }
+
+        if ( positionHistory.size() <= lapCounter ) {
+          positionHistory.emplace_back( std::vector<Point>{} );
+        }
+        positionHistory[lapCounter].push_back( executor.mLastState.projectOn({x,y}) );
+
+
     }
-//        storage.plotCombined( "storage_post_initial_training_combined", true ); //TODO Causes occasional segfaults
-
 }

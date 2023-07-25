@@ -30,6 +30,7 @@ struct CarRepairExplorer {
 
 
   bool findRepairSequence(LocPtr initialLocation, const Point initialState);
+  bool findRepairSequence(LocPtr initialLocation, const hypro::Condition<Number>& initialBox);
 
  private:
   bool semiExhaustiveSearch(LocPtr initialLocation, const hypro::Condition<Number>& initialBox);
