@@ -87,11 +87,11 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t iterations{ 100 };
+  std::size_t iterations{ 500 };
   std::size_t iteration_count{ 0 };
   std::size_t maxJumps             = 50;
   std::size_t theta_discretization = 36;
-  Number      widening    = 0.5;
+  Number      widening    = 0.25;
 
   RaceTrack track;
   track.playground   = createPlayground<Number>();
@@ -125,6 +125,13 @@ int main( int argc, char* argv[] ) {
   std::string               storagefilename{ "storage_car_repair" };
 
   spdlog::set_level( spdlog::level::debug );
+
+  auto& plt                       = hypro::Plotter<Number>::getInstance();
+  plt.rSettings().overwriteFiles  = false;
+  plt.rSettings().resolution      = std::pair<std::size_t, std::size_t>( 3000, 2000 );
+  plt.rSettings().keepAspectRatio = true;
+  plt.rSettings().plain           = true;
+
 
   hypro::ReachabilitySettings reachSettings;
   auto carModel          = modelGenerator::generateCarModel( theta_discretization, cycleTime, bcVelocity );
@@ -456,8 +463,8 @@ int main( int argc, char* argv[] ) {
               for ( const auto& set : setVector ) {
                 locationConditionMap initialConfigurations{};
                 auto                 setIntervals = set.intervals();
-//                setIntervals[0].bloat_by( widening );
-//                setIntervals[1].bloat_by( widening );
+                setIntervals[0].bloat_by( widening );
+                setIntervals[1].bloat_by( widening );
                 auto safe = carRepairExplorer.findRepairSequence(loc, hypro::Condition( setIntervals ));
                 {
                   // TODO remove for performance reasons
@@ -511,7 +518,60 @@ int main( int argc, char* argv[] ) {
           positionHistory.emplace_back( std::vector<Point>{} );
         }
         positionHistory[lapCounter].push_back( executor.mLastState.projectOn({x,y}) );
-
-
     }
+
+
+    // ==================== End of execution statistics and plots =================
+
+    for ( int i = 0; i < baseControllerInvocations.size(); ++i ) {
+        std::size_t numberTrainings = std::count_if( std::begin( computeAdaptation[i] ), std::end( computeAdaptation[i] ),
+                                                     []( bool val ) { return val; } );
+        std::size_t numberBCInvocations =
+            std::count_if( std::begin( baseControllerInvocations[i] ), std::end( baseControllerInvocations[i] ),
+                           []( bool val ) { return val; } );
+        spdlog::info( "Lap {} required {} iterations with {} BC-Invocations and {} successful trainings.", i,
+                      baseControllerInvocations[i].size(), numberBCInvocations, numberTrainings );
+    }
+    // the training data is automatically stored in case the trainer runs out of scope
+    storage.plotCombined( "storage_post_execution_combined", false );
+    //  auto& plt = hypro::Plotter<Number>::getInstance();
+    plt.rSettings().keepAspectRatio = true;
+    plt.rSettings().axes = false;
+    plt.rSettings().grid = false;
+    plt.rSettings().xPlotInterval   = carl::Interval<double>( track.playground.intervals()[0].lower() - 1.5,
+                                                            track.playground.intervals()[0].upper() + 1.5 );
+    plt.rSettings().yPlotInterval   = carl::Interval<double>( track.playground.intervals()[1].lower() - 1.5,
+                                                            track.playground.intervals()[1].upper() + 1.5 );
+    auto car                        = executor.mLastState.projectOn( { 0, 1, 2 } );
+    auto color                      = hypro::plotting::orange;
+    track.addToPlotter( car, color );
+    hypro::Plotter<Number>::getInstance().plot2d( hypro::PLOTTYPE::png, false );
+
+    plt.clear();
+
+    auto lastPoint = initialState.projectOn({x,y});
+    for ( int i = 0; i < baseControllerInvocations.size(); ++i ) {
+        auto positionHistoryLap = positionHistory[i];
+        auto baseControllerInvocationsLap = baseControllerInvocations[i];
+        for (int j = 0; j < baseControllerInvocationsLap.size(); ++j) {
+          std::vector<Point> line{lastPoint, positionHistoryLap[j]};
+          if ( !baseControllerInvocationsLap[j] ) {
+            hypro::Plotter<Number>::getInstance().addPolyline(line,
+                                                               hypro::plotting::colors[hypro::plotting::green]);
+          } else {
+            hypro::Plotter<Number>::getInstance().addPolyline(line,
+                                                               hypro::plotting::colors[hypro::plotting::orange]);
+          }
+          lastPoint = positionHistoryLap[j];
+        }
+    }
+
+    track.addToPlotter( car, color );
+    plt.setFilename( "race_history" );
+    plt.plot2d( hypro::PLOTTYPE::png, true );
+
+
+    return 0;
+
+
 }
