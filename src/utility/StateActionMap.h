@@ -23,8 +23,8 @@ namespace simplexArchitectures {
     public:
 
         /**
-         * Loopup of the correct action for a given location and valuation. If not contained, returns an empty optional. If multiple actions are stored, returns the oldest one that has been stored.
-         * @param locationName The location
+         * Lookup of the correct action for a given location and valuation. If not contained, returns an empty optional. If multiple actions are stored, returns the oldest one that has been stored.
+         * @param location The location
          * @param valuation The valuation, represented as a point
          * @return An optional either containing an action in case of success or nothing in case no action has been stored for the location-valuation pair
          */
