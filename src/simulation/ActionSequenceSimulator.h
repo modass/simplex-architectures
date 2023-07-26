@@ -40,7 +40,7 @@ struct ActionSequenceSimulator {
   Automaton&                        mAutomaton;  ///< environment + specification model
   Automaton&                         mSimulationAutomaton;  ///< environment + specification model + trace //TODO This should be a deep copy of mAutomaton
   hypro::Settings                   mSettings;
-  double                            mCycleTime = 1.0;
+  double                            mCycleTime = 0.1;
   Eigen::Index                      mCycleTimeDimension = 3;
   std::vector<ReachTreeNode>        mRoots;
   std::vector<std::vector<std::pair<LocPtr, Box>>> mTimeStepNodes;

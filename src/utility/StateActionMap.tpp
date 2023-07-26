@@ -12,9 +12,9 @@ namespace simplexArchitectures {
         if (mValuations.find(locationName) != mValuations.end()) {
             for (const auto &[valuations, action]: mValuations.at(locationName)) {
               auto valuation2 = valuation.projectOn({0,1});
-                if (valuations.contains(valuation2)) {
-                    return action;
-                }
+              if (valuations.contains(valuation2)) {
+                return action;
+              }
             }
         }
         return std::nullopt;

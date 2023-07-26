@@ -568,7 +568,7 @@ int main( int argc, char* argv[] ) {
 
     track.addToPlotter( car, color );
     plt.setFilename( "race_history" );
-    plt.plot2d( hypro::PLOTTYPE::png, true );
+    plt.plot2d( hypro::PLOTTYPE::png, false );
 
 
     return 0;

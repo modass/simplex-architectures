@@ -6,6 +6,7 @@
 #define SIMPLEXARCHITECTURES_STATEACTIONMAP_H
 
 #include "../types.h"
+#include <spdlog/spdlog.h>
 
 namespace simplexArchitectures {
 
