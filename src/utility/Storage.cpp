@@ -56,7 +56,7 @@ void Storage::plot( const std::string& outfilename ) const {
                    outfilename + "_" + locationName );
     plt.setFilename( outfilename + "_" + locationName );
     plotOctree( tree, plt, true );
-    plt.plot2d( hypro::PLOTTYPE::png, true );
+    plt.plot2d( hypro::PLOTTYPE::png, false );
     plt.clear();
   }
 }
@@ -72,7 +72,7 @@ void Storage::plotCombined(const std::string& outfilename, bool writeAndClear) c
     plt.setFilename( outfilename );
     plotOctrees( mTrees, plt, true );
     if ( writeAndClear ) {
-      plt.plot2d( hypro::PLOTTYPE::png, true );
+      plt.plot2d( hypro::PLOTTYPE::png, false );
       plt.clear();
     }
   }

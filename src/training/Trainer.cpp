@@ -20,8 +20,8 @@ void Trainer::run() {
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
   settings.rStrategy().front().detectFixedPointsByCoverage        = true;
-  settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
-  settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
+  settings.rStrategy().front().detectContinuousFixedPointsLocally = false; // true
+  settings.rStrategy().front().numberSetsForContinuousCoverage    = 0;     // 2
   settings.rStrategy().front().detectZenoBehavior                 = true;
   settings.rFixedParameters().localTimeHorizon                    = mTrainingSettings.timeHorizon;
   settings.rFixedParameters().jumpDepth                           = mTrainingSettings.jumpDepth;
@@ -48,8 +48,8 @@ bool Trainer::run(hypro::Settings settings, const locationConditionMap& initialS
   // set fixedpoint detection in settings explicitly
   settings.rStrategy().front().detectJumpFixedPoints              = true;
   settings.rStrategy().front().detectFixedPointsByCoverage        = true;
-  settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
-  settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
+  settings.rStrategy().front().detectContinuousFixedPointsLocally = false; // true
+  settings.rStrategy().front().numberSetsForContinuousCoverage    = 0; // 2
   settings.rFixedParameters().globalTimeHorizon = -1;
   settings.rStrategy().front().detectZenoBehavior                 = true;
   settings.rFixedParameters().localTimeHorizon = 100;

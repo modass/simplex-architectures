@@ -388,9 +388,9 @@ int main( int argc, char* argv[] ) {
   auto settings                                                   = hypro::convert( reachSettings );
   settings.rStrategy().front().detectJumpFixedPoints              = true;
   settings.rStrategy().front().detectFixedPointsByCoverage        = false;
-  settings.rStrategy().front().detectContinuousFixedPointsLocally = true;
+  settings.rStrategy().front().detectContinuousFixedPointsLocally = false; //true
   settings.rStrategy().front().detectZenoBehavior                 = true;
-  settings.rStrategy().front().numberSetsForContinuousCoverage    = 2;
+  settings.rStrategy().front().numberSetsForContinuousCoverage    = 0;  // 2
   settings.rFixedParameters().localTimeHorizon                    = 200;
   settings.rFixedParameters().jumpDepth                           = maxJumps;
   settings.rStrategy().begin()->aggregation                       = hypro::AGG_SETTING::AGG;
