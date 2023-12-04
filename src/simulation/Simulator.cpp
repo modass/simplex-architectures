@@ -140,7 +140,7 @@ namespace simplexArchitectures {
             for ( auto& n : hypro::preorder( r ) ) {
             if ( n.isLeaf() ) {
               // I don't think we really need this check. We only consider initial sets of nodes
-              // that where reached by resetting the cLocPtrk to zero.
+              // that where reached by resetting the clock to zero.
               auto [containment, result] = n.getInitialSet().satisfiesHalfspaces( constraints, constants );
               if ( containment != hypro::CONTAINMENT::FULL ) {
                 std::stringstream ss, sss;

@@ -1,0 +1,2030 @@
+# Created by Hyst v1.6
+# Hybrid Automaton in Flow*
+
+hybrid reachability
+{
+    # Vars
+    state var x1, x2, u, spec_t1, tick
+
+    par {
+        cycle_time = 1.0
+        spec_time = 30.0     # max time between spec_low and spec_high
+        spec_low = 0.12      # if x2 <= spec_low:  init -> antecedent
+        spec_high = 0.3      # if x2 >= spec_high: antecedent -> init
+        base_ctrl_low = 0.35 # if x2 <= base_ctrl_low:  off -> on
+        base_ctrl_high = 0.7 # if x1 >= base_ctrl_high: on -> off
+        u_on = 0.0002        # if on: u = u_on else: u = 0.0
+        level_max = 0.8      # maximal filling level
+    }
+
+    setting
+    {
+        fixed steps 0.01
+        time 1000
+        remainder estimation 1e-4
+        identity precondition
+        gnuplot octagon x1,x2
+        adaptive orders { min 3, max 8 }
+        cutoff 1e-15
+        precision 53
+        output out
+        max jumps 9999999
+        print on
+    }
+
+    modes
+    {
+        closed_on_init
+        {
+            lti ode
+            {
+                x2' = -0.03649999999999998 * x2
+                x1' = 324.6753 * u
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        closed_on_antecedent
+        {
+            lti ode
+            {
+                x2' = -0.03649999999999998 * x2
+                x1' = 324.6753 * u
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        closed_on_bad
+        {
+            lti ode
+            {
+                x2' = -0.03649999999999998 * x2
+                x1' = 324.6753 * u
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        closed_off_init
+        {
+            lti ode
+            {
+                x2' = -0.03649999999999998 * x2
+                x1' = 324.6753 * u
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        closed_off_antecedent
+        {
+            lti ode
+            {
+                x2' = -0.03649999999999998 * x2
+                x1' = 324.6753 * u
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        closed_off_bad
+        {
+            lti ode
+            {
+                x2' = -0.03649999999999998 * x2
+                x1' = 324.6753 * u
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open1_on_init
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open1_on_antecedent
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        open1_on_bad
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open1_off_init
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open1_off_antecedent
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        open1_off_bad
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open2_on_init
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open2_on_antecedent
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        open2_on_bad
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open2_off_init
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open2_off_antecedent
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        open2_off_bad
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 <= 0.2   x2 >= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open3_on_init
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open3_on_antecedent
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        open3_on_bad
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open3_off_init
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 >= spec_low   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+
+        open3_off_antecedent
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 1.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   x2 <= spec_high   spec_t1 <= spec_time   tick <= cycle_time tick >= 0   spec_t1 >= 0.0
+            }
+        }
+
+        open3_off_bad
+        {
+            lti ode
+            {
+                x1' = -0.17190000000000005 * x1 + 0.1719 * x2 + 324.6753 * u
+                x2' = -0.20840000000000003 * x2 + 0.1719 * x1
+                u' = 0.0
+                spec_t1' = 0.0
+                tick' = 1.0
+            }
+            inv
+            {
+                x1 >= 0   x2 >= 0   x1 >= 0.2   x2 <= 0.2   tick <= cycle_time tick >= 0   spec_t1 = 0.0
+            }
+        }
+    }
+
+    jumps
+    {
+        closed_on_init -> open1_on_init
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        closed_on_antecedent -> open1_on_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        closed_on_bad -> open1_on_bad
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # closed_off_init -> open1_off_init  # impossible
+        # guard
+        # {
+        #     x1 >= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_antecedent -> open1_off_antecedent
+        # guard
+        # {
+        #     x1 >= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_bad -> open1_off_bad
+        # guard
+        # {
+        #     x1 >= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_on_init -> open2_on_init
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_on_antecedent -> open2_on_antecedent
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_on_bad -> open2_on_bad
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_init -> open2_off_init
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_antecedent -> open2_off_antecedent
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_bad -> open2_off_bad
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        closed_on_init -> open3_on_init
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        closed_on_antecedent -> open3_on_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        closed_on_bad -> open3_on_bad
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # closed_off_init -> open3_off_init
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_antecedent -> open3_off_antecedent
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # closed_off_bad -> open3_off_bad
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_init -> closed_on_init
+        # guard
+        # {
+        #     x1 <= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_antecedent -> closed_on_antecedent
+        # guard
+        # {
+        #     x1 <= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_bad -> closed_on_bad
+        # guard
+        # {
+        #     x1 <= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        open1_off_init -> closed_off_init
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> closed_off_antecedent
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open1_off_bad -> closed_off_bad
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # open1_on_init -> open2_on_init
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_antecedent -> open2_on_antecedent
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_bad -> open2_on_bad
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        open1_off_init -> open2_off_init
+        guard
+        {
+            x1 <= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> open2_off_antecedent
+        guard
+        {
+            x1 <= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open1_off_bad -> open2_off_bad
+        guard
+        {
+            x1 <= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # open1_on_init -> open3_on_init
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_antecedent -> open3_on_antecedent
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open1_on_bad -> open3_on_bad
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        open1_off_init -> open3_off_init
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> open3_off_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open1_off_bad -> open3_off_bad
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_init -> closed_on_init
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> closed_on_antecedent
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_bad -> closed_on_bad
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_off_init -> closed_off_init
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_off_antecedent -> closed_off_antecedent
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_off_bad -> closed_off_bad
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_init -> open3_on_init
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> open3_on_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_bad -> open3_on_bad
+        guard
+        {
+            x1 >= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # open2_off_init -> open3_off_init
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open2_off_antecedent -> open3_off_antecedent
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open2_off_bad -> open3_off_bad
+        # guard
+        # {
+        #     x1 >= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        open2_on_init -> open1_on_init
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> open1_on_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_on_bad -> open1_on_bad
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_off_init -> open1_off_init
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_off_antecedent -> open1_off_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open2_off_bad -> open1_off_bad
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # open3_on_init -> closed_on_init
+        # guard
+        # {
+        #     x1 <= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open3_on_antecedent -> closed_on_antecedent
+        # guard
+        # {
+        #     x1 <= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open3_on_bad -> closed_on_bad
+        # guard
+        # {
+        #     x1 <= 0.2   x2 <= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        open3_off_init -> closed_off_init
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> closed_off_antecedent
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_bad -> closed_off_bad
+        guard
+        {
+            x1 <= 0.2   x2 <= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        # open3_on_init -> open2_on_init
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open3_on_antecedent -> open2_on_antecedent
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        # open3_on_bad -> open2_on_bad
+        # guard
+        # {
+        #     x1 <= 0.2   x2 >= 0.2
+        # }
+        # reset
+        # {
+        # }
+        # parallelotope aggregation {}
+
+        open3_off_init -> open2_off_init
+        guard
+        {
+            x1 <= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> open2_off_antecedent
+        guard
+        {
+            x1 <= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_bad -> open2_off_bad
+        guard
+        {
+            x1 <= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_on_init -> open1_on_init
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_on_antecedent -> open1_on_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_on_bad -> open1_on_bad
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_init -> open1_off_init
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> open1_off_antecedent
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        open3_off_bad -> open1_off_bad
+        guard
+        {
+            x1 >= 0.2   x2 >= 0.2
+        }
+        reset
+        {
+        }
+        parallelotope aggregation {}
+
+        closed_on_init -> closed_off_init
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_init -> closed_on_init
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_antecedent -> closed_off_antecedent
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_antecedent -> closed_on_antecedent
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_bad -> closed_off_bad
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_bad -> closed_on_bad
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_init -> open1_off_init
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_init -> open1_on_init
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_antecedent -> open1_off_antecedent
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_antecedent -> open1_on_antecedent
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_bad -> open1_off_bad
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_bad -> open1_on_bad
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_init -> open2_off_init
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_init -> open2_on_init
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> open2_off_antecedent
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> open2_on_antecedent
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_bad -> open2_off_bad
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_bad -> open2_on_bad
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_init -> open3_off_init
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_init -> open3_on_init
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+
+        open3_on_antecedent -> open3_off_antecedent
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_antecedent -> open3_on_antecedent
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_bad -> open3_off_bad
+        guard
+        {
+            x1 >= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_bad -> open3_on_bad
+        guard
+        {
+            x1 <= base_ctrl_high   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_init -> closed_on_init
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_init -> closed_off_init
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_antecedent -> closed_on_antecedent
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_antecedent -> closed_off_antecedent
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_bad -> closed_on_bad
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_bad -> closed_off_bad
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_init -> open1_on_init
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_init -> open1_off_init
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> open1_on_antecedent
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> open1_off_antecedent
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_bad -> open1_on_bad
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_bad -> open1_off_bad
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_init -> open2_on_init
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_init -> open2_off_init
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_antecedent -> open2_on_antecedent
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_antecedent -> open2_off_antecedent
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_bad -> open2_on_bad
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_bad -> open2_off_bad
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_init -> open3_on_init
+        guard
+        {
+            # Original guard: x2 <= 0.1
+
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_init -> open3_off_init
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> open3_on_antecedent
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> open3_off_antecedent
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_bad -> open3_on_bad
+        guard
+        {
+            x2 <= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := u_on
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_bad -> open3_off_bad
+        guard
+        {
+            x2 >= base_ctrl_low   tick >= cycle_time
+        }
+        reset
+        {
+            u' := 0.0
+            tick' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_init -> closed_on_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_init -> closed_off_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_init -> open1_on_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_init -> open1_off_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_init -> open2_on_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_init -> open2_off_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_init -> open3_on_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_init -> open3_off_antecedent
+        guard
+        {
+            x2 <= spec_low
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_antecedent -> closed_on_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_antecedent -> closed_off_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_antecedent -> open1_on_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> open1_off_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> open2_on_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_antecedent -> open2_off_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_antecedent -> open3_on_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> open3_off_bad
+        guard
+        {
+            spec_t1 >= spec_time
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_on_antecedent -> closed_on_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        closed_off_antecedent -> closed_off_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_on_antecedent -> open1_on_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open1_off_antecedent -> open1_off_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_on_antecedent -> open2_on_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open2_off_antecedent -> open2_off_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_on_antecedent -> open3_on_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+
+        open3_off_antecedent -> open3_off_init
+        guard
+        {
+            x2 >= spec_high
+        }
+        reset
+        {
+            spec_t1' := 0.0
+        }
+        parallelotope aggregation {}
+    }
+
+    init
+    {
+        # open1  => x1 >= 0.2 & x2 >= 0.2
+        # open2  => x1 <= 0.2 & x2 >= 0.2
+        # open3  => x1 >= 0.2 & x2 <= 0.2
+        # closed => x1 <= 0.2 & x2 <= 0.2
+
+        # on => u = u_on
+        # off => u = 0.0
+
+        # init => spec_t1 = 0.0
+        # antecedent => spec_t1 >= 0.0 & spec_t1 <= spec_time
+        # bad => spec_t1 = 0.0
+
+        open1_on_init
+        {
+            u in [u_on, u_on]
+            spec_t1 in [0, 0]
+            tick in [0, 0]
+            x1 in [0.40, 0.4]
+            x2 in [0.3, 0.3]
+        }
+    }
+}
+
+unsafe set
+{
+    closed_on_bad {   spec_t1 >= 0.0 }
+    closed_off_bad { spec_t1 >= 0.0 }
+    open1_on_bad {    spec_t1 >= 0.0 }
+    open1_off_bad {  spec_t1 >= 0.0 }
+    open2_on_bad {    spec_t1 >= 0.0 }
+    open2_off_bad {  spec_t1 >= 0.0 }
+    open3_on_bad {    spec_t1 >= 0.0 }
+    open3_off_bad {  spec_t1 >= 0.0 }
+
+    {
+    x1 >= level_max
+    }
+    {
+    x2 >= level_max
+    }
+}

@@ -78,7 +78,8 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
   auto new_pos   = executor.execute( advControllerInput );
   auto new_pos_x = new_pos[0];
   if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
-       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) {
+//       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) { // counter clockwise
+      old_pos_x > racetrack.startFinishX && racetrack.startFinishX >= new_pos_x ) {  // clockwise
     lapCounter++;
     spdlog::info( "Lap {}", lapCounter );
   }
@@ -87,7 +88,7 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t iterations{ 500 };
+  std::size_t iterations{ 2120 };
   std::size_t iteration_count{ 0 };
   std::size_t maxJumps             = 50;
   std::size_t theta_discretization = 36;
@@ -98,7 +99,10 @@ int main( int argc, char* argv[] ) {
   track.obstacles    = createBadStates<hypro::HybridAutomaton<Number>>();
   track.roadSegments = createSegments<GeneralRoadSegment>();
   track.waypoints    = createWaypoints<Number>();
-
+  // simpleL
+  track.startFinishX     = 30.0;
+  track.startFinishYlow  = 15.0;
+  track.startFinishYhigh = 30.0;
 
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v

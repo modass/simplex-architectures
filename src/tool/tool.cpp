@@ -63,6 +63,12 @@ using Box = hypro::Box<Number>;
 static const std::vector<std::size_t> interesting_dimensions{ 0, 1, 3 };
 static const std::vector<std::size_t> controller_dimensions{ 2 };
 
+constexpr Eigen::Index                x1    = 0;
+constexpr Eigen::Index                x2    = 1;
+constexpr Eigen::Index                u     = 2;
+constexpr Eigen::Index                timer = 3;
+constexpr Eigen::Index                tick  = 4;
+
 int main( int argc, char* argv[] ) {
   // settings
   std::size_t iterations{ 5 };
@@ -167,6 +173,9 @@ int main( int argc, char* argv[] ) {
   }
   Executor executor{ automaton, initialLoc, initialValuation.value() };
   executor.mSettings = settings;
+  executor.mCycleTime = 1.0;
+  executor.mExecutionSettings = ExecutionSettings{ 4, { u } };
+  executor.mPlot = false;
   // initial trainging, if required, otherwise just load the treefile and update the local variable (trees)
   // Storagesettings will be overidden if a file with data exists
   StorageSettings  storageSettings{ interesting_dimensions, Box{ IV{ I{ 0, 1 }, I{ 0, 1 }, I{ 0, 31 } } }, 2, 4 };
@@ -185,6 +194,8 @@ int main( int argc, char* argv[] ) {
   Trainer trainer{ automaton, trainingSettings, storage };
   // monitor
   Simulator sim{ automaton, settings, storage, controller_dimensions };
+  sim.mCycleTimeDimension = tick;
+  sim.mObservationDimensions = {x1, x2}; //timer?
   sim.mLastStates.emplace( std::make_pair( executor.mLastLocation, std::set<Point>{ executor.mLastState } ) );
 
   if ( storage.size() == 0 ) {
