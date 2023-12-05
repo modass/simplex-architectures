@@ -88,6 +88,13 @@ namespace simplexArchitectures {
             }
           }
         }
+        if(unknownSamples.size() > 1) {
+          spdlog::debug("multiple unknown locations");
+          for(auto u : unknownSamples) {
+            spdlog::trace("{}", u.first->getName());
+          }
+        }
+
         return isSafe;
     }
 
@@ -98,7 +105,7 @@ namespace simplexArchitectures {
       auto safe = isSafe( ctrlInput );
 
       if ( safe == hypro::TRIBOOL::FALSE ) {
-        spdlog::warn( "Simulator updated with unsafe input ({}). Print details of the reachability analysis:", safe );
+        spdlog::warn( "Simulator updated with unsafe input ({}). Print details of the reachability analysis:", ctrlInput );
         // This might happen after the cutoff and thus be spurious.
         for ( auto& r : roots ) {
           for ( auto& n : hypro::preorder( r ) ) {

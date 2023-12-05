@@ -43,10 +43,15 @@
 #include "simulation/CarRepairExplorer.h"
 #include "utility/StateActionMap.h"
 
-#include "../../racetracks/simpleL/bad_states.h"
-#include "../../racetracks/simpleL/playground.h"
-#include "../../racetracks/simpleL/segments.h"
-#include "../../racetracks/simpleL/waypoints.h"
+//#include "../../racetracks/simpleL/bad_states.h"
+//#include "../../racetracks/simpleL/playground.h"
+//#include "../../racetracks/simpleL/segments.h"
+//#include "../../racetracks/simpleL/waypoints.h"
+
+#include "../../racetracks/austria_miniature/bad_states.h"
+#include "../../racetracks/austria_miniature/segments.h"
+#include "../../racetracks/austria_miniature/waypoints.h"
+#include "../../racetracks/austria_miniature/playground.h"
 
 /* GENERAL ASSUMPTIONS */
 // The model does *not* contain timelocks
@@ -78,8 +83,8 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
   auto new_pos   = executor.execute( advControllerInput );
   auto new_pos_x = new_pos[0];
   if ( racetrack.startFinishYlow <= old_pos_y && old_pos_y <= racetrack.startFinishYhigh &&
-//       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) { // counter clockwise
-      old_pos_x > racetrack.startFinishX && racetrack.startFinishX >= new_pos_x ) {  // clockwise
+       old_pos_x < racetrack.startFinishX && racetrack.startFinishX <= new_pos_x ) { // counter clockwise
+//      old_pos_x > racetrack.startFinishX && racetrack.startFinishX >= new_pos_x ) {  // clockwise
     lapCounter++;
     spdlog::info( "Lap {}", lapCounter );
   }
@@ -88,7 +93,7 @@ Point executeWithLapCount( Executor<Automaton>& executor, const Point& advContro
 
 int main( int argc, char* argv[] ) {
   // settings
-  std::size_t iterations{ 2120 };
+  std::size_t iterations{ 10000 };
   std::size_t iteration_count{ 0 };
   std::size_t maxJumps             = 50;
   std::size_t theta_discretization = 36;
@@ -100,9 +105,17 @@ int main( int argc, char* argv[] ) {
   track.roadSegments = createSegments<GeneralRoadSegment>();
   track.waypoints    = createWaypoints<Number>();
   // simpleL
-  track.startFinishX     = 30.0;
-  track.startFinishYlow  = 15.0;
-  track.startFinishYhigh = 30.0;
+//  track.startFinishX     = 30.0;
+//  track.startFinishYlow  = 15.0;
+//  track.startFinishYhigh = 30.0;
+
+  // austriaMini
+  track.startFinishX = 205.0;
+  track.startFinishYlow = 220.0;
+  track.startFinishYhigh = 240.0;
+
+  // gbMini
+
 
   // Hard code starting position: take first waypoint, bloat it, if wanted
   // x, y, theta, tick, v
@@ -460,7 +473,7 @@ int main( int argc, char* argv[] ) {
           spdlog::debug( "Advanced controller is safe (bounded time), but traces end in unknown safety area" );
           bool allSafe = false;
 
-            spdlog::info( "Start training for {} locations", sim.unknownSamples.size() );
+            spdlog::info( "Start repair for {} locations", sim.unknownSamples.size() );
             trainingUsed = true;
             allSafe      = true;
             for ( const auto& [loc, setVector] : sim.unknownSamples ) {
@@ -473,7 +486,7 @@ int main( int argc, char* argv[] ) {
                 {
                   // TODO remove for performance reasons
                   auto tmp = Representation(setIntervals);
-                  spdlog::debug( "Training result for location {} and set {}: {}", loc->getName(), tmp, safe );
+                  spdlog::debug( "Repair result for location {} and set {}: {}", loc->getName(), tmp, safe );
                 }
                 allSafe = allSafe && safe;
               }

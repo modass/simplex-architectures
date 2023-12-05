@@ -130,6 +130,9 @@ bool Trainer::runIteration( const hypro::Settings& settings, InitialStatesGenera
   // post processing
   if ( result != hypro::REACHABILITY_RESULT::SAFE ) {
     spdlog::debug( "System is not safe." );
+    if (result == hypro::REACHABILITY_RESULT::UNKNOWN) {
+      spdlog::debug("Reachability result was unknown.");
+    }
     return false;
   } else if ( !hasFixedPoint( roots ) ) {
     spdlog::debug( "System has no fixed point." );
