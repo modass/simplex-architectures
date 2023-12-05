@@ -192,6 +192,141 @@ CarBaseController<HybridAutomaton> generateCarBaseController( std::size_t theta_
   return result;
 }
 
+//
+//template<typename HybridAutomaton>
+//CarBaseController<HybridAutomaton> generateCarBaseController( std::size_t theta_discretization, size_t maxTurn, double stopZoneWidth,
+//                                                              double borderAngle, const std::vector<GeneralRoadSegment>& segments,
+//                                                              double velocity ) {
+//
+//  HybridAutomaton res;
+//  constexpr Eigen::Index         x     = 0;  // global position x
+//  constexpr Eigen::Index         y     = 1;  // global position y
+//  constexpr Eigen::Index         theta = 2;  // global theta heading
+//  constexpr Eigen::Index         C     = 3;  // constants
+//
+//  std::vector<std::string> variableNames{ "x", "y", "theta" };
+//  res.setVariables( variableNames );
+//
+//  const auto numberOfSegments = segments.size();
+//  std::map<std::tuple<std::size_t, std::size_t>, hypro::Location<double>*> buckets;
+//
+//  auto bcLocation = res.createLocation();
+//  bcLocation->setName( "bc");
+//  bcLocation->setInvariant(hypro::Condition<Number>::True()); //TODO needs a condition in matrix vector form
+//
+//  for ( std::size_t segmentId = 0; segmentId < numberOfSegments; ++segmentId ) {
+//    auto segment = segments[segmentId];
+//
+//    for ( std::size_t zone = 0; zone < 3; ++zone) {
+//
+//
+//      double theta_increment = ( 2 * M_PI ) / double( theta_discretization );
+//      double segmentAngle = segment.getSegmentAngle();
+//
+//
+//      double angle;
+//      hypro::Condition<Number> segmentInv;
+//      if ( zone == 1 ) {
+//        angle = segmentAngle;
+//        segmentInv = segment.getCenterZoneInvariant(stopZoneWidth);
+//      } else if ( zone == 0 ) {
+//        angle = normalizeAngle( segmentAngle - borderAngle );
+//        segmentInv = segment.getLeftZoneInvariant(stopZoneWidth);
+//      } else if ( zone == 2 ) {
+//        angle = normalizeAngle( segmentAngle + borderAngle );
+//        segmentInv = segment.getRightZoneInvariant(stopZoneWidth);
+//      }
+//
+//      auto targetThetaBucket = getThetaBucket( angle, theta_discretization );
+//
+//      double theta_min = 0.0;
+//      double theta_max = theta_increment;
+//
+//      for (size_t t = 0; t < theta_discretization; t++) {
+//
+//                auto differenceLeft = targetThetaBucket >= t ? targetThetaBucket - t : theta_discretization + targetThetaBucket - t;
+//                auto differenceRight = t >= targetThetaBucket ? t - targetThetaBucket : theta_discretization + t - targetThetaBucket;
+//
+//                auto maxStopDifference = 1; //theta_discretization/8;
+//                if (zone == 1 && (differenceLeft <= maxStopDifference || differenceRight <= maxStopDifference)) {
+//                  auto stopTrans = bcLocation->createTransition( bcLocation );
+//                  stopTrans->addLabel( hypro::Label( "stop" ) );
+//
+//                  Matrix guard_constraints      = Matrix::Zero( 2, variableNames.size() );
+//                  Vector guard_constants        = Vector::Zero( 2 );
+//                  guard_constraints( 0, theta ) = 1;
+//                  guard_constraints( 1, theta ) = -1;
+//                  guard_constants << theta_max, -theta_min;
+//
+//                  hypro::Condition<Number> guard = { guard_constraints, guard_constants };
+//                  guard.addConstraints(segmentInv); //TODO might not work: create one matrix vector representation for all constraints!
+//                  stopTrans->setGuard( guard );
+//                } else if (differenceLeft == 0) {
+//                  auto newThetaBucket = targetThetaBucket;
+//                  auto thetaChange    = bcLocation->createTransition( bcLocation );
+//                  thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+//
+//                  Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
+//                  Vector guard_constants    = Vector::Zero( 2 );
+//                  guard_constraints( 0, theta ) = 1;
+//                  guard_constraints( 1, theta ) = -1;
+//                  guard_constants << theta_max, -theta_min;
+//
+//                  hypro::Condition<Number> guard = { guard_constraints, guard_constants };
+//                  guard.addConstraints(segmentInv);
+//                  thetaChange->setGuard( guard );
+//
+//                } else if (differenceLeft <= differenceRight) {
+//                  auto turn = std::min(maxTurn, differenceLeft);
+//                  auto newThetaBucket = t + turn >= theta_discretization ? t + turn - theta_discretization : t + turn;
+//                  auto thetaChange    = bcLocation->createTransition( bcLocation );
+//                  thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+//
+//                  Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
+//                  Vector guard_constants    = Vector::Zero( 2 );
+//                  guard_constraints( 0, theta ) = 1;
+//                  guard_constraints( 1, theta ) = -1;
+//                  guard_constants << theta_max, -theta_min;
+//
+//                  hypro::Condition<Number> guard = { guard_constraints, guard_constants };
+//                  guard.addConstraints(segmentInv);
+//                  thetaChange->setGuard( guard );
+//
+//                } else if (differenceRight < differenceLeft) {
+//                  auto turn = std::min(maxTurn, differenceRight);
+//                  auto newThetaBucket = turn > t ? theta_discretization+t-turn : t - turn;
+//                  auto thetaChange    = bcLocation->createTransition( bcLocation );
+//                  thetaChange->addLabel( hypro::Label( "set_theta_" + std::to_string( newThetaBucket ) ) );
+//
+//                  Matrix guard_constraints  = Matrix::Zero( 2, variableNames.size() );
+//                  Vector guard_constants    = Vector::Zero( 2 );
+//                  guard_constraints( 0, theta ) = 1;
+//                  guard_constraints( 1, theta ) = -1;
+//                  guard_constants << theta_max, -theta_min;
+//
+//                  hypro::Condition<Number> guard = { guard_constraints, guard_constants };
+//                  guard.addConstraints(segmentInv);
+//                  thetaChange->setGuard( guard );
+//                }
+//
+//                theta_min += theta_increment;
+//                theta_max += theta_increment;
+//
+//      }
+//
+//    }
+//
+//
+//  }
+//
+//  CarBaseController<HybridAutomaton> result{velocity, maxTurn, stopZoneWidth, borderAngle, theta_discretization};
+//  result.segments = segments;
+//  result.mAutomaton = res;
+//
+//  return result;
+//}
+
+
 template<typename Location>
 void generateCrossingTransition( Location* origin, Location* target, Point borderA,
                                   Point borderB, std::size_t theta_discretization) {
