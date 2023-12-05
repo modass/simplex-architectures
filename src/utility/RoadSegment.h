@@ -37,6 +37,10 @@ struct GeneralRoadSegment {
   hypro::Condition<Number> getCenterZoneInvariant(double relativeCenterZoneWidth);
   hypro::Condition<Number> getRightZoneInvariant(double relativeCenterZoneWidth);
 
+  hypro::Condition<Number> getLeftZoneHeadingGuard( double relativeCenterZoneWidth, double thetaMin, double thetaMax );
+  hypro::Condition<Number> getCenterZoneHeadingGuard( double relativeCenterZoneWidth, double thetaMin, double thetaMax );
+  hypro::Condition<Number> getRightZoneHeadingGuard( double relativeCenterZoneWidth, double thetaMin, double thetaMax );
+
   Number getSegmentAngle() const;
   Point getStart() const;
   Point getEnd() const;
@@ -56,6 +60,7 @@ struct GeneralRoadSegment {
   Point  getWarningRightEndRight( double relativeWarningZoneWidth ) const;
 
   static hypro::Condition<Number> pointsToCondition( Point pointA, Point pointB, Point pointC, Point pointD );
+  hypro::Condition<Number> pointsAndHeadingToCondition(Point pointA, Point pointB, Point pointC, Point pointD, double thetaMin, double thetaMax);
 
   bool contains( const Point& in ) const;
 };

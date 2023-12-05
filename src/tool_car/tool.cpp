@@ -444,7 +444,8 @@ int main( int argc, char* argv[] ) {
     spdlog::trace( "Start location update." );
     // auto candidates = getLocationForTheta( p[0], theta_discretization, automaton.getLocations() );
     // spdlog::trace("Found {} locations with the correct theta bucket.", candidates.size());
-    const std::regex oldSegmentZoneRegex( "segment-([[:digit:]]+)-zone-([[:digit:]]+)_warning-(L|C|R)([[:digit:]]+)$" );
+//    const std::regex oldSegmentZoneRegex( "segment-([[:digit:]]+)-zone-([[:digit:]]+)_warning-(L|C|R)([[:digit:]]+)$" );
+    const std::regex oldSegmentZoneRegex( "bc_warning-(L|C|R)([[:digit:]]+)$" );
     std::smatch      matches;
     const std::string tmp( l->getName() );
     std::regex_search( tmp, matches, oldSegmentZoneRegex );

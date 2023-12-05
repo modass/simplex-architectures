@@ -48,9 +48,12 @@ std::vector<locationConditionMap> generateTrainingSets( GeneralRoadSegment& segm
 
   spdlog::info("creating points ({}) and headings ({}) completed", points.size(), headings.size());
 
-  auto location_postfix0 = "segment-"+std::to_string(segment_id)+"-zone-0_warning-C"+std::to_string(segment_id);
-  auto location_postfix1 = "segment-"+std::to_string(segment_id)+"-zone-1_warning-C"+std::to_string(segment_id);
-  auto location_postfix2 = "segment-"+std::to_string(segment_id)+"-zone-2_warning-C"+std::to_string(segment_id);
+//  auto location_postfix0 = "segment-"+std::to_string(segment_id)+"-zone-0_warning-C"+std::to_string(segment_id);
+//  auto location_postfix1 = "segment-"+std::to_string(segment_id)+"-zone-1_warning-C"+std::to_string(segment_id);
+//  auto location_postfix2 = "segment-"+std::to_string(segment_id)+"-zone-2_warning-C"+std::to_string(segment_id);
+  auto location_postfix0 = "bc_warning-C"+std::to_string(segment_id);
+  auto location_postfix1 = "bc_warning-C"+std::to_string(segment_id);
+  auto location_postfix2 = "bc_warning-C"+std::to_string(segment_id);
 
   auto location_postfix_noBC = "warning-C"+std::to_string(segment_id);
 
